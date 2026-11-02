@@ -212,7 +212,7 @@ export default function ElixirPortal(){
         if(s){const d=JSON.parse(s) as PortalData;if(d&&Array.isArray(d.companies)&&Array.isArray(d.users)&&Array.isArray(d.events)&&Array.isArray(d.registrations)&&Array.isArray(d.invitations)) {
           // Import previous browser-only demo state into the shared V2 status model.
           setData({...d,registrations:d.registrations.map(r=>({
-            ...r,status:r.status==="registered"?"going":r.status==="removed"?"cancelled":r.status
+            ...r,status:(r.status as string)==="registered"?"going":(r.status as string)==="removed"?"cancelled":r.status
           })) as PortalData["registrations"]});
         }}
         const u=localStorage.getItem(SESSION);if(u)setSession(u);
