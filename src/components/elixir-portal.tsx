@@ -69,6 +69,25 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
   const [form,setForm]=useState<PortalEvent>({...event});
   const [error,setError]=useState("");
   const update=<K extends keyof PortalEvent>(key:K,value:PortalEvent[K])=>setForm(old=>({...old,[key]:value}));
+  async function uploadBanner(file?:File){
+    if(!file)return;
+    setError("");
+    if(!["image/jpeg","image/png","image/webp"].includes(file.type)){setError("Choose a JPG, PNG or WebP image.");return;}
+    if(file.size>5*1024*1024){setError("Banner must be no larger than 5 MB.");return;}
+    try{
+      const image=await createImageBitmap(file);
+      const canvas=document.createElement("canvas");canvas.width=1200;canvas.height=675;
+      const ctx=canvas.getContext("2d");if(!ctx)throw Error("Image processor unavailable");
+      const scale=Math.max(canvas.width/image.width,canvas.height/image.height);
+      const w=image.width*scale,h=image.height*scale;
+      ctx.drawImage(image,(canvas.width-w)/2,(canvas.height-h)/2,w,h);
+      image.close();
+      const processed=canvas.toDataURL("image/webp",0.78);
+      // Browser storage limits are smaller than an actual media backend.
+      if(processed.length>1_800_000)throw Error("Image is too large for this browser draft.");
+      update("bannerDataUrl",processed);
+    }catch(e){setError(e instanceof Error?e.message:"Unable to process this image.");}
+  }
   function submit(e:React.FormEvent){
     e.preventDefault();
     const next={...form,startsAt:new Date(form.startsAt).toISOString(),endsAt:new Date(form.endsAt).toISOString(),deadline:form.deadline?new Date(form.deadline).toISOString():""};
@@ -81,6 +100,9 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
     <div className="ep-page-head"><div><h1>{data.events.some(e=>e.id===event.id)?"Edit event":"Create event"}</h1><p>Provide the information employees need before registering.</p></div></div>
     <form className="ep-panel ep-form" onSubmit={submit}>
       <h2>Event information</h2>
+      <FormRow label="Event banner (optional, JPG/PNG/WebP up to 5 MB)"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>void uploadBanner(e.target.files?.[0])}/></FormRow>
+      {form.bannerDataUrl&&<div className="ep-banner-preview"><Image src={form.bannerDataUrl} width={600} height={338} unoptimized alt={form.bannerAlt||"Draft event banner"}/><Action kind="secondary" onClick={()=>update("bannerDataUrl",undefined)}>Remove banner</Action></div>}
+      {form.bannerDataUrl&&<FormRow label="Banner alt text (required)"><input required maxLength={200} value={form.bannerAlt||""} onChange={e=>update("bannerAlt",e.target.value)} placeholder="Describe the banner for screen reader users"/></FormRow>}
       <FormRow label="Event title"><input required minLength={3} maxLength={160} value={form.title} onChange={e=>update("title",e.target.value)}/></FormRow>
       <FormRow label="Short summary"><input required maxLength={240} value={form.summary} onChange={e=>update("summary",e.target.value)}/></FormRow>
       <FormRow label="Description"><textarea required rows={5} value={form.description} onChange={e=>update("description",e.target.value)}/></FormRow>
@@ -96,6 +118,7 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
         <FormRow label="Maximum participants"><input required min={1} max={100000} type="number" value={form.capacity} onChange={e=>update("capacity",Number(e.target.value))}/></FormRow>
         <FormRow label="Registration deadline (optional)"><input type="datetime-local" value={toInput(form.deadline)} onChange={e=>update("deadline",e.target.value?new Date(e.target.value).toISOString():"")}/></FormRow>
       </div>
+      <label className="ep-check"><input type="checkbox" checked={form.waitlistEnabled!==false} onChange={e=>update("waitlistEnabled",e.target.checked)}/> Allow a waitlist when the event is full</label>
       <FormRow label="Organiser contact email"><input type="email" required value={form.contactEmail} onChange={e=>update("contactEmail",e.target.value)}/></FormRow>
       <FormRow label="Status"><select value={form.status} onChange={e=>update("status",e.target.value as EventStatus)}><option value="draft">Draft (admin only)</option><option value="published">Published</option><option value="cancelled">Cancelled</option></select></FormRow>
       {form.status==="cancelled"&&<FormRow label="Reason for cancellation (optional)"><textarea rows={2} value={form.cancellationReason} onChange={e=>update("cancellationReason",e.target.value)}/></FormRow>}

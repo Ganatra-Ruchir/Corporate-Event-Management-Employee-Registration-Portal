@@ -171,3 +171,7 @@
 .ep-calendar-actions{border-top:1px solid var(--ep-border);padding-top:15px;margin-top:18px;display:flex;gap:9px;flex-wrap:wrap;}
 .ep-calendar-actions .ep-button{font-size:13px;width:auto;}
 @media(max-width:640px){.ep-banner{aspect-ratio:16/9}.ep-banner-fallback{min-height:160px}.ep-calendar-actions{flex-direction:column}.ep-calendar-actions .ep-button{width:100%}}
+
+.ep-banner-preview{max-width:600px;display:grid;gap:8px;justify-items:start;}
+.ep-banner-preview img{max-width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:8px;border:1px solid var(--ep-border);}
+.ep-form .ep-check{font-size:14px;display:flex;align-items:center;gap:10px;}

@@ -64,6 +64,7 @@ export function canCancel(user:Person,event:PortalEvent,data:PortalData,now=new 
 export function validateEvent(event:PortalEvent,data:PortalData):string|null{
   if(event.title.trim().length<3)return "Enter an event title of at least 3 characters.";
   if(!event.summary.trim())return "Enter a short event summary.";
+  if(event.bannerDataUrl&&!event.bannerAlt?.trim())return "Add descriptive alt text for the event banner.";
   if(!event.description.trim())return "Enter an event description.";
   if(!event.location.trim()&&event.format!=="online")return "Enter an event location.";
   if(event.format!=="in_person"&&!/^https:\/\/\S+\.\S+/.test(event.onlineLink))return "Enter a valid HTTPS meeting link.";
