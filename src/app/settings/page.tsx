@@ -12,8 +12,8 @@ export default function Settings(){
  const [code,setCode]=useState("");
  const [members,setMembers]=useState<MemberRow[]>([]);
  const [edit,setEdit]=useState<{orgId:string;name:string;description:string}|null>(null);
- const name=edit?.orgId===auth.org?.id?edit.name:(auth.org?.name||"");
- const description=edit?.orgId===auth.org?.id?edit.description:(auth.org?.description||"");
+ const name=edit && edit.orgId===auth.org?.id?edit.name:(auth.org?.name||"");
+ const description=edit && edit.orgId===auth.org?.id?edit.description:(auth.org?.description||"");
  const setName=(value:string)=>setEdit({orgId:auth.org?.id||"",name:value,description});
  const setDescription=(value:string)=>setEdit({orgId:auth.org?.id||"",name,description:value});
  const [saving,setSaving]=useState(false);
