@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   initialData, signupCompany, canRegister, canCancel, validateEvent, registerLocally,
-  cancelLocally, remainingPlaces, eventAccess, activeRegistrations
+  cancelLocally, remainingPlaces, eventAccess, activeRegistrations, waitlistedRegistrations, waitlistPosition, promoteWaitlistLocally
 } from "../src/lib/portal-model";
 
 const makeData=()=>structuredClone(initialData);
@@ -31,7 +31,7 @@ test("draft and cancelled events cannot accept registrations",()=>{
   assert.match(canRegister(user(data,"employee"),e,data,fixedNow)!,/not open/);
 });
 test("full event blocks further registrations",()=>{
-  const data=makeData();const e=event(data,"event-2");e.capacity=1;
+  const data=makeData();const e=event(data,"event-2");e.capacity=1;e.waitlistEnabled=false;
   const first=registerLocally(user(data,"employee"),e,data,fixedNow);
   assert.equal(first.error,null);
   const second=registerLocally(user(first.data,"employee2"),e,first.data,fixedNow);
@@ -67,4 +67,25 @@ test("capacity cannot be lowered below existing registrations",()=>{
 test("suspending a company blocks event access",()=>{
   const data=makeData();data.companies.find(c=>c.id==="northwind")!.status="suspended";
   assert.equal(eventAccess(user(data,"employee"),event(data,"event-1"),data),false);
+});
+
+test("full event admits a waitlist with deterministic FIFO queue",()=>{
+  const data=makeData(),e=event(data,"event-2");e.capacity=1;e.waitlistEnabled=true;
+  const first=registerLocally(user(data,"employee"),e,data,fixedNow);
+  const second=registerLocally(user(data,"employee2"),e,first.data,new Date(fixedNow.getTime()+1000));
+  assert.equal(second.error,null);
+  assert.equal(waitlistedRegistrations(e.id,second.data).length,1);
+  assert.equal(waitlistPosition(e.id,"employee2",second.data),1);
+  const cancelled=cancelLocally(user(data,"employee"),e,second.data,new Date(fixedNow.getTime()+2000));
+  assert.equal(cancelled.error,null);
+  assert.equal(activeRegistrations(e.id,cancelled.data)[0].userId,"employee2");
+  assert.ok(activeRegistrations(e.id,cancelled.data)[0].promotedAt);
+});
+test("capacity increase promotes queued employees before new RSVPs",()=>{
+  const data=makeData(),e=event(data,"event-2");e.capacity=1;e.waitlistEnabled=true;
+  const first=registerLocally(user(data,"employee"),e,data,fixedNow);
+  const second=registerLocally(user(data,"employee2"),e,first.data,new Date(fixedNow.getTime()+1000));
+  const raised={...e,capacity:2};const promoted=promoteWaitlistLocally(raised,second.data,new Date(fixedNow.getTime()+2000));
+  assert.equal(activeRegistrations(e.id,promoted).length,2);
+  assert.equal(waitlistedRegistrations(e.id,promoted).length,0);
 });

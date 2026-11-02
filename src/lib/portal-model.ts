@@ -1,7 +1,7 @@
 export type Role = "platform_admin" | "company_admin" | "employee";
 export type CompanyStatus = "active" | "suspended";
 export type EventStatus = "draft" | "published" | "cancelled";
-export type RegistrationStatus = "registered" | "cancelled" | "removed";
+export type RegistrationStatus = "going" | "waitlisted" | "cancelled";
 export type EventFormat = "in_person" | "online" | "hybrid";
 
 export type Company = { id:string; name:string; domains:string[]; status:CompanyStatus; createdAt:string };
@@ -10,8 +10,11 @@ export type PortalEvent = {
   id:string; companyId:string; title:string; summary:string; description:string; category:string; format:EventFormat;
   location:string; onlineLink:string; startsAt:string; endsAt:string; capacity:number; deadline:string;
   contactEmail:string; status:EventStatus; cancellationReason:string; createdBy:string;
+  waitlistEnabled?:boolean;
+  bannerDataUrl?:string;
+  bannerAlt?:string;
 };
-export type Registration = { id:string; eventId:string; userId:string; status:RegistrationStatus; createdAt:string };
+export type Registration = { id:string; eventId:string; userId:string; status:RegistrationStatus; createdAt:string; waitlistedAt?:string|null; promotedAt?:string|null };
 export type Invitation = { id:string; email:string; companyId:string; role:"company_admin"; code:string; accepted:boolean };
 export type PortalData = { companies:Company[]; users:Person[]; events:PortalEvent[]; registrations:Registration[]; invitations:Invitation[] };
 
@@ -31,7 +34,10 @@ export function signupCompany(email:string,data:PortalData){
   if(data.users.some(u=>u.email.toLowerCase()===normalized))return {error:"An account with this email already exists.",company:null};
   return {error:null,company};
 }
-export const activeRegistrations=(eventId:string,data:PortalData)=>data.registrations.filter(r=>r.eventId===eventId&&r.status==="registered");
+export const activeRegistrations=(eventId:string,data:PortalData)=>data.registrations.filter(r=>r.eventId===eventId&&r.status==="going");
+export const waitlistedRegistrations=(eventId:string,data:PortalData)=>data.registrations.filter(r=>r.eventId===eventId&&r.status==="waitlisted")
+  .sort((a,b)=>(a.waitlistedAt||a.createdAt).localeCompare(b.waitlistedAt||b.createdAt)||a.id.localeCompare(b.id));
+export const waitlistPosition=(eventId:string,userId:string,data:PortalData)=>waitlistedRegistrations(eventId,data).findIndex(r=>r.userId===userId)+1;
 export const registrationsFor=(userId:string,data:PortalData)=>data.registrations.filter(r=>r.userId===userId);
 export const remainingPlaces=(event:PortalEvent,data:PortalData)=>Math.max(0,event.capacity-activeRegistrations(event.id,data).length);
 export function eventAccess(user:Person,event:PortalEvent,data:PortalData){
@@ -45,14 +51,14 @@ export function canRegister(user:Person,event:PortalEvent,data:PortalData,now=ne
   if(event.status!=="published")return "Registration is not open.";
   if(new Date(event.startsAt)<=now)return "The event has already started.";
   if(event.deadline&&new Date(event.deadline)<=now)return "The registration deadline has passed.";
-  if(remainingPlaces(event,data)<=0)return "This event is full.";
-  if(activeRegistrations(event.id,data).some(r=>r.userId===user.id))return "You are already registered.";
+  if(data.registrations.some(r=>r.eventId===event.id&&r.userId===user.id&&(r.status==="going"||r.status==="waitlisted")))return "You already have an RSVP.";
+  if(remainingPlaces(event,data)<=0&&event.waitlistEnabled===false)return "This event is full.";
   return null;
 }
 export function canCancel(user:Person,event:PortalEvent,data:PortalData,now=new Date()):string|null{
   if(!eventAccess(user,event,data))return "This registration is not available.";
   if(new Date(event.startsAt)<=now)return "You cannot cancel after the event starts.";
-  if(!activeRegistrations(event.id,data).some(r=>r.userId===user.id))return "You do not have an active registration.";
+  if(!data.registrations.some(r=>r.eventId===event.id&&r.userId===user.id&&(r.status==="going"||r.status==="waitlisted")))return "You do not have an active RSVP.";
   return null;
 }
 export function validateEvent(event:PortalEvent,data:PortalData):string|null{
@@ -69,18 +75,36 @@ export function validateEvent(event:PortalEvent,data:PortalData):string|null{
   if(event.deadline&&new Date(event.deadline)>new Date(event.startsAt))return "Registration deadline must be before the event starts.";
   return null;
 }
+/** Browser-only mirror of the Postgres queue rules. Not safe for cross-device concurrency. */
 export function registerLocally(user:Person,event:PortalEvent,data:PortalData,now=new Date()){
   const issue=canRegister(user,event,data,now);
   if(issue)return {data,error:issue};
   const existing=data.registrations.find(r=>r.eventId===event.id&&r.userId===user.id);
-  const registrations=existing?data.registrations.map(r=>r.id===existing.id?{...r,status:"registered" as const,createdAt:now.toISOString()}:r)
-    :[...data.registrations,{id:"reg-"+Math.random().toString(36).slice(2),eventId:event.id,userId:user.id,status:"registered" as const,createdAt:now.toISOString()}];
+  const status:RegistrationStatus=remainingPlaces(event,data)>0?"going":"waitlisted";
+  const stamp=now.toISOString();
+  const registrations=existing?data.registrations.map(r=>r.id===existing.id?{
+    ...r,status,createdAt:stamp,waitlistedAt:status==="waitlisted"?stamp:null,promotedAt:null
+  }:r):[...data.registrations,{
+    id:"reg-"+Math.random().toString(36).slice(2),eventId:event.id,userId:user.id,status,
+    createdAt:stamp,waitlistedAt:status==="waitlisted"?stamp:null,promotedAt:null
+  }];
   return {data:{...data,registrations},error:null};
+}
+export function promoteWaitlistLocally(event:PortalEvent,data:PortalData,now=new Date()){
+  if(event.status!=="published"||new Date(event.startsAt)<=now)return data;
+  const queue=waitlistedRegistrations(event.id,data);
+  const available=remainingPlaces(event,data);
+  if(available===0||queue.length===0)return data;
+  const chosen=new Set(queue.slice(0,available).map(r=>r.id));
+  return {...data,registrations:data.registrations.map(r=>chosen.has(r.id)?{
+    ...r,status:"going" as const,promotedAt:now.toISOString()
+  }:r)};
 }
 export function cancelLocally(user:Person,event:PortalEvent,data:PortalData,now=new Date()){
   const issue=canCancel(user,event,data,now);
   if(issue)return {data,error:issue};
-  return {data:{...data,registrations:data.registrations.map(r=>r.eventId===event.id&&r.userId===user.id&&r.status==="registered"?{...r,status:"cancelled" as const}:r)},error:null};
+  const next={...data,registrations:data.registrations.map(r=>r.eventId===event.id&&r.userId===user.id&&(r.status==="going"||r.status==="waitlisted")?{...r,status:"cancelled" as const}:r)};
+  return {data:promoteWaitlistLocally(event,next,now),error:null};
 }
 export const dateText=(s:string)=>new Date(s).toLocaleString("en-IN",{weekday:"short",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
 export const shortDate=(s:string)=>new Date(s).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
@@ -107,9 +131,9 @@ export const initialData:PortalData={
     {id:"event-5",companyId:"northwind",title:"Volunteer Orientation",summary:"An orientation session for staff volunteering activities.",description:"Review the volunteering process, safety guidelines and upcoming activities.",category:"Volunteering",format:"in_person",location:"Northwind Head Office",onlineLink:"",startsAt:date(1,10),endsAt:date(1,12),capacity:40,deadline:"",contactEmail:"alex@northwind.example",status:"published",cancellationReason:"",createdBy:"manager"}
   ],
   registrations:[
-    {id:"reg-1",eventId:"event-1",userId:"employee",status:"registered",createdAt:date(2,9)},
-    {id:"reg-2",eventId:"event-1",userId:"employee2",status:"registered",createdAt:date(2,10)},
-    {id:"reg-3",eventId:"event-5",userId:"employee",status:"registered",createdAt:date(1,8)}
+    {id:"reg-1",eventId:"event-1",userId:"employee",status:"going",createdAt:date(2,9)},
+    {id:"reg-2",eventId:"event-1",userId:"employee2",status:"going",createdAt:date(2,10)},
+    {id:"reg-3",eventId:"event-5",userId:"employee",status:"going",createdAt:date(1,8)}
   ],
   invitations:[]
 };
