@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { ArrowRight, CalendarDays, MapPin, Users, Clock3 } from "lucide-react";
+import { ArrowRight, CalendarDays, MapPin, Clock3 } from "lucide-react";
 import {activeRegistrations, remainingPlaces} from "@/lib/portal-model";
 import type { PortalEvent, PortalData, Person } from "@/lib/portal-model";
 

@@ -469,7 +469,7 @@ export default function ElixirPortal(){
                 <div className="ed-host-card"><span className="ed-host-avatar">{(eventHost?.fullName||"Company host").split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span><div><strong>{eventHost?.fullName||"Company team"}</strong><p>{eventHost?.department||company?.name||"Event organizer"}</p></div><a href={"mailto:"+selected.contactEmail}>Contact host</a></div>
               </div>
               <div className="ed-detail-section">
-                <div className="ed-attendee-heading"><h2>Who's going</h2><strong>{activeRegistrations(selected.id,data).length} going</strong></div>
+                <div className="ed-attendee-heading"><h2>Who&apos;s going</h2><strong>{activeRegistrations(selected.id,data).length} going</strong></div>
                 <GoingFaces event={selected} data={data} limit={5}/>
                 <p className="ed-privacy-note">People who choose to stay private are included in the count but not listed by name.</p>
                 <button className="ed-see-attendees" type="button" onClick={()=>setShowAttendees(v=>!v)} aria-expanded={showAttendees}>{showAttendees?"Hide attendee list":"See attendees"} <ChevronRight size={17}/></button>
