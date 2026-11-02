@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  ArrowLeft, ArrowRight, CalendarDays, Check, ChevronDown, ChevronRight,
-  Download, LogOut, Menu, Plus, Search, ShieldCheck, Users, X
+  ArrowLeft, ArrowRight, CalendarDays, ChevronRight,
+  Download, LogOut, Menu, Plus, Search, X
 } from "lucide-react";
 import {
   activeRegistrations, canCancel, canRegister, cancelLocally, CATEGORIES, dateText, DEMO_PASSWORD,
-  eventAccess, exportCsv, initialData, makeId, organizationByEmail, remainingPlaces,
+  eventAccess, exportCsv, initialData, makeId, remainingPlaces,
   registerLocally, registrationsFor, shortDate, signupCompany, toInput, validateEvent
 } from "@/lib/portal-model";
 import type { Company, EventFormat, EventStatus, Invitation, Person, PortalData, PortalEvent, Role } from "@/lib/portal-model";
@@ -163,6 +163,7 @@ export default function ElixirPortal(){
   const [data,setData]=useState<PortalData>(initialData);
   const [session,setSession]=useState<string|null>(null);
   const [ready,setReady]=useState(false);
+  const [now,setNow]=useState(0);
   const [view,setView]=useState<View>("home");
   const [selectedEvent,setSelectedEvent]=useState<string|null>(null);
   const [selectedCompany,setSelectedCompany]=useState<string|null>(null);
@@ -190,6 +191,7 @@ export default function ElixirPortal(){
         if(s){const d=JSON.parse(s) as PortalData;if(d&&Array.isArray(d.companies)&&Array.isArray(d.users)&&Array.isArray(d.events)&&Array.isArray(d.registrations)&&Array.isArray(d.invitations))setData(d);}
         const u=localStorage.getItem(SESSION);if(u)setSession(u);
       }catch{}
+      setNow(Date.now());
       setReady(true);
     });
   },[]);
@@ -200,10 +202,6 @@ export default function ElixirPortal(){
   const blocked=Boolean(current&&(current.status==="suspended"||(current.companyId&&(!company||company.status==="suspended"))));
   const events=current?.role==="platform_admin"?data.events:current?.companyId?data.events.filter(e=>e.companyId===current.companyId):[];
   const companyEvents=events;
-  const publishedEvents=companyEvents.filter(e=>e.status==="published");
-  const now=Date.now();
-  const isAdmin=current?.role==="platform_admin"||current?.role==="company_admin";
-  const hasCompany=current?.role!=="platform_admin"&&Boolean(current?.companyId);
   const nav:(View[]) = current?.role==="platform_admin"?["home","companies","invitations","users","profile"]:
     current?.role==="company_admin"?["home","events","registrations","people","profile"]:["events","registrations","profile"];
   const goto=(v:View)=>{setView(v);setNotice("");setSearch("");setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");setMenu(false);};
