@@ -216,6 +216,7 @@ export default function ElixirPortal(){
   const [notice,setNotice]=useState("");
   const [search,setSearch]=useState("");
   const [participantSearch,setParticipantSearch]=useState("");
+  const [showAttendees,setShowAttendees]=useState(false);
   const [historyFilter,setHistoryFilter]=useState("All");
   const [category,setCategory]=useState("All");
   const [timeFilter,setTimeFilter]=useState("Upcoming");
@@ -365,6 +366,9 @@ export default function ElixirPortal(){
   if(blocked)return <main className="ep-auth-layout"><div className="ep-auth-card"><h1>Account unavailable</h1><p>Your account or company is suspended.</p><Action onClick={logout}>Sign out</Action></div></main>;
 
   const selected=selectedEvent?data.events.find(e=>e.id===selectedEvent):null;
+  const eventHost=selected?data.users.find(u=>u.id===selected.createdBy):null;
+  const permittedAttendees=selected?activeRegistrations(selected.id,data).map(r=>data.users.find(u=>u.id===r.userId))
+     .filter((p):p is Person=>Boolean(p)&&p!.showInAttendeeLists!==false&&p!.companyId===selected.companyId):[];
   const chosenCompany=selectedCompany?data.companies.find(c=>c.id===selectedCompany):null;
   const filteredEvents=events.filter(e=>{
     if(current.role==="employee"&&e.status!=="published")return false;
@@ -451,7 +455,8 @@ export default function ElixirPortal(){
           <div className="ep-page-head"><div><div className="ep-event-label">{selected.category} · {selected.format.replace("_"," ")}</div><h1>{selected.title}</h1><p>{selected.summary}</p></div><Chip tone={selected.status==="published"?"green":selected.status==="cancelled"?"red":"neutral"}>{selected.status}</Chip></div>
           {selected.status==="cancelled"&&<div className="ep-error" role="status">Event cancelled. {selected.cancellationReason||"Contact the organiser for details."}</div>}
           <div className="ep-detail-layout"><article className="ep-panel ep-detail-copy">
-              <h2>Event details</h2><p>{selected.description}</p>
+              <div className="ed-detail-keyfacts"><span><CalendarDays size={19}/>{dateText(selected.startsAt)}</span><span><MapPin size={19}/>{selected.format==="online"?"Online event":selected.location}</span></div>
+              <h2>About this event</h2><p>{selected.description}</p>
               <dl><div><dt>Starts</dt><dd>{dateText(selected.startsAt)}</dd></div><div><dt>Ends</dt><dd>{dateText(selected.endsAt)}</dd></div>
                 {selected.format!=="online"&&<div><dt>Location</dt><dd>{selected.location} <a href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(selected.location)} target="_blank" rel="noopener noreferrer">Open in Maps</a></dd></div>}
                 {selected.format!=="in_person"&&<div><dt>Online link</dt><dd>{activeRegistrations(selected.id,data).some(r=>r.userId===current.id)||current.role==="company_admin"?<a href={selected.onlineLink} target="_blank" rel="noopener noreferrer">Join online event</a>:"Available after RSVP"}</dd></div>}
@@ -459,9 +464,22 @@ export default function ElixirPortal(){
                 <div><dt>Available places</dt><dd>{remainingPlaces(selected,data)} of {selected.capacity}</dd></div>
                 {selected.deadline&&<div><dt>Registration closes</dt><dd>{dateText(selected.deadline)}</dd></div>}
               </dl>
+              <div className="ed-detail-section">
+                <h2>Hosted by</h2>
+                <div className="ed-host-card"><span className="ed-host-avatar">{(eventHost?.fullName||"Company host").split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span><div><strong>{eventHost?.fullName||"Company team"}</strong><p>{eventHost?.department||company?.name||"Event organizer"}</p></div><a href={"mailto:"+selected.contactEmail}>Contact host</a></div>
+              </div>
+              <div className="ed-detail-section">
+                <div className="ed-attendee-heading"><h2>Who's going</h2><strong>{activeRegistrations(selected.id,data).length} going</strong></div>
+                <GoingFaces event={selected} data={data} limit={5}/>
+                <p className="ed-privacy-note">People who choose to stay private are included in the count but not listed by name.</p>
+                <button className="ed-see-attendees" type="button" onClick={()=>setShowAttendees(v=>!v)} aria-expanded={showAttendees}>{showAttendees?"Hide attendee list":"See attendees"} <ChevronRight size={17}/></button>
+                {showAttendees&&<div className="ed-attendee-list">{permittedAttendees.length?permittedAttendees.map(person=><div key={person.id} className="ed-attendee-row"><span className="ed-attendee-avatar">{person.fullName.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span><span><strong>{person.fullName}</strong><small>{person.department||"Colleague"}</small></span></div>):<p className="ep-hint">No colleagues have opted in to appear by name.</p>}</div>}
+              </div>
             </article>
             <aside className="ep-panel ep-detail-side"><h2>Registration</h2>
-              <p>{activeRegistrations(selected.id,data).length} going · {remainingPlaces(selected,data)} places left</p>
+              <div className="ed-rsvp-count"><strong>{remainingPlaces(selected,data)}</strong><span>spots left of {selected.capacity}</span></div>
+              <div className="ed-rsvp-progress" role="progressbar" aria-label="Reserved places" aria-valuenow={activeRegistrations(selected.id,data).length} aria-valuemax={selected.capacity} aria-valuemin={0}><span style={{width:(100*activeRegistrations(selected.id,data).length/selected.capacity)+"%"}}/></div>
+              <p>{activeRegistrations(selected.id,data).length} going</p>
               {waitlistedRegistrations(selected.id,data).length>0&&<p>{waitlistedRegistrations(selected.id,data).length} on the waitlist</p>}
               {data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?
                 <><div className="ep-success">{waitlistPosition(selected.id,current.id,data)>0?"You're #"+waitlistPosition(selected.id,current.id,data)+" on the waitlist":"You're going"}</div><Action kind="secondary" onClick={()=>modifyRegistration(selected,true)} disabled={!!canCancel(current,selected,data)}>Cancel RSVP</Action></>:
@@ -470,6 +488,12 @@ export default function ElixirPortal(){
               {current.role==="company_admin"&&<div className="ep-admin-actions"><h3>Manage event</h3><Action kind="secondary" onClick={()=>{setEditingEvent(selected);goto("eventForm");}}>Edit event</Action>{selected.status!=="cancelled"&&<Action kind="danger" onClick={()=>cancelEvent(selected)}>Cancel event</Action>}</div>}
             </aside>
           </div>
+          {current.role!=="platform_admin"&&<div className="ed-mobile-rsvp">
+            <span>{data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?"Your RSVP is saved":remainingPlaces(selected,data)+" spots left"}</span>
+            {data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?
+              <button type="button" onClick={()=>modifyRegistration(selected,true)} disabled={!!canCancel(current,selected,data)}>Cancel RSVP</button>:
+              <button type="button" onClick={()=>modifyRegistration(selected,false)} disabled={!!canRegister(current,selected,data)}>{remainingPlaces(selected,data)===0?"Join waitlist":"Attend"}</button>}
+          </div>}
           {current.role==="company_admin"&&<section className="ep-panel ep-participants"><div className="ep-section-head"><h2>Participants</h2><Action kind="secondary" onClick={()=>exportCsv("participants-"+selected.id+".csv",["Name","Email","Department","Registered"],activeRegistrations(selected.id,data).map(r=>{const p=data.users.find(u=>u.id===r.userId);return[p?.fullName||"",p?.email||"",p?.department||"",dateText(r.createdAt)];}))}><Download size={16}/> Export CSV</Action></div>
             <div className="ep-participant-search"><FormRow label="Search participants"><input value={participantSearch} onChange={e=>setParticipantSearch(e.target.value)} placeholder="Name, email or department"/></FormRow></div>
           {waitlistedRegistrations(selected.id,data).length>0&&<div className="ep-info">{waitlistedRegistrations(selected.id,data).length} employees are waitlisted and will be promoted in order when places open.</div>}
@@ -514,6 +538,7 @@ export default function ElixirPortal(){
             <FormRow label="Role"><input value={roleName(current.role)} disabled/></FormRow>
             <FormRow label="Full name"><input required value={profileName??current.fullName} onChange={e=>setProfileName(e.target.value)}/></FormRow>
             <FormRow label="Department"><input value={profileDepartment??current.department} onChange={e=>setProfileDepartment(e.target.value)}/></FormRow>
+            <label className="ep-check"><input type="checkbox" checked={current.showInAttendeeLists!==false} onChange={e=>save({...data,users:data.users.map(u=>u.id===current.id?{...u,showInAttendeeLists:e.target.checked}:u)})}/> Show my name in attendee lists</label>
             <h2>Change demonstration password</h2><p className="ep-hint">Leave these empty to keep the current password. Never enter an actual work password in the local draft.</p>
             <FormRow label="New demonstration password"><input type="password" minLength={6} value={profilePw} onChange={e=>setProfilePw(e.target.value)}/></FormRow>
             <FormRow label="Confirm password"><input type="password" minLength={6} value={profilePwConfirm} onChange={e=>setProfilePwConfirm(e.target.value)}/></FormRow>

@@ -5,7 +5,7 @@ export type RegistrationStatus = "going" | "waitlisted" | "cancelled";
 export type EventFormat = "in_person" | "online" | "hybrid";
 
 export type Company = { id:string; name:string; domains:string[]; status:CompanyStatus; createdAt:string };
-export type Person = { id:string; fullName:string; email:string; department:string; role:Role; companyId:string|null; status:CompanyStatus; verified:boolean; password:string };
+export type Person = { id:string; fullName:string; email:string; department:string; role:Role; companyId:string|null; status:CompanyStatus; verified:boolean; password:string; showInAttendeeLists?:boolean };
 export type PortalEvent = {
   id:string; companyId:string; title:string; summary:string; description:string; category:string; format:EventFormat;
   location:string; onlineLink:string; startsAt:string; endsAt:string; capacity:number; deadline:string;
