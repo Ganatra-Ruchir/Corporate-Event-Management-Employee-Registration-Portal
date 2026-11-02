@@ -265,3 +265,115 @@
  .ed-mobile-rsvp button:disabled{background:#98a6bc}
  .ep-shell .ep-main{padding-bottom:104px}
 }
+
+
+/* V2.2 spacing audit — applied consistently to all portal views.
+   Keep controls >=44px. Reduce dead space, not readable content. */
+:root{--ep-space-xs:6px;--ep-space-sm:10px;--ep-space-md:16px;--ep-space-lg:22px;--ep-space-xl:30px}
+.ep-shell p{margin-top:0;margin-bottom:10px;line-height:1.55}
+.ep-shell .ep-main{padding-top:21px;padding-bottom:26px}
+.ep-shell .ep-demobar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin:0 0 17px;padding:8px 12px;font-size:12px;line-height:1.45;
+}
+.ep-shell .ep-demobar button{margin-left:auto;white-space:nowrap;min-height:34px;padding:5px 7px}
+.ep-shell .ep-nav-link{min-height:47px;padding-top:10px;padding-bottom:8px}
+.ep-shell .ep-page-head{margin-bottom:17px;gap:12px}
+.ep-shell .ep-page-head h1{margin-bottom:4px}
+.ep-shell .ep-page-head p{margin-top:5px}
+.ep-shell .ep-overview-heading{margin:0 0 19px}
+.ep-shell .ep-stats{gap:12px;margin-bottom:20px}
+.ep-shell .ep-stats>div{padding:17px 18px}
+.ep-shell .ep-stats b{font-size:30px}
+.ep-shell .ep-panel{padding:20px;margin-bottom:17px}
+.ep-shell .ep-panel h2{margin-bottom:11px}
+.ep-shell .ep-row-link{padding:11px 8px;min-height:56px}
+.ep-shell .ep-section-head{margin-bottom:12px}
+.ep-shell .ep-filters{padding:12px 14px;gap:12px;margin-bottom:13px}
+.ep-shell .ep-form{gap:13px}
+.ep-shell .ep-form-grid{gap:12px}
+.ep-shell .ep-field{gap:4px}
+.ep-shell .ep-field textarea{min-height:72px}
+.ep-shell .ep-actions{gap:8px}
+.ep-shell .ep-participants{margin-top:13px}
+.ep-shell .ep-detail-copy{padding:23px}
+.ep-shell .ep-detail-side{padding:22px}
+.ep-shell .ep-detail-layout{gap:17px}
+.ep-shell .ep-banner{margin:0 0 20px;min-height:200px}
+.ep-shell .ep-banner-fallback{min-height:200px}
+.ep-shell .ep-detail-copy dl{margin-top:15px}
+.ep-shell .ep-detail-copy dl>div{padding:10px 0}
+.ep-shell .ep-detail-copy>p{line-height:1.7}
+.ep-shell .ep-detail-copy>h2{margin:18px 0 8px}
+.ed-detail-keyfacts{margin-bottom:18px;padding:14px;gap:8px}
+.ed-detail-section{padding-top:19px;margin-top:20px}
+.ed-detail-section>h2,.ed-attendee-heading h2{margin-bottom:12px}
+.ed-host-card{padding:13px}
+.ed-rsvp-progress{margin:10px 0 8px}
+.ed-welcome{margin:2px 0 19px;max-width:900px}
+.ed-welcome h1{margin:8px 0 10px;font-size:clamp(35px,4.3vw,58px)}
+.ed-welcome p{font-size:15px;line-height:1.55}
+.ed-feature{min-height:310px}
+.ed-feature-visual{min-height:310px}
+.ed-feature-content{padding:clamp(22px,3vw,33px)}
+.ed-feature-tag{margin-bottom:13px;padding:5px 11px}
+.ed-feature-content h2{font-size:clamp(27px,2.7vw,39px);margin:10px 0}
+.ed-feature-content p{margin-bottom:11px;line-height:1.55}
+.ed-feature-cta{margin-top:15px}
+.ed-category-nav{padding:14px 0 5px;gap:8px}
+.ed-section{margin-top:25px}
+.ed-section-head{margin-bottom:12px}
+.ed-section-head h2{font-size:clamp(22px,2.1vw,27px)}
+.ed-section-head p{margin:3px 0 0}
+.ed-no-rsvps{padding:11px 14px;background:#f0f4fb;border:1px solid #e0e6ee;border-radius:8px;font-size:13px;color:#4e5d70;margin:16px 0 0!important}
+.ed-tile-grid{gap:14px}
+.ed-tile-content{padding:15px;gap:6px}
+.ed-tile-top{gap:10px}
+.ed-tile-host{margin-left:62px}
+.ed-tile-meta{margin:3px 0}
+.ed-tile-foot{padding-top:9px}
+.ed-tile-cover{position:relative}
+.ed-tile-status{position:absolute;right:12px;top:12px;z-index:1;
+  padding:5px 11px;border-radius:99px;font-weight:800;text-transform:capitalize;font-size:11px;
+  background:#fefcf8;border:1px solid #dfd9c9;color:#574528}
+.ed-tile-status.cancelled{background:#fff0ee;border-color:#eed0ce;color:#9b3535}
+.ed-browse-title{margin:0 0 17px}
+.ed-browse-title h1{margin:5px 0 7px}
+.ed-browse-controls{padding:12px 14px;margin-bottom:15px;gap:10px}
+.ed-browse-row{margin-bottom:10px}
+.ed-admin-spotlight{margin:21px 0}
+.ep-shell .ep-footer{margin-top:21px;padding-top:14px}
+.ep-auth-card{padding:27px 35px}
+.ep-auth-heading{margin-bottom:26px}
+.ep-auth-layout .ep-auth-card h1{margin-bottom:8px;font-size:clamp(30px,3vw,42px)}
+.ep-auth-layout .ep-subtle{margin-bottom:17px}
+.ep-auth-form{gap:12px}
+.ep-auth-links{margin-top:11px;gap:8px}
+.ep-demo-users{margin-top:17px;padding-top:14px}
+.ep-demo-users h2{margin-bottom:4px}
+.ep-demo-users>p{margin:0 0 9px}
+.ep-demo-users>button{padding:8px 12px;min-height:52px;margin:5px 0}
+.ep-auth-aside{padding:clamp(28px,5vw,65px)}
+.ep-auth-aside h2{font-size:clamp(29px,3.5vw,46px)}
+.ep-aside-steps{margin-top:18px}
+.ep-aside-steps p{padding:7px 0}
+@media(max-width:760px){
+  .ep-shell .ep-main{padding-top:14px}
+  .ep-shell .ep-panel{padding:16px;margin-bottom:14px}
+  .ep-shell .ep-detail-copy{padding:16px}
+  .ed-feature{min-height:0}
+  .ed-feature-visual{height:195px;min-height:195px}
+  .ed-feature-content{padding:21px;min-height:0}
+  .ed-feature-content h2{font-size:clamp(27px,5vw,33px)}
+  .ed-section{margin-top:21px}
+  .ed-category-nav{padding-top:10px}
+  .ed-tile-content{padding:13px}
+  .ep-auth-card{padding:24px 20px}
+  .ep-auth-heading{margin-bottom:22px}
+}
+@media(max-width:520px){
+  .ed-feature-visual{height:174px;min-height:174px}
+  .ed-tile-grid{gap:12px}
+  .ed-welcome h1{font-size:34px}
+  .ep-shell .ep-demobar{font-size:11px}
+}

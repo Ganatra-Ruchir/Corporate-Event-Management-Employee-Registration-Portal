@@ -42,29 +42,37 @@ export function EventTile({event,data,onOpen}:{event:PortalEvent;data:PortalData
   const d=dateParts(event.startsAt);
   const host=data.users.find(u=>u.id===event.createdBy);
   return <button type="button" className="ed-tile" onClick={()=>onOpen(event)} aria-label={"View "+event.title}>
-    <EventCover event={event}/>
+    <div className="ed-tile-cover"><EventCover event={event}/>{event.status!=="published"&&<span className={"ed-tile-status "+event.status}>{event.status}</span>}</div>
     <div className="ed-tile-content">
       <div className="ed-tile-top"><div className="ed-date-mini"><strong>{d.day}</strong><span>{d.month}</span></div><div className="ed-tile-title-wrap"><span className="ed-eyebrow">{d.weekday} · {d.clock}</span><h3>{event.title}</h3></div></div>
       <div className="ed-tile-host">Hosted by {host?.fullName||"Company team"}</div>
       <div className="ed-tile-meta"><MapPin size={15}/><span>{event.format==="online"?"Online":event.location}</span></div>
-      <div className="ed-tile-foot"><GoingFaces event={event} data={data}/><span className="ed-tile-spots">{remainingPlaces(event,data)} spots left</span></div>
+      <div className="ed-tile-foot"><GoingFaces event={event} data={data}/><span className="ed-tile-spots">{event.status==="published"?remainingPlaces(event,data)+" spots left":event.status==="draft"?"Not published":"Cancelled"}</span></div>
     </div>
   </button>;
 }
 function Section({title,sub,items,data,onOpen,onMore}:{title:string;sub?:string;items:PortalEvent[];data:PortalData;onOpen:(e:PortalEvent)=>void;onMore?:()=>void}){
+  if(items.length===0)return null;
   return <section className="ed-section">
     <div className="ed-section-head"><div><h2>{title}</h2>{sub&&<p>{sub}</p>}</div>{onMore&&<button type="button" onClick={onMore}>See all <ArrowRight size={17}/></button>}</div>
-    {items.length>0?<div className="ed-tile-grid">{items.slice(0,3).map(e=><EventTile event={e} data={data} onOpen={onOpen} key={e.id}/>)}</div>:
-      <div className="ed-small-empty">No events in this section yet.</div>}
+    <div className="ed-tile-grid">{items.slice(0,3).map(e=><EventTile event={e} data={data} onOpen={onOpen} key={e.id}/>)}</div>
   </section>;
 }
 export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now}:{data:PortalData;events:PortalEvent[];user:Person;onOpen:(e:PortalEvent)=>void;onBrowse:()=>void;onCategory:(category:string)=>void;now:number}){
   const future=events.filter(e=>e.status==="published"&&new Date(e.startsAt).getTime()>now).sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime());
   const selected=future.find(e=>e.category==="Volunteering"||e.category==="Environment")||future[0];
   const joined=future.filter(e=>activeRegistrations(e.id,data).some(r=>r.userId===user.id));
-  const week=future.filter(e=>new Date(e.startsAt).getTime()-now<7*86400000);
-  const volunteer=future.filter(e=>["Volunteering","Environment","Community","Health"].includes(e.category));
-  const learning=future.filter(e=>["Education","Workshop","Town Hall"].includes(e.category));
+  // Keep the discovery feed useful: do not repeat the same card in every section.
+  const assigned=new Set(joined.map(e=>e.id));
+  const collect=(match:(e:PortalEvent)=>boolean)=>{
+    const results=future.filter(e=>!assigned.has(e.id)&&match(e));
+    for(const e of results)assigned.add(e.id);
+    return results;
+  };
+  const week=collect(e=>new Date(e.startsAt).getTime()-now<7*86400000);
+  const volunteer=collect(e=>["Volunteering","Environment","Community","Health"].includes(e.category));
+  const learning=collect(e=>["Education","Workshop","Town Hall"].includes(e.category));
+  const coming=collect(()=>true);
   return <div className="ed-discover">
     <div className="ed-welcome"><span className="ed-eyebrow">EVENTS AT YOUR COMPANY</span><h1>Find something worth showing up for.</h1><p>Meet colleagues, learn something new, and take part in events hosted by your team.</p></div>
     {selected?<button type="button" className="ed-feature" onClick={()=>onOpen(selected)}>
@@ -74,11 +82,12 @@ export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now}:{
     <nav className="ed-category-nav" aria-label="Explore categories">
       {["All events","Volunteering","Learning","Environment","Health"].map(c=><button key={c} onClick={()=>c==="All events"?onBrowse():onCategory(c)}>{c}<ArrowRight size={14}/></button>)}
     </nav>
+    {joined.length===0&&<p className="ed-no-rsvps">You haven't joined an upcoming event yet. Browse the events below to find one.</p>}
     <Section title="Your upcoming events" sub="The events you've already joined" items={joined} data={data} onOpen={onOpen} onMore={onBrowse}/>
     <Section title="This week" sub="Make plans with your team" items={week} data={data} onOpen={onOpen} onMore={onBrowse}/>
     <Section title="Volunteering" sub="Spend time on something that matters" items={volunteer} data={data} onOpen={onOpen} onMore={()=>onCategory("Volunteering")}/>
     <Section title="Learning" sub="Workshops, talks and new skills" items={learning} data={data} onOpen={onOpen} onMore={()=>onCategory("Education")}/>
-    <Section title="Coming up" sub="All the other events on the calendar" items={future} data={data} onOpen={onOpen} onMore={onBrowse}/>
+    <Section title="Coming up" sub="More events on the calendar" items={coming} data={data} onOpen={onOpen} onMore={onBrowse}/>
   </div>;
 }
 export function DiscoverBrowse({data,events,onOpen,search,setSearch,category,setCategory,timeFilter,setTimeFilter,placesOnly,setPlacesOnly,now}:{data:PortalData;events:PortalEvent[];onOpen:(e:PortalEvent)=>void;search:string;setSearch:(s:string)=>void;category:string;setCategory:(s:string)=>void;timeFilter:string;setTimeFilter:(s:string)=>void;placesOnly:boolean;setPlacesOnly:(v:boolean)=>void;now:number}){

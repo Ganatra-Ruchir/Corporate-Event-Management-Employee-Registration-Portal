@@ -399,7 +399,7 @@ export default function ElixirPortal(){
         <div className="ep-side-bottom"><button className="ep-nav-link" onClick={logout}><LogOut size={17}/> Sign out</button></div>
       </nav>
       <main className="ep-main" id="main-content" tabIndex={-1}>
-        <div className="ep-demobar"><strong>Interactive draft.</strong> Data and account changes are stored in this browser only. There is no database, real email or secure authentication. Use sample accounts, not real information. <button type="button" onClick={()=>{if(window.confirm("Reset every sample company, account and event in this browser?")){save(structuredClone(initialData));setSession(null);localStorage.removeItem(SESSION);}}}>Reset all sample data</button></div>
+        <div className="ep-demobar"><strong>Preview mode.</strong> Sample data is saved only in this browser. No real accounts or shared database. <button type="button" onClick={()=>{if(window.confirm("Reset every sample company, account and event in this browser?")){save(structuredClone(initialData));setSession(null);localStorage.removeItem(SESSION);}}}>Reset all sample data</button></div>
         {notice&&<div className="ep-info ep-notice" role="status"><span>{notice}</span><button aria-label="Dismiss message" onClick={()=>setNotice("")}><X size={17}/></button></div>}
         {view==="eventForm"&&editingEvent&&<EventEditor key={editingEvent.id} event={editingEvent} data={data} onSave={saveEvent} onBack={()=>goto("events")}/>}
         {view==="companyForm"&&<CompanyEditor key={editingCompany?.id||"new"} company={editingCompany||undefined} data={data} onSave={saveCompany} onBack={()=>goto("companies")}/>}
@@ -442,10 +442,7 @@ export default function ElixirPortal(){
             <label className="ep-check"><input type="checkbox" checked={placesOnly} onChange={e=>setPlacesOnly(e.target.checked)}/> Has places left</label>
           </div>
           <p className="ep-count">{filteredEvents.length} event{filteredEvents.length===1?"":"s"}</p>
-          {filteredEvents.length?<div className="ep-event-grid">{filteredEvents.map(e=><button key={e.id} className="ep-event-card" onClick={()=>{setSelectedEvent(e.id);goto("event");}}>
-            <div className="ep-event-top"><Chip tone={e.status==="published"?"green":e.status==="cancelled"?"red":"neutral"}>{e.status}</Chip><span>{e.category}</span></div>
-            <h2>{e.title}</h2><p>{e.summary}</p><div className="ep-event-facts"><span><CalendarDays size={16}/> {dateText(e.startsAt)}</span><span>{e.format==="online"?"Online":e.location}</span><span>{remainingPlaces(e,data)} places left</span></div><span className="ep-event-link">View details <ArrowRight size={16}/></span>
-          </button>)}</div>:<EmptyState title="No matching events" description="Try a different category, time period or search."/>}
+          {filteredEvents.length?<div className="ed-tile-grid">{filteredEvents.map(e=><EventTile key={e.id} event={e} data={data} onOpen={event=>{setSelectedEvent(event.id);goto("event");}}/>)}</div>:<EmptyState title="No matching events" description="Try a different category, time period or search."/>}
         </>}
         {view==="event"&&selected&&(eventAccess(current,selected,data))&&<>
           <button className="ep-back" onClick={()=>goto("events")}><ArrowLeft size={16}/> Back to events</button>
