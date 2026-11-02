@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
@@ -9,27 +9,15 @@ import { dateInput, type EventRecord, type EventStatus } from "@/lib/types";
 
 export function EventForm({ existing }: { existing?: EventRecord }) {
   const router=useRouter();const auth=useAuth();
-  const tomorrow=new Date(Date.now()+86400000);
-  tomorrow.setHours(10,0,0,0);
-  const defaultStart=dateInput(tomorrow.toISOString());
-  const defaultEnd=dateInput(new Date(tomorrow.getTime()+7200000).toISOString());
   const [title,setTitle]=useState(existing?.title||"");
   const [description,setDescription]=useState(existing?.description||"");
   const [category,setCategory]=useState(existing?.category||"Volunteering");
   const [location,setLocation]=useState(existing?.location||"");
-  const [start,setStart]=useState(existing?dateInput(existing.start_at):defaultStart);
-  const [end,setEnd]=useState(existing?dateInput(existing.end_at):defaultEnd);
+  const [start,setStart]=useState(existing?dateInput(existing.start_at):"");
+  const [end,setEnd]=useState(existing?dateInput(existing.end_at):"");
   const [capacity,setCapacity]=useState(existing?.capacity||30);
   const [status,setStatus]=useState<EventStatus>(existing?.status||"draft");
   const [busy,setBusy]=useState(false);const [error,setError]=useState("");
-  // If the record is loaded asynchronously after the component mounts, sync the form.
-  useEffect(()=>{
-    if(!existing)return;
-    setTitle(existing.title);setDescription(existing.description);setCategory(existing.category);
-    setLocation(existing.location);setStart(dateInput(existing.start_at));setEnd(dateInput(existing.end_at));
-    setCapacity(existing.capacity);setStatus(existing.status);
-  },[existing?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const authorized=auth.role==="admin"&&Boolean(auth.org)&&(!existing||existing.organization_id===auth.org?.id);
   async function submit(e:React.FormEvent) {
     e.preventDefault();setError("");

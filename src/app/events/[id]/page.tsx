@@ -14,6 +14,7 @@ export default function EventDetails(){
  const [registrations,setRegistrations]=useState<Registration[]>([]);
  const [people,setPeople]=useState<Record<string,Profile>>({});
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
+ const [now,setNow]=useState(0);
  const [error,setError]=useState(""),[message,setMessage]=useState("");
  const load=useCallback(async()=>{
    if(!supabase||!auth.user||!auth.org)return;
@@ -30,14 +31,15 @@ export default function EventDetails(){
      if(response.error)setError(response.error.message);
      const map:Record<string,Profile>={};(response.data||[]).forEach(p=>map[p.id]=p as Profile);setPeople(map);
    }else setPeople({});
+   setNow(Date.now());
    setLoading(false);
  },[id,auth.user?.id,auth.org?.id,auth.role]); // eslint-disable-line react-hooks/exhaustive-deps
- useEffect(()=>{void load();},[load]);
+ useEffect(()=>{void Promise.resolve().then(load);},[load]);
  const active=registrations.filter(r=>r.status==="registered");
  const mine=registrations.find(r=>r.user_id===auth.user?.id);
  const mineRegistered=mine?.status==="registered";
  const isAdmin=auth.role==="admin"&&event?.organization_id===auth.org?.id;
- const started=event?new Date(event.start_at).getTime()<=Date.now():false;
+ const started=event?new Date(event.start_at).getTime()<=now:false;
  const canJoin=event?.status==="published"&&!started&&!mineRegistered&&active.length<(event?.capacity||0);
  async function register(cancel:boolean){
    if(!supabase||!event)return;

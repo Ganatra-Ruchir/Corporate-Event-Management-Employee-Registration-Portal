@@ -1,7 +1,5 @@
 -- Corporate Events Portal: run in Supabase SQL editor or apply with Supabase CLI.
 -- Never place service-role keys in the browser. All exposed tables use RLS.
-create schema if not exists extensions;
-create extension if not exists pgcrypto with schema extensions;
 create schema if not exists private;
 
 create table public.organizations (
@@ -90,7 +88,7 @@ begin
   insert into public.organizations(name,created_by) values(trim(p_name),(select auth.uid())) returning id into v_org;
   insert into public.memberships(organization_id,user_id,role) values(v_org,(select auth.uid()),'admin');
   insert into public.organization_invites(organization_id,code)
-  values(v_org,encode(extensions.gen_random_bytes(16),'hex'));
+  values(v_org,replace(gen_random_uuid()::text,'-','') || replace(gen_random_uuid()::text,'-',''));
   return v_org;
 end $$;
 

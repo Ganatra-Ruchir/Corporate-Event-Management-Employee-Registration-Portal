@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [events,setEvents]=useState<EventRecord[]>([]);
   const [registrations,setRegistrations]=useState<Registration[]>([]);
   const [loading,setLoading]=useState(true);
+  const [now,setNow]=useState(0);
   const [error,setError]=useState("");
   const [search,setSearch]=useState("");
   const [filter,setFilter]=useState<Filter>("upcoming");
@@ -29,11 +30,11 @@ export default function Dashboard() {
       if(result.error)setError(result.error.message);
       setRegistrations((result.data||[]) as Registration[]);
     }else setRegistrations([]);
+    setNow(Date.now());
     setLoading(false);
   },[auth.org?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(()=>{void load();},[load]);
+  useEffect(()=>{void Promise.resolve().then(load);},[load]);
 
-  const now=Date.now();
   const visible=useMemo(()=>events.filter(e=>{
     const isPast=new Date(e.end_at).getTime()<now;
     const match=filter==="all"|| (filter==="past"?isPast:!isPast);

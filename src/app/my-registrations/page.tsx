@@ -10,7 +10,7 @@ export default function MyRegistrations(){
  const auth=useAuth();const [rows,setRows]=useState<(Registration&{event:EventRecord|null})[]>([]);
  const [loading,setLoading]=useState(true),[error,setError]=useState("");
  useEffect(()=>{
-   if(!supabase||!auth.user){setLoading(false);return;}
+   if(!supabase||!auth.user)return;
    let active=true;
    const fetchData=async()=>{
      setLoading(true);
@@ -36,6 +36,6 @@ export default function MyRegistrations(){
       <td>{r.attended_at?<span className="pill green">Attended</span>:<span className="small muted">—</span>}</td>
       <td><Link className="btn btn-secondary btn-sm" href={"/events/"+r.event_id}>View <ArrowUpRight size={14}/></Link></td>
     </tr>)}</tbody>
-   </table></div>:<div className="empty"><Ticket size={35}/><h3>No registrations yet</h3><p>Browse your organization's events and register for a cause you care about.</p><Link className="btn" href="/dashboard">Explore events</Link></div>}
+   </table></div>:<div className="empty"><Ticket size={35}/><h3>No registrations yet</h3><p>Browse your organization&apos;s events and register for a cause you care about.</p><Link className="btn" href="/dashboard">Explore events</Link></div>}
  </AppShell>;
 }

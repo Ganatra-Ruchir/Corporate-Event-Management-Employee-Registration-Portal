@@ -11,14 +11,16 @@ export default function Settings(){
  const auth=useAuth();
  const [code,setCode]=useState("");
  const [members,setMembers]=useState<MemberRow[]>([]);
- const [name,setName]=useState("");
- const [description,setDescription]=useState("");
+ const [edit,setEdit]=useState<{orgId:string;name:string;description:string}|null>(null);
+ const name=edit?.orgId===auth.org?.id?edit.name:(auth.org?.name||"");
+ const description=edit?.orgId===auth.org?.id?edit.description:(auth.org?.description||"");
+ const setName=(value:string)=>setEdit({orgId:auth.org?.id||"",name:value,description});
+ const setDescription=(value:string)=>setEdit({orgId:auth.org?.id||"",name,description:value});
  const [saving,setSaving]=useState(false);
  const [error,setError]=useState(""),[success,setSuccess]=useState("");
  const isAdmin=auth.role==="admin";
- useEffect(()=>{setName(auth.org?.name||"");setDescription(auth.org?.description||"");},[auth.org?.id,auth.org?.name,auth.org?.description]);
  const load=useCallback(async()=>{
-   if(!supabase||!auth.org||!isAdmin){setCode("");setMembers([]);return;}
+   if(!supabase||!auth.org||!isAdmin)return;
    const [invites,memberships]=await Promise.all([
      supabase.from("organization_invites").select("code").eq("organization_id",auth.org.id).maybeSingle(),
      supabase.from("memberships").select("user_id,organization_id,role").eq("organization_id",auth.org.id)
@@ -30,7 +32,7 @@ export default function Settings(){
    if(profiles?.error)setError(profiles.error.message);
    setMembers(values.map(m=>({membership:m,profile:(profiles?.data||[]).find(p=>p.id===m.user_id)||null})));
  },[auth.org?.id,isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
- useEffect(()=>{void load();},[load]);
+ useEffect(()=>{void Promise.resolve().then(load);},[load]);
  async function save(e:React.FormEvent){
    e.preventDefault();if(!supabase||!auth.org||!isAdmin)return;
    setSaving(true);setError("");setSuccess("");

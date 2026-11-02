@@ -11,7 +11,7 @@ export default function Home() {
       <div>
         <span className="pill"><span style={{fontSize:15}}>✦</span> One platform. More impact.</span>
         <h1 style={{marginTop:23}}>Bring people together. <em>Make impact happen.</em></h1>
-        <p className="hero-copy">From planning meaningful events to empowering employees to participate — manage your organization's experiences in one beautiful, connected space.</p>
+        <p className="hero-copy">From planning meaningful events to empowering employees to participate — manage your organization&apos;s experiences in one beautiful, connected space.</p>
         <div style={{display:"flex",gap:12,flexWrap:"wrap"}}><Link href="/auth" className="btn">Launch your workspace <ArrowRight size={17}/></Link><a href="#how-it-works" className="btn btn-secondary">See how it works</a></div>
         <div style={{display:"flex",gap:24,flexWrap:"wrap",marginTop:35,color:"#728098",fontSize:12,fontWeight:700}}><span>✓ Easy event publishing</span><span>✓ Secure organization spaces</span><span>✓ Participation tracking</span></div>
       </div>
