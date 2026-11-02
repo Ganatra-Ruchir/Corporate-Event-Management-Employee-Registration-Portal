@@ -8,7 +8,8 @@ import {
 import {
   activeRegistrations, canCancel, canRegister, cancelLocally, CATEGORIES, dateText, DEMO_PASSWORD,
   eventAccess, exportCsv, initialData, makeId, remainingPlaces,
-  registerLocally, registrationsFor, shortDate, signupCompany, toInput, validateEvent
+  registerLocally, registrationsFor, shortDate, signupCompany, toInput, validateEvent,
+  waitlistedRegistrations, waitlistPosition, promoteWaitlistLocally
 } from "@/lib/portal-model";
 import type { Company, EventFormat, EventStatus, Invitation, Person, PortalData, PortalEvent, Role } from "@/lib/portal-model";
 
@@ -45,6 +46,24 @@ function Action({children,onClick,kind="primary",disabled=false,type="button"}:{
   return <button className={"ep-button "+kind} type={type} onClick={onClick} disabled={disabled}>{children}</button>;
 }
 
+function calendarStamp(iso:string){return new Date(iso).toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");}
+function calendarText(s:string){return s.replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;");}
+function saveCalendarEvent(event:PortalEvent){
+  const contents=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Elixir Foundation//Events Portal//EN",
+    "BEGIN:VEVENT","UID:"+event.id+"@elixir-events.example",
+    "DTSTAMP:"+calendarStamp(new Date().toISOString()),
+    "DTSTART:"+calendarStamp(event.startsAt),"DTEND:"+calendarStamp(event.endsAt),
+    "SUMMARY:"+calendarText(event.title),"DESCRIPTION:"+calendarText(event.summary),
+    "LOCATION:"+calendarText(event.format==="online"?"Online":event.location),"END:VEVENT","END:VCALENDAR"].join("\r\n");
+  const url=URL.createObjectURL(new Blob([contents],{type:"text/calendar;charset=utf-8"}));
+  const anchor=document.createElement("a");anchor.href=url;anchor.download="elixir-event-"+event.id+".ics";anchor.click();URL.revokeObjectURL(url);
+}
+function googleCalendarUrl(event:PortalEvent){
+  const params=new URLSearchParams({action:"TEMPLATE",text:event.title,
+    dates:calendarStamp(event.startsAt)+"/"+calendarStamp(event.endsAt),
+    details:event.summary,location:event.format==="online"?"Online":event.location});
+  return "https://calendar.google.com/calendar/render?"+params.toString();
+}
 function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalData;onSave:(event:PortalEvent)=>void;onBack:()=>void}){
   const [form,setForm]=useState<PortalEvent>({...event});
   const [error,setError]=useState("");
@@ -190,7 +209,12 @@ export default function ElixirPortal(){
     void Promise.resolve().then(()=>{
       try{
         const s=localStorage.getItem(STORE);
-        if(s){const d=JSON.parse(s) as PortalData;if(d&&Array.isArray(d.companies)&&Array.isArray(d.users)&&Array.isArray(d.events)&&Array.isArray(d.registrations)&&Array.isArray(d.invitations))setData(d);}
+        if(s){const d=JSON.parse(s) as PortalData;if(d&&Array.isArray(d.companies)&&Array.isArray(d.users)&&Array.isArray(d.events)&&Array.isArray(d.registrations)&&Array.isArray(d.invitations)) {
+          // Import previous browser-only demo state into the shared V2 status model.
+          setData({...d,registrations:d.registrations.map(r=>({
+            ...r,status:r.status==="registered"?"going":r.status==="removed"?"cancelled":r.status
+          })) as PortalData["registrations"]});
+        }}
         const u=localStorage.getItem(SESSION);if(u)setSession(u);
       }catch{}
       setNow(Date.now());
@@ -244,14 +268,14 @@ export default function ElixirPortal(){
     if(current?.role!=="company_admin"||!current.companyId||e.companyId!==current.companyId){flash("Permission denied.");return;}
     const existing=data.events.some(x=>x.id===e.id);
     const next={...data,events:existing?data.events.map(x=>x.id===e.id?e:x):[...data.events,e]};
-    save(next);setEditingEvent(null);setSelectedEvent(e.id);setView("event");flash(existing?"Event updated.":"Event created.");
+    save(promoteWaitlistLocally(e,next));setEditingEvent(null);setSelectedEvent(e.id);setView("event");flash(existing?"Event updated.":"Event created.");
   }
   function modifyRegistration(event:PortalEvent,cancel:boolean){
     if(!current)return;
     if(!cancel&&!window.confirm("Register for "+event.title+"?"))return;
     if(cancel&&!window.confirm("Cancel your registration for "+event.title+"?"))return;
     const output=cancel?cancelLocally(current,event,data):registerLocally(current,event,data);
-    if(output.error)flash(output.error);else{save(output.data);flash(cancel?"Registration cancelled.":"You are registered for this event.");}
+    if(output.error)flash(output.error);else{save(output.data);flash(cancel?"RSVP cancelled.":output.data.registrations.find(r=>r.eventId===event.id&&r.userId===current.id)?.status==="waitlisted"?"You joined the waitlist.":"You are going to this event.");}
   }
   function cancelEvent(event:PortalEvent){
     if(current?.role!=="company_admin"||event.companyId!==current.companyId)return;
@@ -263,7 +287,8 @@ export default function ElixirPortal(){
   function removeParticipant(event:PortalEvent,userId:string){
     if(current?.role!=="company_admin"||event.companyId!==current.companyId)return;
     if(!window.confirm("Remove this participant from the event?"))return;
-    save({...data,registrations:data.registrations.map(r=>r.eventId===event.id&&r.userId===userId&&r.status==="registered"?{...r,status:"removed"}:r)});
+    const next={...data,registrations:data.registrations.map(r=>r.eventId===event.id&&r.userId===userId&&r.status==="going"?{...r,status:"cancelled" as const}:r)};
+    save(promoteWaitlistLocally(event,next));
     flash("Participant removed.");
   }
   function saveCompany(c:Company){
@@ -327,9 +352,9 @@ export default function ElixirPortal(){
   }).sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime());
   const myRegs=registrationsFor(current.id,data).sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime());
   const visibleRegs=myRegs.filter(r=>{const e=data.events.find(x=>x.id===r.eventId);if(!e||!eventAccess(current,e,data))return false;
-    if(historyFilter==="Upcoming")return r.status==="registered"&&new Date(e.startsAt).getTime()>now;
+    if(historyFilter==="Upcoming")return (r.status==="going"||r.status==="waitlisted")&&new Date(e.startsAt).getTime()>now;
     if(historyFilter==="Past")return new Date(e.startsAt).getTime()<=now;
-    if(historyFilter==="Cancelled")return r.status!=="registered";return true;});
+    if(historyFilter==="Cancelled")return r.status==="cancelled";return true;});
   const companyPeople=data.users.filter(u=>u.companyId===current.companyId);
   const availableCompanies=data.companies;
   return <div className="ep-shell">
@@ -352,7 +377,7 @@ export default function ElixirPortal(){
         {view==="home"&&<>
           <div className="ep-page-head"><div><h1>{current.role==="platform_admin"?"Platform overview":"Company overview"}</h1><p>{current.role==="platform_admin"?"Partner companies and their event activity.":company?.name+" — event and registration summary."}</p></div></div>
           {current.role==="platform_admin"?<>
-            <div className="ep-stats"><div><span>Partner companies</span><b>{data.companies.length}</b></div><div><span>Active companies</span><b>{data.companies.filter(c=>c.status==="active").length}</b></div><div><span>Total events</span><b>{data.events.length}</b></div><div><span>Total registrations</span><b>{data.registrations.filter(r=>r.status==="registered").length}</b></div></div>
+            <div className="ep-stats"><div><span>Partner companies</span><b>{data.companies.length}</b></div><div><span>Active companies</span><b>{data.companies.filter(c=>c.status==="active").length}</b></div><div><span>Total events</span><b>{data.events.length}</b></div><div><span>Total registrations</span><b>{data.registrations.filter(r=>r.status==="going").length}</b></div></div>
             <section className="ep-panel"><div className="ep-section-head"><h2>Partner companies</h2><Action onClick={()=>{setEditingCompany(null);goto("companyForm");}}><Plus size={16}/> Add company</Action></div><CompanyTable companies={availableCompanies} data={data} onView={id=>{setSelectedCompany(id);goto("companies");}}/></section>
           </>:<>
             <div className="ep-stats"><div><span>Upcoming events</span><b>{companyEvents.filter(e=>e.status==="published"&&new Date(e.startsAt).getTime()>now).length}</b></div><div><span>Draft events</span><b>{companyEvents.filter(e=>e.status==="draft").length}</b></div><div><span>Active registrations</span><b>{companyEvents.reduce((n,e)=>n+activeRegistrations(e.id,data).length,0)}</b></div><div><span>Nearly full events</span><b>{companyEvents.filter(e=>e.status==="published"&&remainingPlaces(e,data)<=3).length}</b></div></div>
@@ -378,28 +403,34 @@ export default function ElixirPortal(){
         </>}
         {view==="event"&&selected&&(eventAccess(current,selected,data))&&<>
           <button className="ep-back" onClick={()=>goto("events")}><ArrowLeft size={16}/> Back to events</button>
+          <div className={"ep-banner ep-banner-"+selected.category.toLowerCase().replace(/[^a-z]/g,"-")} role="img" aria-label={selected.bannerAlt||selected.title}>
+            {selected.bannerDataUrl?<img src={selected.bannerDataUrl} alt={selected.bannerAlt||selected.title}/>:<div className="ep-banner-fallback"><span>{selected.category}</span><strong>{selected.title}</strong></div>}
+          </div>
           <div className="ep-page-head"><div><div className="ep-event-label">{selected.category} · {selected.format.replace("_"," ")}</div><h1>{selected.title}</h1><p>{selected.summary}</p></div><Chip tone={selected.status==="published"?"green":selected.status==="cancelled"?"red":"neutral"}>{selected.status}</Chip></div>
           {selected.status==="cancelled"&&<div className="ep-error" role="status">Event cancelled. {selected.cancellationReason||"Contact the organiser for details."}</div>}
           <div className="ep-detail-layout"><article className="ep-panel ep-detail-copy">
               <h2>Event details</h2><p>{selected.description}</p>
               <dl><div><dt>Starts</dt><dd>{dateText(selected.startsAt)}</dd></div><div><dt>Ends</dt><dd>{dateText(selected.endsAt)}</dd></div>
-                {selected.format!=="online"&&<div><dt>Location</dt><dd>{selected.location}</dd></div>}
-                {selected.format!=="in_person"&&<div><dt>Online link</dt><dd><a href={selected.onlineLink} target="_blank" rel="noopener noreferrer">{selected.onlineLink}</a></dd></div>}
+                {selected.format!=="online"&&<div><dt>Location</dt><dd>{selected.location} <a href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(selected.location)} target="_blank" rel="noopener noreferrer">Open in Maps</a></dd></div>}
+                {selected.format!=="in_person"&&<div><dt>Online link</dt><dd>{activeRegistrations(selected.id,data).some(r=>r.userId===current.id)||current.role==="company_admin"?<a href={selected.onlineLink} target="_blank" rel="noopener noreferrer">Join online event</a>:"Available after RSVP"}</dd></div>}
                 <div><dt>Organiser</dt><dd><a href={"mailto:"+selected.contactEmail}>{selected.contactEmail}</a></dd></div>
                 <div><dt>Available places</dt><dd>{remainingPlaces(selected,data)} of {selected.capacity}</dd></div>
                 {selected.deadline&&<div><dt>Registration closes</dt><dd>{dateText(selected.deadline)}</dd></div>}
               </dl>
             </article>
             <aside className="ep-panel ep-detail-side"><h2>Registration</h2>
-              <p>{activeRegistrations(selected.id,data).length} registered · {remainingPlaces(selected,data)} places left</p>
-              {activeRegistrations(selected.id,data).some(r=>r.userId===current.id)?
-                <><div className="ep-success">You are registered for this event.</div><Action kind="secondary" onClick={()=>modifyRegistration(selected,true)} disabled={!!canCancel(current,selected,data)}>Cancel registration</Action></>:
-                <><Action disabled={!!canRegister(current,selected,data)} onClick={()=>modifyRegistration(selected,false)}>Register</Action>{canRegister(current,selected,data)&&<p className="ep-hint">{canRegister(current,selected,data)}</p>}</>}
+              <p>{activeRegistrations(selected.id,data).length} going · {remainingPlaces(selected,data)} places left</p>
+              {waitlistedRegistrations(selected.id,data).length>0&&<p>{waitlistedRegistrations(selected.id,data).length} on the waitlist</p>}
+              {data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?
+                <><div className="ep-success">{waitlistPosition(selected.id,current.id,data)>0?"You're #"+waitlistPosition(selected.id,current.id,data)+" on the waitlist":"You're going"}</div><Action kind="secondary" onClick={()=>modifyRegistration(selected,true)} disabled={!!canCancel(current,selected,data)}>Cancel RSVP</Action></>:
+                <><Action disabled={!!canRegister(current,selected,data)} onClick={()=>modifyRegistration(selected,false)}>{remainingPlaces(selected,data)===0?"Join waitlist":"Attend"}</Action>{canRegister(current,selected,data)&&<p className="ep-hint">{canRegister(current,selected,data)}</p>}</>}
+              <div className="ep-calendar-actions"><Action kind="secondary" onClick={()=>saveCalendarEvent(selected)}>Add to calendar (.ics)</Action><Action kind="secondary" onClick={()=>window.open(googleCalendarUrl(selected),"_blank","noopener,noreferrer")}>Google Calendar</Action><Action kind="secondary" onClick={()=>navigator.clipboard.writeText(window.location.href).then(()=>flash("Link copied.")).catch(()=>flash("Clipboard access was blocked."))}>Copy link</Action></div>
               {current.role==="company_admin"&&<div className="ep-admin-actions"><h3>Manage event</h3><Action kind="secondary" onClick={()=>{setEditingEvent(selected);goto("eventForm");}}>Edit event</Action>{selected.status!=="cancelled"&&<Action kind="danger" onClick={()=>cancelEvent(selected)}>Cancel event</Action>}</div>}
             </aside>
           </div>
           {current.role==="company_admin"&&<section className="ep-panel ep-participants"><div className="ep-section-head"><h2>Participants</h2><Action kind="secondary" onClick={()=>exportCsv("participants-"+selected.id+".csv",["Name","Email","Department","Registered"],activeRegistrations(selected.id,data).map(r=>{const p=data.users.find(u=>u.id===r.userId);return[p?.fullName||"",p?.email||"",p?.department||"",dateText(r.createdAt)];}))}><Download size={16}/> Export CSV</Action></div>
             <div className="ep-participant-search"><FormRow label="Search participants"><input value={participantSearch} onChange={e=>setParticipantSearch(e.target.value)} placeholder="Name, email or department"/></FormRow></div>
+          {waitlistedRegistrations(selected.id,data).length>0&&<div className="ep-info">{waitlistedRegistrations(selected.id,data).length} employees are waitlisted and will be promoted in order when places open.</div>}
           {activeRegistrations(selected.id,data).length?<div className="ep-table-scroll"><table><thead><tr><th>Employee</th><th>Department</th><th>Registered</th><th>Action</th></tr></thead><tbody>{activeRegistrations(selected.id,data).filter(r=>{const p=data.users.find(u=>u.id===r.userId);return [p?.fullName,p?.email,p?.department].join(" ").toLowerCase().includes(participantSearch.toLowerCase());}).map(r=>{const p=data.users.find(u=>u.id===r.userId);return <tr key={r.id}><td><b>{p?.fullName}</b><small>{p?.email}</small></td><td>{p?.department}</td><td>{shortDate(r.createdAt)}</td><td><button onClick={()=>removeParticipant(selected,r.userId)}>Remove</button></td></tr>;})}</tbody></table></div>:<EmptyState title="No participants" description="Employee registrations will appear here."/>}
           </section>}
         </>}
@@ -408,7 +439,7 @@ export default function ElixirPortal(){
           <div className="ep-page-head"><div><h1>My registrations</h1><p>Upcoming, past and cancelled event registrations.</p></div></div>
           <div className="ep-filters"><FormRow label="Show registrations"><select value={historyFilter} onChange={e=>setHistoryFilter(e.target.value)}><option>All</option><option>Upcoming</option><option>Past</option><option>Cancelled</option></select></FormRow></div>
           <div className="ep-panel">{visibleRegs.length?
-            <div className="ep-table-scroll"><table><thead><tr><th>Event</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>{visibleRegs.map(r=>{const e=data.events.find(x=>x.id===r.eventId)!;return <tr key={r.id}><td><b>{e.title}</b><small>{e.category}</small></td><td>{dateText(e.startsAt)}</td><td><Chip tone={r.status==="registered"?"green":r.status==="cancelled"?"orange":"red"}>{r.status}</Chip></td><td><button onClick={()=>{setSelectedEvent(e.id);goto("event");}}>Details</button></td></tr>;})}</tbody></table></div>:<EmptyState title="No registrations" description="Events that you join will appear here."/>}
+            <div className="ep-table-scroll"><table><thead><tr><th>Event</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>{visibleRegs.map(r=>{const e=data.events.find(x=>x.id===r.eventId)!;return <tr key={r.id}><td><b>{e.title}</b><small>{e.category}</small></td><td>{dateText(e.startsAt)}</td><td><Chip tone={r.status==="going"?"green":r.status==="waitlisted"?"orange":"neutral"}>{r.status}</Chip></td><td><button onClick={()=>{setSelectedEvent(e.id);goto("event");}}>Details</button></td></tr>;})}</tbody></table></div>:<EmptyState title="No registrations" description="Events that you join will appear here."/>}
           </div>
         </>}
         {view==="people"&&current.role==="company_admin"&&<>
