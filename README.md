@@ -1,3 +1,47 @@
+# Gatherly — Corporate Events and Employee Registration
+
+**Interactive draft available without a database.** Open the website and switch between Admin / Employee views. Try creating events, registering, recording attendance, filtering events, exporting CSV and viewing mock analytics. These are **sample records** stored only in your browser. Reset from the sidebar.
+
+## Preview mode (no Supabase required)
+
+```bash
+npm install
+npm run dev
+```
+
+Open http://localhost:3000 (or `/demo`). It will show the working draft automatically. No Supabase connection, real accounts, or real employee data are used.
+
+## Future database mode
+
+The existing authenticated application routes are in `/auth`, `/dashboard`, `/events`, `/settings`, `/join`, etc. They are **not activated for the preview**; once approved, create a Supabase project, run the migration in `supabase/migrations`, and configure the environment variables shown in `.env.example`. Review database security and invitation approval before real-data rollout. The draft experience remains available at `/demo`.
+
+## Technology
+
+Next.js 16, React 19, TypeScript, Lucide, responsive CSS; Supabase PostgreSQL planned for the future live version. Deploy on Vercel with Framework Preset **Next.js** and **default Output Directory**.
+
+## Demo functionality
+
+- Organization selection, and admin / employee role switch
+- Admin event creation and editing, publishing and draft status
+- Employee event browsing, category filters and search, registration / cancellation
+- Participant list, attendance check-in and CSV export
+- Dashboard metrics, participation analysis and sample member directory
+- Browser-only persistence and reset; no email, real QR codes, authentication or backend
+
+## Developer checks
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+```
+
+## Production notes
+
+Do not treat browser-only demo interactions as secure production workflows. Proper server-side authorization, database migrations, identity verification, privacy controls, testing and approvals are required before connecting real company records.
+
+---
+
 # Gatherly — Corporate Event Management & Employee Registration Portal
 
 A multi-organization corporate event app. Organizations create and publish events; employees use invitation codes to join their organization and register for activities. Includes role-aware dashboards, event publishing, capacity-safe registration, participant exports, attendance check-in and organization management.
