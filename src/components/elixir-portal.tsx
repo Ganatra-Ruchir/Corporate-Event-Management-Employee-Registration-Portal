@@ -147,7 +147,7 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset}:{data:PortalData;on
       </form>}
       <div className="ep-auth-links">
         {mode!=="login"&&<button type="button" onClick={()=>{setMode("login");setError("");setMessage("");}}>Back to sign in</button>}
-        {mode==="login"&&<><button type="button" onClick={()=>{setMode("signup");setError("");setMessage("");}}>Create an employee account</button><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button></>}
+        {mode==="login"&&<><button type="button" onClick={()=>{setMode("signup");setError("");setMessage("");}}>Create an employee account</button><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button><button type="button" onClick={()=>{const u=data.users.find(p=>p.email===email.toLowerCase().trim()&&!p.verified);if(!u){setError("Enter the email of an unverified demonstration account.");return;}setVerifyId(u.id);setMode("verify");setError("");}}>Verify sample email</button></>}
       </div>
       {mode==="login"&&<section className="ep-demo-users" aria-label="Sample accounts">
         <h2>Try a sample account</h2><p>All three accounts use the demonstration password shown below. No actual accounts or emails are used.</p>
@@ -171,6 +171,8 @@ export default function ElixirPortal(){
   const [editingCompany,setEditingCompany]=useState<Company|null>(null);
   const [notice,setNotice]=useState("");
   const [search,setSearch]=useState("");
+  const [participantSearch,setParticipantSearch]=useState("");
+  const [historyFilter,setHistoryFilter]=useState("All");
   const [category,setCategory]=useState("All");
   const [timeFilter,setTimeFilter]=useState("Upcoming");
   const [placesOnly,setPlacesOnly]=useState(false);
@@ -204,7 +206,7 @@ export default function ElixirPortal(){
   const companyEvents=events;
   const nav:(View[]) = current?.role==="platform_admin"?["home","companies","invitations","users","profile"]:
     current?.role==="company_admin"?["home","events","registrations","people","profile"]:["events","registrations","profile"];
-  const goto=(v:View)=>{setView(v);setNotice("");setSearch("");setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");setMenu(false);};
+  const goto=(v:View)=>{setView(v);setNotice("");setParticipantSearch("");setSearch("");setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");setMenu(false);};
 
   async function login(email:string,password:string):Promise<string|null>{
     const u=data.users.find(x=>x.email.toLowerCase()===email.toLowerCase().trim());
@@ -324,6 +326,10 @@ export default function ElixirPortal(){
     return true;
   }).sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime());
   const myRegs=registrationsFor(current.id,data).sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime());
+  const visibleRegs=myRegs.filter(r=>{const e=data.events.find(x=>x.id===r.eventId);if(!e||!eventAccess(current,e,data))return false;
+    if(historyFilter==="Upcoming")return r.status==="registered"&&new Date(e.startsAt).getTime()>now;
+    if(historyFilter==="Past")return new Date(e.startsAt).getTime()<=now;
+    if(historyFilter==="Cancelled")return r.status!=="registered";return true;});
   const companyPeople=data.users.filter(u=>u.companyId===current.companyId);
   const availableCompanies=data.companies;
   return <div className="ep-shell">
@@ -393,14 +399,16 @@ export default function ElixirPortal(){
             </aside>
           </div>
           {current.role==="company_admin"&&<section className="ep-panel ep-participants"><div className="ep-section-head"><h2>Participants</h2><Action kind="secondary" onClick={()=>exportCsv("participants-"+selected.id+".csv",["Name","Email","Department","Registered"],activeRegistrations(selected.id,data).map(r=>{const p=data.users.find(u=>u.id===r.userId);return[p?.fullName||"",p?.email||"",p?.department||"",dateText(r.createdAt)];}))}><Download size={16}/> Export CSV</Action></div>
-            {activeRegistrations(selected.id,data).length?<div className="ep-table-scroll"><table><thead><tr><th>Employee</th><th>Department</th><th>Registered</th><th>Action</th></tr></thead><tbody>{activeRegistrations(selected.id,data).map(r=>{const p=data.users.find(u=>u.id===r.userId);return <tr key={r.id}><td><b>{p?.fullName}</b><small>{p?.email}</small></td><td>{p?.department}</td><td>{shortDate(r.createdAt)}</td><td><button onClick={()=>removeParticipant(selected,r.userId)}>Remove</button></td></tr>;})}</tbody></table></div>:<EmptyState title="No participants" description="Employee registrations will appear here."/>}
+            <div className="ep-participant-search"><FormRow label="Search participants"><input value={participantSearch} onChange={e=>setParticipantSearch(e.target.value)} placeholder="Name, email or department"/></FormRow></div>
+          {activeRegistrations(selected.id,data).length?<div className="ep-table-scroll"><table><thead><tr><th>Employee</th><th>Department</th><th>Registered</th><th>Action</th></tr></thead><tbody>{activeRegistrations(selected.id,data).filter(r=>{const p=data.users.find(u=>u.id===r.userId);return [p?.fullName,p?.email,p?.department].join(" ").toLowerCase().includes(participantSearch.toLowerCase());}).map(r=>{const p=data.users.find(u=>u.id===r.userId);return <tr key={r.id}><td><b>{p?.fullName}</b><small>{p?.email}</small></td><td>{p?.department}</td><td>{shortDate(r.createdAt)}</td><td><button onClick={()=>removeParticipant(selected,r.userId)}>Remove</button></td></tr>;})}</tbody></table></div>:<EmptyState title="No participants" description="Employee registrations will appear here."/>}
           </section>}
         </>}
         {view==="event"&&(!selected||!eventAccess(current,selected,data))&&<EmptyState title="Event not available" description="The event was not found or you do not have access."/>}
         {view==="registrations"&&<>
           <div className="ep-page-head"><div><h1>My registrations</h1><p>Upcoming, past and cancelled event registrations.</p></div></div>
-          <div className="ep-panel">{myRegs.filter(r=>{const e=data.events.find(x=>x.id===r.eventId);return e&&eventAccess(current,e,data);}).length?
-            <div className="ep-table-scroll"><table><thead><tr><th>Event</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>{myRegs.map(r=>{const e=data.events.find(x=>x.id===r.eventId);if(!e||!eventAccess(current,e,data))return null;return <tr key={r.id}><td><b>{e.title}</b><small>{e.category}</small></td><td>{dateText(e.startsAt)}</td><td><Chip tone={r.status==="registered"?"green":r.status==="cancelled"?"orange":"red"}>{r.status}</Chip></td><td><button onClick={()=>{setSelectedEvent(e.id);goto("event");}}>Details</button></td></tr>;})}</tbody></table></div>:<EmptyState title="No registrations" description="Events that you join will appear here."/>}
+          <div className="ep-filters"><FormRow label="Show registrations"><select value={historyFilter} onChange={e=>setHistoryFilter(e.target.value)}><option>All</option><option>Upcoming</option><option>Past</option><option>Cancelled</option></select></FormRow></div>
+          <div className="ep-panel">{visibleRegs.length?
+            <div className="ep-table-scroll"><table><thead><tr><th>Event</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>{visibleRegs.map(r=>{const e=data.events.find(x=>x.id===r.eventId)!;return <tr key={r.id}><td><b>{e.title}</b><small>{e.category}</small></td><td>{dateText(e.startsAt)}</td><td><Chip tone={r.status==="registered"?"green":r.status==="cancelled"?"orange":"red"}>{r.status}</Chip></td><td><button onClick={()=>{setSelectedEvent(e.id);goto("event");}}>Details</button></td></tr>;})}</tbody></table></div>:<EmptyState title="No registrations" description="Events that you join will appear here."/>}
           </div>
         </>}
         {view==="people"&&current.role==="company_admin"&&<>
