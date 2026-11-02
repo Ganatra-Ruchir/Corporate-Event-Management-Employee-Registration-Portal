@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/components/auth-provider";
-
-export const metadata: Metadata = {
-  title: "Gatherly | Corporate Events & Volunteering",
-  description: "One connected place for corporate events, employee registrations and participation."
+export const metadata:Metadata={
+  title:"Elixir Events Portal",
+  description:"Corporate event management and employee registration — interactive draft."
 };
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body><AuthProvider>{children}</AuthProvider></body></html>;
-}
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body>{children}</body></html>;}

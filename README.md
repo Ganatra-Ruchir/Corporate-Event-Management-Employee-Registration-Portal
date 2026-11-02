@@ -1,135 +1,69 @@
-# Gatherly — Corporate Events and Employee Registration
+# Elixir Events Portal — no-database working draft
 
-**Interactive draft available without a database.** Open the website and switch between Admin / Employee views. Try creating events, registering, recording attendance, filtering events, exporting CSV and viewing mock analytics. These are **sample records** stored only in your browser. Reset from the sidebar.
+This branch launches a **browser-only** interactive version of the requested corporate events portal.
 
-## Preview mode (no Supabase required)
+**Open the Vercel website or run \`npm run dev\` locally. No Supabase, PostgreSQL, database credentials, server storage, or environment variables are required.**
 
-```bash
+## What is included
+
+Three fixed account roles selected **from the signed-in account**, never from a login role switch:
+
+- **Platform admin:** lists, creates, edits, suspends and reactivates partner companies, their allowed work-email domains, company admin invitations, and sample account suspension.
+- **Company admin:** plans events, saves drafts, publishes or cancels with an optional reason, sees participant lists, removes participants, exports CSV, and promotes or removes company admins. Company admins may register for events.
+- **Employee:** signs up with a recognised work-email domain, verifies a sample email, browses published upcoming and past events, filters by category/availability, registers and cancels before an event starts, checks registration history, updates profile and demo password.
+
+The browser-local rules enforce event capacity, registration deadlines, draft visibility, cancellation rules, domain-based company assignment, and role-aware screens. Events may be created with in-person, online, or hybrid settings.
+
+## Try the draft
+
+1. Visit the root page (there is no separate marketing screen).
+2. Select one of the three **sample accounts** on the sign-in screen. This only fills the email and password fields; it doesn't choose a role.
+3. The sample password for all three is \`Demo@2026!\`.
+4. Explore the relevant account features. Sign out to test another account.
+
+Sample addresses (all fictitious):
+- Platform admin: \`admin@elixir.example\`
+- Company admin: \`alex@northwind.example\`
+- Employee: \`priya@northwind.example\`
+
+Other fictitious work domains: \`northwind.example\`, \`contoso.example\`, and \`contoso-group.example\`.
+
+Changes persist **only in the same browser** using localStorage. Use the reset control to restore sample data.
+
+## Run locally / deploy
+
+Requirements: Node.js 22 or newer.
+
+\`\`\`bash
 npm install
 npm run dev
-```
-
-Open http://localhost:3000 (or `/demo`). It will show the working draft automatically. No Supabase connection, real accounts, or real employee data are used.
-
-## Future database mode
-
-The existing authenticated application routes are in `/auth`, `/dashboard`, `/events`, `/settings`, `/join`, etc. They are **not activated for the preview**; once approved, create a Supabase project, run the migration in `supabase/migrations`, and configure the environment variables shown in `.env.example`. Review database security and invitation approval before real-data rollout. The draft experience remains available at `/demo`.
-
-## Technology
-
-Next.js 16, React 19, TypeScript, Lucide, responsive CSS; Supabase PostgreSQL planned for the future live version. Deploy on Vercel with Framework Preset **Next.js** and **default Output Directory**.
-
-## Demo functionality
-
-- Organization selection, and admin / employee role switch
-- Admin event creation and editing, publishing and draft status
-- Employee event browsing, category filters and search, registration / cancellation
-- Participant list, attendance check-in and CSV export
-- Dashboard metrics, participation analysis and sample member directory
-- Browser-only persistence and reset; no email, real QR codes, authentication or backend
-
-## Developer checks
-
-```bash
-npm run typecheck
-npm run lint
-npm run build
-```
-
-## Production notes
-
-Do not treat browser-only demo interactions as secure production workflows. Proper server-side authorization, database migrations, identity verification, privacy controls, testing and approvals are required before connecting real company records.
-
----
-
-# Gatherly — Corporate Event Management & Employee Registration Portal
-
-A multi-organization corporate event app. Organizations create and publish events; employees use invitation codes to join their organization and register for activities. Includes role-aware dashboards, event publishing, capacity-safe registration, participant exports, attendance check-in and organization management.
-
-**Status: functional MVP source code**. Requires your own Supabase project and migrations. Do **not** use real employee data until you complete the security and operational review below.
-
-## Stack
-
-- Next.js 16, React 19, TypeScript, custom responsive CSS, Lucide icons
-- Supabase Auth, PostgreSQL and Row Level Security
-- Vercel-ready application (no server-side secret keys required)
-
-## Quick start
-
-1. Install Node.js 22 LTS.
-2. Create a Supabase project at https://supabase.com/dashboard.
-3. Open **SQL Editor** in Supabase; run the SQL in [supabase/migrations/20261102190000_initial_schema.sql](supabase/migrations/20261102190000_initial_schema.sql). Do this on a **new empty project**, not an existing production database.
-4. In **Authentication → Providers**, enable Email. Configure email confirmation and production SMTP as required. Add your deployed domain to **Authentication → URL Configuration → Redirect URLs**.
-5. Make a local env file by copying \`.env.example\` to \`.env.local\`; replace values with your Supabase **Project URL** and **publishable/anon key**. **Do not put secret or service-role keys here.**
-6. Run:
-
-   \`\`\`bash
-   npm install
-   npm run dev
-   \`\`\`
-
-7. Open http://localhost:3000. Create an account. Create an organization to become its admin. In Organization Settings copy the invitation code. Employees can sign up, join using the code, see published events, and register.
-
-### Vercel deployment
-
-Import the GitHub repository into Vercel, configure \`NEXT_PUBLIC_SUPABASE_URL\` and \`NEXT_PUBLIC_SUPABASE_ANON_KEY\` in the project's environment settings, then deploy. Set your Supabase Site URL to the deployed domain and add that domain's \`/auth\` URL to Supabase redirect allow list. Use the correct plan for commercial use.
-
-## Permissions and business rules
-
-- Employees see published events from organizations they have joined and can manage only their own registrations.
-- Admins can manage all events and view registrations/member information within their organization.
-- PostgreSQL RLS enforces tenant isolation; cross-organization writes are blocked at database level.
-- Employee registration runs in a transactional Postgres function that locks the event, enforces capacity, and prevents duplicate active registrations.
-- Attendance is updated only by an administrator via a database function.
-- Organization membership creation uses unguessable invite codes and always assigns the \`employee\` role. **Anyone who obtains a valid code can join the organization.** For a real rollout, implement invitations tied to verified work email and/or admin approval.
-- "Create organization" currently permits any verified signed-in user to create an admin workspace. Organization vetting should be added before production rollout.
-- The landing page illustrates **sample** numbers and events only; dashboard data comes from your database.
-
-## Database
-
-\`\`\`text
-organizations (id, name, description, created_by)
-  ├── memberships (organization_id, user_id, role)
-  ├── organization_invites (organization_id, code)
-  └── events (id, organization_id, created_by, title, location, start_at, end_at, capacity, status)
-       └── registrations (id, event_id, user_id, status, attended_at)
-profiles (id, email, full_name)
-auth.users (Supabase-managed identities)
 \`\`\`
 
-## Routes
+Deploy to Vercel with Framework Preset **Next.js** and **default** Output Directory. No environment variables are required to preview the app.
 
-| Route | Purpose | Access |
-| --- | --- | --- |
-| / | Marketing home | All |
-| /auth | Sign up / login | All |
-| /dashboard | Event overview & KPIs | Organization member |
-| /events/new | Create an event | Organization admin |
-| /events/[id] | Event details, registration, participant management | Organization member |
-| /events/[id]/edit | Edit event | Organization admin |
-| /my-registrations | Personal participation history | Signed-in member |
-| /organizations/new | Create corporate workspace | Signed-in |
-| /join | Join via invitation code | Signed-in |
-| /settings | Organization settings & employee directory | Member (admin tools restricted) |
+## Scope and limitations
 
-## Priorities before launch
+This is a **working front-end draft, not a secure, shared, production application**.
 
-1. Add partner verification/admin approval and domain-scoped invitations.
-2. Test SQL RLS with multiple organization accounts, including unauthenticated and malicious client requests.
-3. Add automated E2E tests, CI, rate limiting and anti-spam protection.
-4. Configure verified SMTP, secure recovery flows, backup retention, email deliverability, abuse handling, monitoring and incident response.
-5. Publish a privacy notice and retention policy for employee personal data; define responsibilities with corporate partners.
-6. Verify accessibility, mobile device support, local timezone handling and desired cancellation rules.
-7. Optional Phase 2: waitlists, QR check-in, volunteering hours, feedback, notifications, certificates and analytics.
+- There is deliberately no database, Supabase connection, server session, server-side authorization or shared employee records in the draft.
+- The sample sign-in and roles are browser-local simulations. They are **not secure authentication**, and sample access can be altered through browser developer tools.
+- Sign-up email verification and password recovery are simulated on-screen; **no email is sent**. Never use actual work credentials.
+- Last-place registration is checked within a single browser. **Concurrent users across devices cannot be safely coordinated without a server-side transactional store.**
+- The browser-local demo data can be cleared by browser storage settings, is not shared between devices and is not backed up.
+- Actual WCAG 2.2 AA conformance, end-to-end multi-browser testing and cross-organization server security tests cannot be claimed without a backend and formal accessibility testing.
 
-## Development checks
+The app does **not** implement the explicitly excluded features: QR check-in, certificates, volunteering hours, analytics charts, payments, chat, AI, notifications or gamification.
+
+The previously drafted Supabase app code and migration remain in this repository as **future backend planning files**, but the new entry point uses none of those files. Historical backend URLs redirect to the database-free root experience.
+
+## When database integration is approved
+
+Add real email verification and password reset, server authorization and Row Level Security, transactional registration, account provisioning, and tests for cross-company isolation and simultaneous last-place registration. The previous migration should be reviewed and updated for the final three-role business requirements rather than run unchanged.
+
+## Checks
 
 \`\`\`bash
 npm run typecheck
 npm run lint
 npm run build
 \`\`\`
-
-## Project owner
-
-Built for corporate partner event planning and employee registration. Open source repository maintained by its owner.
