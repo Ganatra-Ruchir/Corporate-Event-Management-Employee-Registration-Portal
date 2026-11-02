@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   ArrowLeft, ArrowRight, CalendarDays, ChevronRight,
   Download, LogOut, Menu, Plus, Search, X
@@ -404,7 +405,7 @@ export default function ElixirPortal(){
         {view==="event"&&selected&&(eventAccess(current,selected,data))&&<>
           <button className="ep-back" onClick={()=>goto("events")}><ArrowLeft size={16}/> Back to events</button>
           <div className={"ep-banner ep-banner-"+selected.category.toLowerCase().replace(/[^a-z]/g,"-")} role="img" aria-label={selected.bannerAlt||selected.title}>
-            {selected.bannerDataUrl?<img src={selected.bannerDataUrl} alt={selected.bannerAlt||selected.title}/>:<div className="ep-banner-fallback"><span>{selected.category}</span><strong>{selected.title}</strong></div>}
+            {selected.bannerDataUrl?<Image src={selected.bannerDataUrl} alt={selected.bannerAlt||selected.title} width={1280} height={720} unoptimized/>:<div className="ep-banner-fallback"><span>{selected.category}</span><strong>{selected.title}</strong></div>}
           </div>
           <div className="ep-page-head"><div><div className="ep-event-label">{selected.category} · {selected.format.replace("_"," ")}</div><h1>{selected.title}</h1><p>{selected.summary}</p></div><Chip tone={selected.status==="published"?"green":selected.status==="cancelled"?"red":"neutral"}>{selected.status}</Chip></div>
           {selected.status==="cancelled"&&<div className="ep-error" role="status">Event cancelled. {selected.cancellationReason||"Contact the organiser for details."}</div>}
