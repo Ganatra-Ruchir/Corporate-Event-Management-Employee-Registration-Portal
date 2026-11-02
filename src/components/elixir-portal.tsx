@@ -241,7 +241,12 @@ export default function ElixirPortal(){
             ...r,status:(r.status as string)==="registered"?"going":(r.status as string)==="removed"?"cancelled":r.status
           })) as PortalData["registrations"]});
         }}
-        const u=localStorage.getItem(SESSION);if(u)setSession(u);
+        const u=localStorage.getItem(SESSION);
+        if(u){
+          setSession(u);
+          const eventId=new URLSearchParams(window.location.search).get("event");
+          if(eventId){setSelectedEvent(eventId);setView("event");}
+        }
       }catch{}
       setNow(Date.now());
       setReady(true);
@@ -256,7 +261,17 @@ export default function ElixirPortal(){
   const companyEvents=events;
   const nav:(View[]) = current?.role==="platform_admin"?["home","companies","invitations","users","profile"]:
     current?.role==="company_admin"?["home","events","registrations","people","profile"]:["home","events","registrations","profile"];
-  const goto=(v:View)=>{setView(v);setNotice("");setParticipantSearch("");setSearch("");setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");setMenu(false);};
+  const goto=(v:View)=>{
+    setView(v);setNotice("");setParticipantSearch("");setSearch("");
+    setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");setMenu(false);
+    if(v!=="event"&&typeof window!=="undefined"&&new URLSearchParams(window.location.search).has("event")){
+      window.history.replaceState(null,"",window.location.pathname);
+    }
+  };
+  const openEvent=(id:string)=>{
+    setSelectedEvent(id);goto("event");
+    window.history.replaceState(null,"",window.location.pathname+"?event="+encodeURIComponent(id));
+  };
 
   async function login(email:string,password:string):Promise<string|null>{
     const u=data.users.find(x=>x.email.toLowerCase()===email.toLowerCase().trim());
@@ -265,7 +280,11 @@ export default function ElixirPortal(){
     const org=u.companyId?data.companies.find(c=>c.id===u.companyId):null;
     if(u.status==="suspended"||org?.status==="suspended")return "This account or company is suspended. Contact the platform administrator.";
     setSession(u.id);try{localStorage.setItem(SESSION,u.id);}catch{}
-    setView("home");return null;
+    const requested=new URLSearchParams(window.location.search).get("event");
+    const target=data.events.find(e=>e.id===requested);
+    if(target&&eventAccess(u,target,data)){setSelectedEvent(target.id);setView("event");}
+    else{setView("home");if(requested)window.history.replaceState(null,"",window.location.pathname);}
+    return null;
   }
   async function signup(name:string,email:string,dept:string,password:string):Promise<string|null>{
     const result=signupCompany(email,data);
@@ -294,7 +313,7 @@ export default function ElixirPortal(){
     if(current?.role!=="company_admin"||!current.companyId||e.companyId!==current.companyId){flash("Permission denied.");return;}
     const existing=data.events.some(x=>x.id===e.id);
     const next={...data,events:existing?data.events.map(x=>x.id===e.id?e:x):[...data.events,e]};
-    save(promoteWaitlistLocally(e,next));setEditingEvent(null);setSelectedEvent(e.id);setView("event");flash(existing?"Event updated.":"Event created.");
+    save(promoteWaitlistLocally(e,next));setEditingEvent(null);openEvent(e.id);flash(existing?"Event updated.":"Event created.");
   }
   function modifyRegistration(event:PortalEvent,cancel:boolean){
     if(!current)return;
@@ -405,13 +424,13 @@ export default function ElixirPortal(){
         {view==="companyForm"&&<CompanyEditor key={editingCompany?.id||"new"} company={editingCompany||undefined} data={data} onSave={saveCompany} onBack={()=>goto("companies")}/>}
         {view==="home"&&current.role==="employee"&&<DiscoverHome
           data={data} events={companyEvents} user={current} now={now}
-          onOpen={e=>{setSelectedEvent(e.id);goto("event");}}
+          onOpen={e=>{openEvent(e.id);}}
           onBrowse={()=>goto("events")}
           onCategory={c=>{goto("events");setCategory(c);}}
         />}
         {view==="events"&&current.role==="employee"&&<DiscoverBrowse
           data={data} events={companyEvents} now={now}
-          onOpen={e=>{setSelectedEvent(e.id);goto("event");}}
+          onOpen={e=>{openEvent(e.id);}}
           search={search} setSearch={setSearch}
           category={category} setCategory={setCategory}
           timeFilter={timeFilter} setTimeFilter={setTimeFilter}
@@ -425,11 +444,11 @@ export default function ElixirPortal(){
           </>:<>
             <div className="ep-stats"><div><span>Upcoming events</span><b>{companyEvents.filter(e=>e.status==="published"&&new Date(e.startsAt).getTime()>now).length}</b></div><div><span>Draft events</span><b>{companyEvents.filter(e=>e.status==="draft").length}</b></div><div><span>Active registrations</span><b>{companyEvents.reduce((n,e)=>n+activeRegistrations(e.id,data).length,0)}</b></div><div><span>Nearly full events</span><b>{companyEvents.filter(e=>e.status==="published"&&remainingPlaces(e,data)<=3).length}</b></div></div>
             <div className="ed-admin-spotlight"><div className="ed-section-head"><div><h2>Next events</h2><p>Published and ready for your employees</p></div><button onClick={()=>goto("events")}>Manage all <ArrowRight size={17}/></button></div>
-              <div className="ed-tile-grid">{companyEvents.filter(e=>e.status==="published"&&new Date(e.startsAt).getTime()>now).sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime()).slice(0,3).map(e=><EventTile event={e} data={data} key={e.id} onOpen={item=>{setSelectedEvent(item.id);goto("event");}}/>)}</div>
+              <div className="ed-tile-grid">{companyEvents.filter(e=>e.status==="published"&&new Date(e.startsAt).getTime()>now).sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime()).slice(0,3).map(e=><EventTile event={e} data={data} key={e.id} onOpen={item=>{openEvent(item.id);}}/>)}</div>
             </div>
             <div className="ep-section-head"><h2>Events requiring attention</h2><Action onClick={()=>{setEditingEvent({...initialEvent(current.companyId!,current.id),contactEmail:current.email});goto("eventForm");}}><Plus size={16}/> Create event</Action></div>
             <div className="ep-panel">{companyEvents.filter(e=>e.status==="draft"||(e.status==="published"&&remainingPlaces(e,data)<=3)).length?
-              companyEvents.filter(e=>e.status==="draft"||(e.status==="published"&&remainingPlaces(e,data)<=3)).map(e=><button className="ep-row-link" key={e.id} onClick={()=>{setSelectedEvent(e.id);goto("event");}}><span><b>{e.title}</b><small>{e.status==="draft"?"Draft to review":remainingPlaces(e,data)+" places left"}</small></span><ChevronRight size={17}/></button>):
+              companyEvents.filter(e=>e.status==="draft"||(e.status==="published"&&remainingPlaces(e,data)<=3)).map(e=><button className="ep-row-link" key={e.id} onClick={()=>{openEvent(e.id);}}><span><b>{e.title}</b><small>{e.status==="draft"?"Draft to review":remainingPlaces(e,data)+" places left"}</small></span><ChevronRight size={17}/></button>):
               <EmptyState title="No events need attention" description="Drafts and nearly full events will appear here."/>}</div>
           </>}
         </>}
@@ -442,7 +461,7 @@ export default function ElixirPortal(){
             <label className="ep-check"><input type="checkbox" checked={placesOnly} onChange={e=>setPlacesOnly(e.target.checked)}/> Has places left</label>
           </div>
           <p className="ep-count">{filteredEvents.length} event{filteredEvents.length===1?"":"s"}</p>
-          {filteredEvents.length?<div className="ed-tile-grid">{filteredEvents.map(e=><EventTile key={e.id} event={e} data={data} onOpen={event=>{setSelectedEvent(event.id);goto("event");}}/>)}</div>:<EmptyState title="No matching events" description="Try a different category, time period or search."/>}
+          {filteredEvents.length?<div className="ed-tile-grid">{filteredEvents.map(e=><EventTile key={e.id} event={e} data={data} onOpen={event=>{openEvent(event.id);}}/>)}</div>:<EmptyState title="No matching events" description="Try a different category, time period or search."/>}
         </>}
         {view==="event"&&selected&&(eventAccess(current,selected,data))&&<>
           <button className="ep-back" onClick={()=>goto("events")}><ArrowLeft size={16}/> Back to events</button>
@@ -481,7 +500,7 @@ export default function ElixirPortal(){
               {data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?
                 <><div className="ep-success">{waitlistPosition(selected.id,current.id,data)>0?"You're #"+waitlistPosition(selected.id,current.id,data)+" on the waitlist":"You're going"}</div><Action kind="secondary" onClick={()=>modifyRegistration(selected,true)} disabled={!!canCancel(current,selected,data)}>Cancel RSVP</Action></>:
                 <><Action disabled={!!canRegister(current,selected,data)} onClick={()=>modifyRegistration(selected,false)}>{remainingPlaces(selected,data)===0?"Join waitlist":"Attend"}</Action>{canRegister(current,selected,data)&&<p className="ep-hint">{canRegister(current,selected,data)}</p>}</>}
-              <div className="ep-calendar-actions"><Action kind="secondary" onClick={()=>saveCalendarEvent(selected)}>Add to calendar (.ics)</Action><Action kind="secondary" onClick={()=>window.open(googleCalendarUrl(selected),"_blank","noopener,noreferrer")}>Google Calendar</Action><Action kind="secondary" onClick={()=>navigator.clipboard.writeText(window.location.href).then(()=>flash("Link copied.")).catch(()=>flash("Clipboard access was blocked."))}>Copy link</Action></div>
+              <div className="ep-calendar-actions"><Action kind="secondary" onClick={()=>saveCalendarEvent(selected)}>Add to calendar (.ics)</Action><Action kind="secondary" onClick={()=>window.open(googleCalendarUrl(selected),"_blank","noopener,noreferrer")}>Google Calendar</Action><Action kind="secondary" onClick={()=>navigator.clipboard.writeText(window.location.origin+window.location.pathname+"?event="+encodeURIComponent(selected.id)).then(()=>flash("Preview link copied. Saved events are available only in this browser.")).catch(()=>flash("Clipboard access was blocked."))}>Copy preview link</Action></div>
               {current.role==="company_admin"&&<div className="ep-admin-actions"><h3>Manage event</h3><Action kind="secondary" onClick={()=>{setEditingEvent(selected);goto("eventForm");}}>Edit event</Action>{selected.status!=="cancelled"&&<Action kind="danger" onClick={()=>cancelEvent(selected)}>Cancel event</Action>}</div>}
             </aside>
           </div>
@@ -502,7 +521,7 @@ export default function ElixirPortal(){
           <div className="ep-page-head"><div><h1>My registrations</h1><p>Upcoming, past and cancelled event registrations.</p></div></div>
           <div className="ep-filters"><FormRow label="Show registrations"><select value={historyFilter} onChange={e=>setHistoryFilter(e.target.value)}><option>All</option><option>Upcoming</option><option>Past</option><option>Cancelled</option></select></FormRow></div>
           <div className="ep-panel">{visibleRegs.length?
-            <div className="ep-table-scroll"><table><thead><tr><th>Event</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>{visibleRegs.map(r=>{const e=data.events.find(x=>x.id===r.eventId)!;return <tr key={r.id}><td><b>{e.title}</b><small>{e.category}</small></td><td>{dateText(e.startsAt)}</td><td><Chip tone={r.status==="going"?"green":r.status==="waitlisted"?"orange":"neutral"}>{r.status}</Chip></td><td><button onClick={()=>{setSelectedEvent(e.id);goto("event");}}>Details</button></td></tr>;})}</tbody></table></div>:<EmptyState title="No registrations" description="Events that you join will appear here."/>}
+            <div className="ep-table-scroll"><table><thead><tr><th>Event</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>{visibleRegs.map(r=>{const e=data.events.find(x=>x.id===r.eventId)!;return <tr key={r.id}><td><b>{e.title}</b><small>{e.category}</small></td><td>{dateText(e.startsAt)}</td><td><Chip tone={r.status==="going"?"green":r.status==="waitlisted"?"orange":"neutral"}>{r.status}</Chip></td><td><button onClick={()=>{openEvent(e.id);}}>Details</button></td></tr>;})}</tbody></table></div>:<EmptyState title="No registrations" description="Events that you join will appear here."/>}
           </div>
         </>}
         {view==="people"&&current.role==="company_admin"&&<>
