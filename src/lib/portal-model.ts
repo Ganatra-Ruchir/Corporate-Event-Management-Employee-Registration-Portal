@@ -6,6 +6,30 @@ export type EventFormat = "in_person" | "online" | "hybrid";
 
 export type Company = { id:string; name:string; domains:string[]; status:CompanyStatus; createdAt:string };
 export type Person = { id:string; fullName:string; email:string; department:string; role:Role; companyId:string|null; status:CompanyStatus; verified:boolean; password:string; showInAttendeeLists?:boolean };
+export type Speaker = {
+ id:string; name:string; jobTitle:string; company:string; talkTitle:string;
+ bio:string; agendaSlot?:string; linkedIn?:string; website?:string;
+ photoDataUrl?:string; photoAlt?:string;
+};
+export function validateSpeakers(speakers:Speaker[]):string|null {
+ if(speakers.length>12)return "Use no more than 12 speakers for one event.";
+ for(let i=0;i<speakers.length;i++){
+  const s=speakers[i],n="Speaker "+(i+1)+": ";
+  if(s.name.trim().length<2)return n+"enter the speaker name.";
+  if(!s.jobTitle.trim())return n+"enter a job title.";
+  if(!s.company.trim())return n+"enter a company.";
+  if(!s.talkTitle.trim())return n+"enter the talk title.";
+  if(!s.bio.trim())return n+"enter a short bio.";
+  if(s.photoDataUrl&&!s.photoAlt?.trim())return n+"add alt text for the photo.";
+  for(const [label,url] of [["LinkedIn",s.linkedIn],["website",s.website]]){
+   if(url&&(!/^https:\/\//i.test(url)||!isValidHttpsUrl(url)))return n+label+" must use a valid HTTPS link.";
+  }
+ }
+ return null;
+}
+function isValidHttpsUrl(value:string){
+ try{const u=new URL(value);return u.protocol==="https:"&&Boolean(u.hostname.includes("."));}catch{return false;}
+}
 export type PortalEvent = {
   id:string; companyId:string; title:string; summary:string; description:string; category:string; format:EventFormat;
   location:string; onlineLink:string; startsAt:string; endsAt:string; capacity:number; deadline:string;
@@ -13,6 +37,7 @@ export type PortalEvent = {
   waitlistEnabled?:boolean;
   bannerDataUrl?:string;
   bannerAlt?:string;
+  speakers?:Speaker[];
 };
 export type Registration = { id:string; eventId:string; userId:string; status:RegistrationStatus; createdAt:string; waitlistedAt?:string|null; promotedAt?:string|null };
 export type Invitation = { id:string; email:string; companyId:string; role:"company_admin"; code:string; accepted:boolean };
@@ -65,6 +90,7 @@ export function validateEvent(event:PortalEvent,data:PortalData):string|null{
   if(event.title.trim().length<3)return "Enter an event title of at least 3 characters.";
   if(!event.summary.trim())return "Enter a short event summary.";
   if(event.bannerDataUrl&&!event.bannerAlt?.trim())return "Add descriptive alt text for the event banner.";
+  const speakerIssue=validateSpeakers(event.speakers||[]);if(speakerIssue)return speakerIssue;
   if(!event.description.trim())return "Enter an event description.";
   if(!event.location.trim()&&event.format!=="online")return "Enter an event location.";
   if(event.format!=="in_person"&&!/^https:\/\/\S+\.\S+/.test(event.onlineLink))return "Enter a valid HTTPS meeting link.";
@@ -126,7 +152,12 @@ export const initialData:PortalData={
   ],
   events:[
     {id:"event-1",companyId:"northwind",title:"Community Tree Planting",summary:"A morning helping plant trees in local community spaces.",description:"Join colleagues for a guided tree planting activity. Wear comfortable shoes and bring drinking water. The organiser will provide all planting equipment.",category:"Environment",format:"in_person",location:"Riverfront Park, Ahmedabad",onlineLink:"",startsAt:date(18,9),endsAt:date(18,12),capacity:30,deadline:date(17,18),contactEmail:"alex@northwind.example",status:"published",cancellationReason:"",createdBy:"manager"},
-    {id:"event-2",companyId:"northwind",title:"Digital Skills Workshop",summary:"Help students practise basic computer skills.",description:"Employees will work alongside facilitators to guide students through short computer exercises. An orientation will be provided at the venue.",category:"Education",format:"in_person",location:"Northwind Training Centre",onlineLink:"",startsAt:date(24,10),endsAt:date(24,13),capacity:18,deadline:"",contactEmail:"alex@northwind.example",status:"published",cancellationReason:"",createdBy:"manager"},
+    {id:"event-2",companyId:"northwind",title:"Digital Skills Workshop",summary:"Help students practise basic computer skills.",description:"Employees will work alongside facilitators to guide students through short computer exercises. An orientation will be provided at the venue.",category:"Education",format:"in_person",location:"Northwind Training Centre",onlineLink:"",startsAt:date(24,10),endsAt:date(24,13),capacity:18,deadline:"",contactEmail:"alex@northwind.example",status:"published",cancellationReason:"",createdBy:"manager",
+      speakers:[
+       {id:"speaker-example-1",name:"Mira Patel",jobTitle:"Learning Facilitator",company:"Northwind Services",talkTitle:"Helping beginners learn digital skills",bio:"Mira guides introductory digital learning sessions and practical team workshops.",agendaSlot:"10:00 AM — Introduction and workshop goals"},
+       {id:"speaker-example-2",name:"Arjun Shah",jobTitle:"Technology Mentor",company:"Northwind Services",talkTitle:"Practical computer activities",bio:"Arjun helps participants learn through short guided computer exercises.",agendaSlot:"11:00 AM — Guided computer practice"},
+       {id:"speaker-example-3",name:"Leena Mehta",jobTitle:"Program Coordinator",company:"Northwind Services",talkTitle:"Questions and next steps",bio:"Leena coordinates community learning sessions and employee volunteering.",agendaSlot:"12:00 PM — Questions and next steps"}
+      ]},
     {id:"event-3",companyId:"northwind",title:"Employee Town Hall",summary:"Quarterly conversation about team activities and volunteering plans.",description:"Join the management team for updates and an open discussion. A meeting link will be provided to participants.",category:"Town Hall",format:"online",location:"",onlineLink:"https://meet.example.com/town-hall",startsAt:date(27,15),endsAt:date(27,16),capacity:80,deadline:"",contactEmail:"alex@northwind.example",status:"draft",cancellationReason:"",createdBy:"manager"},
     {id:"event-4",companyId:"contoso",title:"Community Health Outreach",summary:"Help organise a community health awareness programme.",description:"Support the registration desk, distribute information and assist the programme team.",category:"Health",format:"in_person",location:"Contoso Community Hall",onlineLink:"",startsAt:date(21,10),endsAt:date(21,15),capacity:25,deadline:"",contactEmail:"jordan@contoso.example",status:"published",cancellationReason:"",createdBy:"manager2"},
     {id:"event-5",companyId:"northwind",title:"Volunteer Orientation",summary:"An orientation session for staff volunteering activities.",description:"Review the volunteering process, safety guidelines and upcoming activities.",category:"Volunteering",format:"in_person",location:"Northwind Head Office",onlineLink:"",startsAt:date(1,10),endsAt:date(1,12),capacity:40,deadline:"",contactEmail:"alex@northwind.example",status:"published",cancellationReason:"",createdBy:"manager"},

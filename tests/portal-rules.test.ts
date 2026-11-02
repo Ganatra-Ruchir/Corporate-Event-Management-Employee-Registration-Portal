@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   initialData, signupCompany, canRegister, canCancel, validateEvent, registerLocally,
-  cancelLocally, remainingPlaces, eventAccess, activeRegistrations, waitlistedRegistrations, waitlistPosition, promoteWaitlistLocally
+  cancelLocally, remainingPlaces, eventAccess, activeRegistrations, waitlistedRegistrations, waitlistPosition, promoteWaitlistLocally, validateSpeakers
 } from "../src/lib/portal-model";
 
 const makeData=()=>structuredClone(initialData);
@@ -88,4 +88,12 @@ test("capacity increase promotes queued employees before new RSVPs",()=>{
   const raised={...e,capacity:2};const promoted=promoteWaitlistLocally(raised,second.data,new Date(fixedNow.getTime()+2000));
   assert.equal(activeRegistrations(e.id,promoted).length,2);
   assert.equal(waitlistedRegistrations(e.id,promoted).length,0);
+});
+
+test("speaker form requires complete details and image alt text",()=>{
+  const sample={id:"s1",name:"Sample Speaker",jobTitle:"Mentor",company:"Example Company",talkTitle:"A useful session",bio:"Short biography."};
+  assert.equal(validateSpeakers([sample]),null);
+  assert.match(validateSpeakers([{...sample,photoDataUrl:"data:image/webp;base64,abcd"}])!,/alt text/);
+  assert.match(validateSpeakers([{...sample,linkedIn:"javascript:alert(1)"}])!,/HTTPS/);
+  assert.match(validateSpeakers([{...sample,company:""}])!,/company/);
 });
