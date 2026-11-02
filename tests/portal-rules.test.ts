@@ -47,7 +47,7 @@ test("registration deadline and event start close registration",()=>{
 });
 test("duplicate registration is blocked and a cancelled registration can rejoin",()=>{
   const data=makeData();const e=event(data,"event-1"),u=user(data,"employee");
-  assert.match(canRegister(u,e,data,fixedNow)!,/already registered/);
+  assert.match(canRegister(u,e,data,fixedNow)!,/already have an RSVP/);
   const cancelled=cancelLocally(u,e,data,fixedNow);
   assert.equal(cancelled.error,null);
   const joined=registerLocally(u,e,cancelled.data,fixedNow);
