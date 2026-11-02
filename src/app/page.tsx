@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, ArrowRight, ArrowUpRight, Users, Building2, ChartNoAxesCombined, HeartHandshake, CalendarCheck2, ShieldCheck, Leaf, Check, MapPin } from "lucide-react";
+import { CalendarDays, ArrowRight, ArrowUpRight, Users, Building2, ChartNoAxesCombined, HeartHandshake, CalendarCheck2, Leaf, MapPin } from "lucide-react";
 
 export default function Home() {
   return <main className="landing">

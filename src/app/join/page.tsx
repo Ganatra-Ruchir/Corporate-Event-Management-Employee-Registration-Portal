@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Users, ArrowRight, KeyRound } from "lucide-react";
+import { ArrowRight, KeyRound } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/components/auth-provider";
 import { supabase } from "@/lib/supabase";

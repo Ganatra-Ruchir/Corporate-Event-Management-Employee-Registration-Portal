@@ -6,7 +6,7 @@ A multi-organization corporate event app. Organizations create and publish event
 
 ## Stack
 
-- Next.js 16, React 19, TypeScript, Tailwind-free custom responsive CSS, Lucide icons
+- Next.js 16, React 19, TypeScript, custom responsive CSS, Lucide icons
 - Supabase Auth, PostgreSQL and Row Level Security
 - Vercel-ready application (no server-side secret keys required)
 

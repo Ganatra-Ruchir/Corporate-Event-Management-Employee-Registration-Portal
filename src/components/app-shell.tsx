@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { CalendarDays, LayoutDashboard, Ticket, PlusSquare, Building2, Users, Settings, LogOut, ChevronDown, ShieldCheck, LoaderCircle } from "lucide-react";
+import { CalendarDays, LayoutDashboard, Ticket, PlusSquare, Building2, Users, LogOut, ShieldCheck, LoaderCircle } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 
 const navigation = [

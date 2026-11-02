@@ -202,7 +202,8 @@ grant select on public.organizations,public.profiles,public.memberships,
   public.organization_invites,public.events,public.registrations to authenticated;
 grant update(name,description) on public.organizations to authenticated;
 grant update(full_name) on public.profiles to authenticated;
-grant insert,update,delete on public.events to authenticated;
+grant insert,delete on public.events to authenticated;
+grant update(title,description,category,location,start_at,end_at,capacity,status) on public.events to authenticated;
 
 revoke all on schema private from public;
 grant usage on schema private to authenticated;
