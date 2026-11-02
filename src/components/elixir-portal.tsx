@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import {DiscoverHome, DiscoverBrowse, EventTile, GoingFaces} from "@/components/event-discovery";
 import {
-  ArrowLeft, ArrowRight, CalendarDays, ChevronRight,
+  ArrowLeft, ArrowRight, CalendarDays, MapPin, ChevronRight,
   Download, LogOut, Menu, Plus, Search, X
 } from "lucide-react";
 import {
