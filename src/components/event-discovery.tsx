@@ -32,7 +32,7 @@ export function EventCover({event,wide=false}:{event:PortalEvent;wide?:boolean})
 function initials(name:string) {return name.split(" ").filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();}
 export function GoingFaces({event,data,limit=3}:{event:PortalEvent;data:PortalData;limit?:number}) {
   const regs=activeRegistrations(event.id,data);
-  const names=regs.map(r=>data.users.find(u=>u.id===r.userId)).filter((x):x is Person=>Boolean(x));
+  const names=regs.map(r=>data.users.find(u=>u.id===r.userId)).filter((x):x is Person=>Boolean(x)&&x?.showInAttendeeLists!==false);
   return <div className="ed-going">
     <div className="ed-face-stack" aria-hidden="true">{names.slice(0,limit).map((person,i)=><span className={"ed-face ed-face-"+(i%4)} key={person.id}>{initials(person.fullName)}</span>)}</div>
     <span>{regs.length} going</span>
@@ -82,7 +82,7 @@ export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now}:{
   </div>;
 }
 export function DiscoverBrowse({data,events,onOpen,search,setSearch,category,setCategory,timeFilter,setTimeFilter,placesOnly,setPlacesOnly,now}:{data:PortalData;events:PortalEvent[];onOpen:(e:PortalEvent)=>void;search:string;setSearch:(s:string)=>void;category:string;setCategory:(s:string)=>void;timeFilter:string;setTimeFilter:(s:string)=>void;placesOnly:boolean;setPlacesOnly:(v:boolean)=>void;now:number}){
-  const categoryOptions=["All","Volunteering","Environment","Education","Workshop","Health","Community","Social","Town Hall"];
+  const categoryOptions=["All","Volunteering","Learning","Environment","Education","Workshop","Health","Community","Social","Town Hall"];
   const [layout,setLayout]=useStateSafe();
   const filtered=events.filter(e=>{
     if(e.status!=="published")return false;
@@ -102,7 +102,7 @@ export function DiscoverBrowse({data,events,onOpen,search,setSearch,category,set
     <div className="ed-browse-title"><span className="ed-eyebrow">COMPANY EVENTS</span><h1>Explore events</h1><p>Find events, filter by interest, and register with your colleagues.</p></div>
     <div className="ed-browse-controls">
       <label className="ed-input-search"><SearchIcon/><span className="sr-only">Search events</span><input aria-label="Search events" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search events, topics, or places"/></label>
-      <label><span>Category</span><select value={category} onChange={e=>setCategory(e.target.value)}>{categoryOptions.concat(categoryOptions.includes(category)||category==="Learning"?[]:[category]).map(x=><option key={x}>{x}</option>)}</select></label>
+      <label><span>Category</span><select value={category} onChange={e=>setCategory(e.target.value)}>{categoryOptions.concat(categoryOptions.includes(category)?[]:[category]).map(x=><option key={x}>{x}</option>)}</select></label>
       <label><span>When</span><select value={timeFilter} onChange={e=>setTimeFilter(e.target.value)}>{["Upcoming","Past","All"].map(x=><option key={x}>{x}</option>)}</select></label>
       <label className="ed-available"><input type="checkbox" checked={placesOnly} onChange={e=>setPlacesOnly(e.target.checked)}/> Spots available</label>
     </div>
