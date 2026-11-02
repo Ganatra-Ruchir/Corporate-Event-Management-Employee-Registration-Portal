@@ -17,7 +17,7 @@ import type { Company, EventFormat, EventStatus, Invitation, Person, PortalData,
 
 type View="home"|"events"|"registrations"|"people"|"companies"|"invitations"|"users"|"profile"|"event"|"eventForm"|"companyForm";
 type AuthView="login"|"signup"|"verify"|"forgot";
-const STORE="elixir-events-data-v2",SESSION="elixir-events-session-v2";
+const STORE="elixir-events-data-v3",SESSION="elixir-events-session-v2";
 const initialEvent=(companyId:string,userId:string):PortalEvent=>({
   id:makeId("event"),companyId,title:"",summary:"",description:"",category:"Volunteering",
   format:"in_person",location:"",onlineLink:"",startsAt:"2026-12-04T09:00:00+05:30",
