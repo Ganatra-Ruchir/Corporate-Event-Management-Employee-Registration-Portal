@@ -82,7 +82,7 @@ export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now}:{
     <nav className="ed-category-nav" aria-label="Explore categories">
       {["All events","Volunteering","Learning","Environment","Health"].map(c=><button key={c} onClick={()=>c==="All events"?onBrowse():onCategory(c)}>{c}<ArrowRight size={14}/></button>)}
     </nav>
-    {joined.length===0&&<p className="ed-no-rsvps">You haven't joined an upcoming event yet. Browse the events below to find one.</p>}
+    {joined.length===0&&<p className="ed-no-rsvps">You haven&apos;t joined an upcoming event yet. Browse the events below to find one.</p>}
     <Section title="Your upcoming events" sub="The events you've already joined" items={joined} data={data} onOpen={onOpen} onMore={onBrowse}/>
     <Section title="This week" sub="Make plans with your team" items={week} data={data} onOpen={onOpen} onMore={onBrowse}/>
     <Section title="Volunteering" sub="Spend time on something that matters" items={volunteer} data={data} onOpen={onOpen} onMore={()=>onCategory("Volunteering")}/>
