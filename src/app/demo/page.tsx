@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Activity, ArrowDownToLine, ArrowLeft, ArrowRight, Bell, Building2, CalendarCheck2,
-  CalendarDays, ChartNoAxesCombined, Check, CheckCircle2, ChevronDown, ChevronRight,
-  ClipboardList, Clock3, Compass, Download, HandHeart, LayoutDashboard, Leaf, LogOut,
+  Activity, ArrowDownToLine, ArrowRight, Bell, CalendarCheck2,
+  CalendarDays, ChartNoAxesCombined, Check, CheckCircle2, ChevronRight,
+  ClipboardList, Compass, Download, HandHeart, LayoutDashboard, Leaf,
   MapPin, Menu, MoreHorizontal, Pencil, Plus, Search, Settings2, ShieldCheck, Sparkles,
   Ticket, TrendingUp, Users, UserRound, X
 } from "lucide-react";
@@ -61,12 +61,10 @@ function downloadCsv(filename:string,head:string[],rows:string[][]){
  const blob=new Blob(["\uFEFF",csv],{type:"text/csv;charset=utf-8"});
  const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 }
-const iconFor=(category:string)=>category==="Environment"?Leaf:category==="Education"?ClipboardList:category==="Health"?HandHeart:category==="Community"?Users:Sparkles;
 function EventArtwork({event,large=false}:{event:EventItem;large?:boolean}){
- const Icon=iconFor(event.category);
  return <div className={"demo-event-art art-"+event.accent+(large?" artwork-large":"")}>
    <div className="art-orbit one"/><div className="art-orbit two"/>
-   <Icon size={large?88:53} strokeWidth={1.25}/>
+   {event.category==="Environment"?<Leaf size={large?88:53} strokeWidth={1.25}/>:event.category==="Education"?<ClipboardList size={large?88:53} strokeWidth={1.25}/>:event.category==="Health"?<HandHeart size={large?88:53} strokeWidth={1.25}/>:event.category==="Community"?<Users size={large?88:53} strokeWidth={1.25}/>:<Sparkles size={large?88:53} strokeWidth={1.25}/>}
    <span className="art-category">{event.category}</span>
  </div>;
 }
@@ -165,10 +163,8 @@ export default function DemoPage(){
  const [editing,setEditing]=useState<EventItem|null|undefined>(undefined);
  const [mobileNav,setMobileNav]=useState(false);
  const [toast,setToast]=useState("");
- const [loaded,setLoaded]=useState(false);
  useEffect(()=>{void Promise.resolve().then(()=>{
    try{const saved=localStorage.getItem(STORAGE_KEY);if(saved){const d=JSON.parse(saved) as DemoData;if(Array.isArray(d?.events)&&d?.registrations&&d?.attendance)setData(d);}}catch{}
-   setLoaded(true);
  });},[]);
  const apply=(next:DemoData)=>{setData(next);try{localStorage.setItem(STORAGE_KEY,JSON.stringify(next));}catch{}};
  const notify=(message:string)=>setToast(message);
@@ -179,14 +175,14 @@ export default function DemoPage(){
  const myEvents=published.filter(e=>activeRegistrations(e.id).includes("self"));
  const activeCount=orgEvents.reduce((n,e)=>n+activeRegistrations(e.id).length,0);
  const attendanceCount=orgEvents.reduce((n,e)=>n+(data.attendance[e.id]||[]).length,0);
- const filtered=useMemo(()=>orgEvents.filter(e=>{
+ const filtered=orgEvents.filter(e=>{
     if(role==="employee"&&e.status!=="published")return false;
     if(filter!=="All"&&e.category!==filter)return false;
     if(statusFilter==="Published"&&e.status!=="published")return false;
     if(statusFilter==="Drafts"&&e.status!=="draft")return false;
     const text=[e.title,e.description,e.location,e.category].join(" ").toLowerCase();
     return text.includes(search.trim().toLowerCase());
- }),[orgEvents,role,filter,statusFilter,search]);
+ });
  const selected=data.events.find(e=>e.id===selectedId)||null;
  const chooseSection=(next:Section)=>{setSection(next);setMobileNav(false);setSearch("");setFilter("All");setStatusFilter("All events");};
  const openCreate=()=>setEditing(null);
