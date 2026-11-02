@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import {DiscoverHome, DiscoverBrowse, EventTile, GoingFaces} from "@/components/event-discovery";
 import {
   ArrowLeft, ArrowRight, CalendarDays, ChevronRight,
   Download, LogOut, Menu, Plus, Search, X
@@ -25,7 +26,7 @@ const initialEvent=(companyId:string,userId:string):PortalEvent=>({
 });
 const roleName=(role:Role)=>role==="platform_admin"?"Platform admin":role==="company_admin"?"Company admin":"Employee";
 const pageName=(view:View)=>({
-  home:"Overview",events:"Events",registrations:"My registrations",people:"People",companies:"Companies",
+  home:"Discover",events:"Events",registrations:"My events",people:"People",companies:"Companies",
   invitations:"Invitations",users:"Accounts",profile:"Profile",event:"Event details",eventForm:"Event form",companyForm:"Company form"
 })[view];
 const emailOk=(e:string)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
@@ -253,7 +254,7 @@ export default function ElixirPortal(){
   const events=current?.role==="platform_admin"?data.events:current?.companyId?data.events.filter(e=>e.companyId===current.companyId):[];
   const companyEvents=events;
   const nav:(View[]) = current?.role==="platform_admin"?["home","companies","invitations","users","profile"]:
-    current?.role==="company_admin"?["home","events","registrations","people","profile"]:["events","registrations","profile"];
+    current?.role==="company_admin"?["home","events","registrations","people","profile"]:["home","events","registrations","profile"];
   const goto=(v:View)=>{setView(v);setNotice("");setParticipantSearch("");setSearch("");setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");setMenu(false);};
 
   async function login(email:string,password:string):Promise<string|null>{
@@ -263,7 +264,7 @@ export default function ElixirPortal(){
     const org=u.companyId?data.companies.find(c=>c.id===u.companyId):null;
     if(u.status==="suspended"||org?.status==="suspended")return "This account or company is suspended. Contact the platform administrator.";
     setSession(u.id);try{localStorage.setItem(SESSION,u.id);}catch{}
-    setView(u.role==="employee"?"events":"home");return null;
+    setView("home");return null;
   }
   async function signup(name:string,email:string,dept:string,password:string):Promise<string|null>{
     const result=signupCompany(email,data);
@@ -398,20 +399,37 @@ export default function ElixirPortal(){
         {notice&&<div className="ep-info ep-notice" role="status"><span>{notice}</span><button aria-label="Dismiss message" onClick={()=>setNotice("")}><X size={17}/></button></div>}
         {view==="eventForm"&&editingEvent&&<EventEditor key={editingEvent.id} event={editingEvent} data={data} onSave={saveEvent} onBack={()=>goto("events")}/>}
         {view==="companyForm"&&<CompanyEditor key={editingCompany?.id||"new"} company={editingCompany||undefined} data={data} onSave={saveCompany} onBack={()=>goto("companies")}/>}
-        {view==="home"&&<>
-          <div className="ep-page-head"><div><h1>{current.role==="platform_admin"?"Platform overview":"Company overview"}</h1><p>{current.role==="platform_admin"?"Partner companies and their event activity.":company?.name+" — event and registration summary."}</p></div></div>
+        {view==="home"&&current.role==="employee"&&<DiscoverHome
+          data={data} events={companyEvents} user={current} now={now}
+          onOpen={e=>{setSelectedEvent(e.id);goto("event");}}
+          onBrowse={()=>goto("events")}
+          onCategory={c=>{goto("events");setCategory(c);}}
+        />}
+        {view==="events"&&current.role==="employee"&&<DiscoverBrowse
+          data={data} events={companyEvents} now={now}
+          onOpen={e=>{setSelectedEvent(e.id);goto("event");}}
+          search={search} setSearch={setSearch}
+          category={category} setCategory={setCategory}
+          timeFilter={timeFilter} setTimeFilter={setTimeFilter}
+          placesOnly={placesOnly} setPlacesOnly={setPlacesOnly}
+        />}
+        {view==="home"&&current.role!=="employee"&&<>
+          <div className="ep-page-head ep-overview-heading"><div><span className="ed-eyebrow">{current.role==="platform_admin"?"ELIXIR FOUNDATION":company?.name.toUpperCase()}</span><h1>{current.role==="platform_admin"?"Partner overview":"Manage your events"}</h1><p>{current.role==="platform_admin"?"Companies, people, and events in one place.":"Plan what's next and see who's joining."}</p></div></div>
           {current.role==="platform_admin"?<>
             <div className="ep-stats"><div><span>Partner companies</span><b>{data.companies.length}</b></div><div><span>Active companies</span><b>{data.companies.filter(c=>c.status==="active").length}</b></div><div><span>Total events</span><b>{data.events.length}</b></div><div><span>Total registrations</span><b>{data.registrations.filter(r=>r.status==="going").length}</b></div></div>
             <section className="ep-panel"><div className="ep-section-head"><h2>Partner companies</h2><Action onClick={()=>{setEditingCompany(null);goto("companyForm");}}><Plus size={16}/> Add company</Action></div><CompanyTable companies={availableCompanies} data={data} onView={id=>{setSelectedCompany(id);goto("companies");}}/></section>
           </>:<>
             <div className="ep-stats"><div><span>Upcoming events</span><b>{companyEvents.filter(e=>e.status==="published"&&new Date(e.startsAt).getTime()>now).length}</b></div><div><span>Draft events</span><b>{companyEvents.filter(e=>e.status==="draft").length}</b></div><div><span>Active registrations</span><b>{companyEvents.reduce((n,e)=>n+activeRegistrations(e.id,data).length,0)}</b></div><div><span>Nearly full events</span><b>{companyEvents.filter(e=>e.status==="published"&&remainingPlaces(e,data)<=3).length}</b></div></div>
+            <div className="ed-admin-spotlight"><div className="ed-section-head"><div><h2>Next events</h2><p>Published and ready for your employees</p></div><button onClick={()=>goto("events")}>Manage all <ArrowRight size={17}/></button></div>
+              <div className="ed-tile-grid">{companyEvents.filter(e=>e.status==="published"&&new Date(e.startsAt).getTime()>now).sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime()).slice(0,3).map(e=><EventTile event={e} data={data} key={e.id} onOpen={item=>{setSelectedEvent(item.id);goto("event");}}/>)}</div>
+            </div>
             <div className="ep-section-head"><h2>Events requiring attention</h2><Action onClick={()=>{setEditingEvent({...initialEvent(current.companyId!,current.id),contactEmail:current.email});goto("eventForm");}}><Plus size={16}/> Create event</Action></div>
             <div className="ep-panel">{companyEvents.filter(e=>e.status==="draft"||(e.status==="published"&&remainingPlaces(e,data)<=3)).length?
               companyEvents.filter(e=>e.status==="draft"||(e.status==="published"&&remainingPlaces(e,data)<=3)).map(e=><button className="ep-row-link" key={e.id} onClick={()=>{setSelectedEvent(e.id);goto("event");}}><span><b>{e.title}</b><small>{e.status==="draft"?"Draft to review":remainingPlaces(e,data)+" places left"}</small></span><ChevronRight size={17}/></button>):
               <EmptyState title="No events need attention" description="Drafts and nearly full events will appear here."/>}</div>
           </>}
         </>}
-        {view==="events"&&<>
+        {view==="events"&&current.role!=="employee"&&<>
           <div className="ep-page-head"><div><h1>{current.role==="company_admin"?"Company events":"Events"}</h1><p>View upcoming and past events at your company.</p></div>{current.role==="company_admin"&&<Action onClick={()=>{setEditingEvent({...initialEvent(current.companyId!,current.id),contactEmail:current.email});goto("eventForm");}}><Plus size={16}/> Create event</Action>}</div>
           <div className="ep-filters">
             <FormRow label="Search events"><div className="ep-search"><Search size={18}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Title, location or category"/></div></FormRow>
