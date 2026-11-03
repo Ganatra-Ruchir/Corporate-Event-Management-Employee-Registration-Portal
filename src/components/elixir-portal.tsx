@@ -166,6 +166,8 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset}:{data:PortalData;on
   const [message,setMessage]=useState("");
   const [verifyId,setVerifyId]=useState("");
   const [busy,setBusy]=useState(false);
+  const [showPassword,setShowPassword]=useState(false);
+  const [showDemoAccounts,setShowDemoAccounts]=useState(true);
   const exampleAccounts=data.users.filter(u=>["platform","manager","employee"].includes(u.id));
   async function submit(e:React.FormEvent){
     e.preventDefault();setBusy(true);setError("");setMessage("");
@@ -177,34 +179,48 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset}:{data:PortalData;on
     }else if(mode==="forgot"){setMessage(onReset(email));}
     setBusy(false);
   }
-  return <div className="ep-auth-layout">
-    <div className="ep-auth-card">
-      <div className="ep-auth-heading"><span className="ep-product-name">Elixir Events Portal</span><span className="ep-tag">Browser-only draft</span></div>
-      <h1>{mode==="login"?"Sign in":mode==="signup"?"Create employee account":mode==="forgot"?"Reset demonstration password":"Verify demonstration email"}</h1>
-      <p className="ep-subtle">{mode==="login"?"Access your company's events with your account.":mode==="signup"?"Use a work email belonging to a partner company.":mode==="forgot"?"In this local draft, password reset is displayed on screen; no email is sent.":"Email cannot be delivered without a backend. Confirm the sample verification here."}</p>
-      {mode==="verify"?<>
-        <div className="ep-info">This is simulated email verification. The real product will send a secure verification link.</div>
-        <Action onClick={()=>{const u=data.users.find(x=>x.email===email.toLowerCase().trim());onVerified(u?.id||verifyId);setMode("login");setMessage("Demo email verified. Sign in to continue.");setPass("");}}>Confirm sample email</Action>
-      </>:<form onSubmit={submit} className="ep-auth-form">
-        {mode==="signup"&&<><FormRow label="Full name"><input required minLength={2} autoComplete="name" value={name} onChange={e=>setName(e.target.value)}/></FormRow><FormRow label="Department"><input value={department} maxLength={100} onChange={e=>setDepartment(e.target.value)}/></FormRow></>}
-        <FormRow label="Work email"><input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)}/></FormRow>
-        {mode!=="forgot"&&<FormRow label="Password"><input type="password" minLength={6} autoComplete={mode==="login"?"current-password":"new-password"} required value={pass} onChange={e=>setPass(e.target.value)}/></FormRow>}
-        {mode==="signup"&&<p className="ep-hint">This prototype stores account details in your browser. Use only a disposable demonstration password, never a real work password.</p>}
+  return <div className="ep-auth-layout ep-auth-v2">
+    <main className="ep-auth-card" id="sign-in">
+      <div className="ep-auth-heading"><span className="ep-login-mark" aria-hidden="true">E</span><span className="ep-product-name">Elixir Events Portal</span></div>
+      <div className="ep-auth-intro">
+        <span className="ed-eyebrow">{mode==="login"?"WELCOME BACK":mode==="signup"?"JOIN YOUR COMPANY":mode==="forgot"?"ACCOUNT RECOVERY":"EMAIL VERIFICATION"}</span>
+        <h1>{mode==="login"?"Sign in to your events":mode==="signup"?"Join your team":mode==="forgot"?"Reset your demo password":"Verify your demo email"}</h1>
+        <p className="ep-subtle">{mode==="login"?"Discover events, manage your registrations and bring your team together.":mode==="signup"?"Use your work email. We'll find your organization from its domain.":mode==="forgot"?"This prototype can reset a demo password locally. No email is sent.":"Confirm your sample account to continue. Verification is simulated in this browser."}</p>
+      </div>
+      {mode==="verify"?<div className="ep-verify-content">
+        <div className="ep-info">This is demonstration verification, not a real email or security system.</div>
+        <Action onClick={()=>{const u=data.users.find(x=>x.email===email.toLowerCase().trim());onVerified(u?.id||verifyId);setMode("login");setMessage("Sample email confirmed. Sign in to continue.");setPass("");}}>Confirm demo email <ArrowRight size={17}/></Action>
+      </div>:<form onSubmit={submit} className="ep-auth-form">
+        {mode==="signup"&&<><FormRow label="Full name"><input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name"/></FormRow><FormRow label="Department"><input value={department} maxLength={100} onChange={e=>setDepartment(e.target.value)} placeholder="e.g. Operations"/></FormRow></>}
+        <FormRow label={mode==="signup"?"Work email address":"Email address"}><input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com"/></FormRow>
+        {mode!=="forgot"&&<div className="ep-field"><label htmlFor="ep-password">Password</label><div className="ep-password-wrap"><input id="ep-password" type={showPassword?"text":"password"} minLength={6} autoComplete={mode==="login"?"current-password":"new-password"} required value={pass} onChange={e=>setPass(e.target.value)} placeholder="Enter password"/><button type="button" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?"Hide password":"Show password"}>{showPassword?"Hide":"Show"}</button></div></div>}
+        {mode==="signup"&&<p className="ep-hint">No real emails are delivered in this preview. Use a disposable demonstration password only.</p>}
         {error&&<div role="alert" className="ep-error">{error}</div>}
         {message&&<div role="status" className="ep-success">{message}</div>}
-        <Action type="submit" disabled={busy}>{busy?"Working…":mode==="login"?"Sign in":mode==="signup"?"Create account":"Reset demo password"} <ArrowRight size={16}/></Action>
+        <button type="submit" className="ep-auth-submit" disabled={busy}>{busy?"Working…":mode==="login"?"Sign in":mode==="signup"?"Create account":"Reset demo password"}<ArrowRight size={18}/></button>
       </form>}
       <div className="ep-auth-links">
         {mode!=="login"&&<button type="button" onClick={()=>{setMode("login");setError("");setMessage("");}}>Back to sign in</button>}
-        {mode==="login"&&<><button type="button" onClick={()=>{setMode("signup");setError("");setMessage("");}}>Create an employee account</button><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button><button type="button" onClick={()=>{const u=data.users.find(p=>p.email===email.toLowerCase().trim()&&!p.verified);if(!u){setError("Enter the email of an unverified demonstration account.");return;}setVerifyId(u.id);setMode("verify");setError("");}}>Verify sample email</button></>}
+        {mode==="login"&&<><button type="button" onClick={()=>{setMode("signup");setError("");setMessage("");}}>Create an account</button><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button><button type="button" onClick={()=>{const u=data.users.find(p=>p.email===email.toLowerCase().trim()&&!p.verified);if(!u){setError("Enter the email of an unverified demonstration account.");return;}setVerifyId(u.id);setMode("verify");setError("");}}>Verify demo email</button></>}
       </div>
       {mode==="login"&&<section className="ep-demo-users" aria-label="Sample accounts">
-        <h2>Try a sample account</h2><p>All three accounts use the demonstration password shown below. No actual accounts or emails are used.</p>
-        {exampleAccounts.map(u=><button key={u.id} type="button" onClick={()=>{setEmail(u.email);setPass(DEMO_PASSWORD);setError("");}}><span><b>{roleName(u.role)}</b><small>{u.email}</small></span><span>Use account <ChevronRight size={14}/></span></button>)}
-        <p className="ep-hint">Demo password: <code>{DEMO_PASSWORD}</code></p>
+        <div className="ep-demo-heading"><div><strong>Explore the demo</strong><p>Three roles, one sign-in page. Choose a sample account to fill its credentials.</p></div><button type="button" onClick={()=>setShowDemoAccounts(v=>!v)} aria-expanded={showDemoAccounts}>{showDemoAccounts?"Hide":"Show"}</button></div>
+        {showDemoAccounts&&<div className="ep-demo-account-grid">{exampleAccounts.map(u=><button key={u.id} type="button" onClick={()=>{setEmail(u.email);setPass(DEMO_PASSWORD);setError("");}}>
+          <span className="ep-demo-icon" aria-hidden="true">{u.role==="platform_admin"?"P":u.role==="company_admin"?"C":"E"}</span><span className="ep-demo-info"><b>{roleName(u.role)}</b><small>{u.email}</small></span><ChevronRight size={17}/>
+        </button>)}</div>}
+        <p className="ep-hint">Sample password: <code>{DEMO_PASSWORD}</code>. Do not enter real credentials.</p>
       </section>}
-    </div>
-    <aside className="ep-auth-aside"><h2>Company events in one place.</h2><p>Create company events, manage registrations, and give employees a clear way to take part.</p><div className="ep-aside-steps"><p><strong>Platform admin</strong> manages partner companies.</p><p><strong>Company admin</strong> plans events and manages employees.</p><p><strong>Employee</strong> discovers events and registers.</p></div></aside>
+      <p className="ep-auth-footnote">Browser-only demonstration · No secure shared accounts or database</p>
+    </main>
+    <aside className="ep-auth-aside" aria-label="About Elixir events">
+      <div className="ep-auth-aside-content"><span className="ep-auth-side-label">EVENTS THAT BRING TEAMS TOGETHER</span>
+      <h2>Good events start with people.</h2><p>Volunteering, learning and connecting—with everything your team needs in one place.</p>
+      <div className="ep-auth-feature-card"><div className="ep-auth-card-art"><span>COMMUNITY</span><strong>Make room for meaningful moments.</strong></div>
+       <div className="ep-auth-feature-footer"><span><CalendarDays size={16}/> Events & volunteering</span><span><ArrowRight size={17}/></span></div>
+      </div>
+      <div className="ep-auth-side-bottom">For company employees, event hosts and Elixir Foundation.</div>
+      </div>
+    </aside>
   </div>;
 }
 
@@ -443,7 +459,7 @@ export default function ElixirPortal(){
     <div className="ep-layout">
       <nav className={"ep-sidebar "+(menu?"expanded":"")} aria-label="Main navigation">
         <div className="ep-nav-title">{roleName(current.role)}</div>
-        {nav.map(v=><button key={v} aria-current={view===v?"page":undefined} className={"ep-nav-link"+(view===v?" active":"")} onClick={()=>goto(v)}>{pageName(v)}</button>)}
+        {nav.map(v=><button key={v} aria-current={view===v?"page":undefined} className={"ep-nav-link"+(view===v?" active":"")} onClick={()=>goto(v)}>{v==="home"?(current.role==="platform_admin"?"Overview":current.role==="company_admin"?"Dashboard":"Discover"):pageName(v)}</button>)}
         <div className="ep-side-bottom"><button className="ep-nav-link" onClick={logout}><LogOut size={17}/> Sign out</button></div>
       </nav>
       <main className="ep-main" id="main-content" tabIndex={-1}>
