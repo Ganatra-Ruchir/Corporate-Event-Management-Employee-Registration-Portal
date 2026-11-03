@@ -102,7 +102,7 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
   }
   return <div>
     <button className="ep-back" type="button" onClick={onBack}><ArrowLeft size={16}/> Back</button>
-    <div className="ep-page-head"><div><h1>{data.events.some(e=>e.id===event.id)?"Edit event":"Create event"}</h1><p>Provide the information employees need before registering.</p></div></div>
+    <WorkspaceHeading eyebrow="COMPANY EVENT MANAGEMENT" title={data.events.some(e=>e.id===event.id)?"Edit event":"Create event"} description="Add event details, banners and speakers, then save or publish."/>
     <form className="ep-panel ep-form" onSubmit={submit}>
       <h2>Event information</h2>
       <FormRow label="Event banner (optional, JPG/PNG/WebP up to 5 MB)"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>void uploadBanner(e.target.files?.[0])}/></FormRow>
@@ -145,9 +145,11 @@ function CompanyEditor({company,data,onSave,onBack}:{company?:Company;data:Porta
     if(conflict){setError("A domain is already assigned to another company.");return;}
     onSave({id:company?.id||makeId("company"),name:name.trim(),domains:ds,status:company?.status||"active",createdAt:company?.createdAt||new Date().toISOString()});
   }
-  return <><button className="ep-back" onClick={onBack}><ArrowLeft size={16}/> Back</button>
-    <div className="ep-page-head"><h1>{company?"Edit company":"Add company"}</h1></div>
-    <form onSubmit={submit} className="ep-panel ep-form">
+  return <><button className="ep-back" onClick={onBack}><ArrowLeft size={16}/> Back to organizations</button>
+    <WorkspaceHeading eyebrow="PARTNER MANAGEMENT" title={company?"Edit organization":"Add organization"} description="Manage the partner identity and its approved work email domains."/>
+    <form onSubmit={submit} className="ep-panel ep-form aw-organization-editor">
+      <span className="ed-eyebrow">ORGANIZATION INFORMATION</span>
+      <h2>Company details</h2>
       <FormRow label="Company name"><input required value={name} onChange={e=>setName(e.target.value)}/></FormRow>
       <FormRow label="Work email domains (comma separated)"><textarea rows={3} required value={domains} onChange={e=>setDomains(e.target.value)} placeholder="northwind.example, northwind-group.example"/></FormRow>
       <p className="ep-hint">Employees with an allowed domain can join this company. Admin access always requires an invitation or promotion.</p>
@@ -498,16 +500,18 @@ export default function ElixirPortal(){
           onPeople={()=>goto("people")}
           onEvent={e=>openEvent(e.id)}
         />}
-        {view==="events"&&current.role!=="employee"&&<>
-          <div className="ep-page-head"><div><h1>{current.role==="company_admin"?"Company events":"Events"}</h1><p>View upcoming and past events at your company.</p></div>{current.role==="company_admin"&&<Action onClick={()=>{setEditingEvent({...initialEvent(current.companyId!,current.id),contactEmail:current.email});goto("eventForm");}}><Plus size={16}/> Create event</Action>}</div>
-          <div className="ep-filters">
-            <FormRow label="Search events"><div className="ep-search"><Search size={18}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Title, location or category"/></div></FormRow>
+        {view==="events"&&current.role==="company_admin"&&<>
+          <WorkspaceHeading eyebrow={(company?.name||"COMPANY").toUpperCase()+" · EVENT MANAGEMENT"} title="Manage events" description="Plan, publish and manage events for your organization."
+            action={<Action onClick={()=>{setEditingEvent({...initialEvent(current.companyId!,current.id),contactEmail:current.email});goto("eventForm");}}><Plus size={17}/> Create event</Action>}/>
+          <div className="aw-browse-bar"><strong>{filteredEvents.length} events</strong><button className="ed-search-toggle" type="button" aria-expanded={searchOpen} onClick={()=>setSearchOpen(v=>!v)}>{searchOpen?<X size={19}/>:<Search size={19}/>}<span>{searchOpen?"Close filters":"Search & filters"}</span></button></div>
+          {searchOpen&&<div className="ep-filters aw-filter-panel">
+            <FormRow label="Search events"><div className="ep-search"><Search size={18}/><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search titles, places and categories"/></div></FormRow>
             <FormRow label="Time period"><select value={timeFilter} onChange={e=>setTimeFilter(e.target.value)}><option>Upcoming</option><option>Past</option><option>All</option></select></FormRow>
             <FormRow label="Category"><select value={category} onChange={e=>setCategory(e.target.value)}><option>All</option>{CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></FormRow>
-            <label className="ep-check"><input type="checkbox" checked={placesOnly} onChange={e=>setPlacesOnly(e.target.checked)}/> Has places left</label>
-          </div>
-          <p className="ep-count">{filteredEvents.length} event{filteredEvents.length===1?"":"s"}</p>
-          {filteredEvents.length?<div className="ed-tile-grid">{filteredEvents.map(e=><EventTile key={e.id} event={e} data={data} onOpen={event=>{openEvent(event.id);}}/>)}</div>:<EmptyState title="No matching events" description="Try a different category, time period or search."/>}
+            <label className="ep-check"><input type="checkbox" checked={placesOnly} onChange={e=>setPlacesOnly(e.target.checked)}/> Spots available</label>
+            <button className="aw-clear" onClick={()=>{setSearch("");setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");}}>Clear</button>
+          </div>}
+          {filteredEvents.length?<div className="ed-tile-grid">{filteredEvents.map(e=><EventTile key={e.id} event={e} data={data} onOpen={event=>openEvent(event.id)}/>)}</div>:<EmptyState title="No matching events" description="Try another filter or create a new event."/>}
         </>}
         {view==="event"&&selected&&(eventAccess(current,selected,data))&&<>
           <button className="ep-back" onClick={()=>goto("events")}><ArrowLeft size={16}/> Back to events</button>
@@ -565,11 +569,16 @@ export default function ElixirPortal(){
         </>}
         {view==="event"&&(!selected||!eventAccess(current,selected,data))&&<EmptyState title="Event not available" description="The event was not found or you do not have access."/>}
         {view==="registrations"&&<>
-          <div className="ep-page-head"><div><h1>My registrations</h1><p>Upcoming, past and cancelled event registrations.</p></div></div>
-          <div className="ep-filters"><FormRow label="Show registrations"><select value={historyFilter} onChange={e=>setHistoryFilter(e.target.value)}><option>All</option><option>Upcoming</option><option>Past</option><option>Cancelled</option></select></FormRow></div>
-          <div className="ep-panel">{visibleRegs.length?
-            <div className="ep-table-scroll"><table><thead><tr><th>Event</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>{visibleRegs.map(r=>{const e=data.events.find(x=>x.id===r.eventId)!;return <tr key={r.id}><td><b>{e.title}</b><small>{e.category}</small></td><td>{dateText(e.startsAt)}</td><td><Chip tone={r.status==="going"?"green":r.status==="waitlisted"?"orange":"neutral"}>{r.status}</Chip></td><td><button onClick={()=>{openEvent(e.id);}}>Details</button></td></tr>;})}</tbody></table></div>:<EmptyState title="No registrations" description="Events that you join will appear here."/>}
-          </div>
+          <WorkspaceHeading eyebrow="YOUR PARTICIPATION" title="My events" description="The events you joined, waitlisted and cancelled."/>
+          <div className="aw-browse-bar"><div className="aw-filter-tabs" role="group" aria-label="Filter registrations">
+            {["All","Upcoming","Past","Cancelled"].map(option=><button key={option} className={historyFilter===option?"active":""} onClick={()=>setHistoryFilter(option)} aria-pressed={historyFilter===option}>{option}</button>)}
+          </div><span className="aw-count">{visibleRegs.length} records</span></div>
+          {visibleRegs.length?<div className="aw-registration-list">{visibleRegs.map(r=>{const e=data.events.find(x=>x.id===r.eventId)!;
+            return <button className="aw-registration-row" key={r.id} onClick={()=>openEvent(e.id)}>
+             <span className="aw-reg-date"><strong>{new Date(e.startsAt).toLocaleDateString("en-IN",{day:"2-digit"})}</strong><small>{new Date(e.startsAt).toLocaleDateString("en-IN",{month:"short"}).toUpperCase()}</small></span>
+             <span className="aw-reg-info"><strong>{e.title}</strong><small>{e.category} · {dateText(e.startsAt)}</small></span>
+             <Chip tone={r.status==="going"?"green":r.status==="waitlisted"?"orange":"neutral"}>{r.status==="going"?"Going":r.status==="waitlisted"?"Waitlisted":"Cancelled"}</Chip><ChevronRight size={20}/>
+            </button>})}</div>:<div className="aw-empty"><CalendarDays size={23}/><strong>No registrations found</strong><p>Join an event to see it here, or choose another filter.</p><button onClick={()=>goto("events")}>Browse events <ArrowRight size={16}/></button></div>}
         </>}
         {view==="people"&&current.role==="company_admin"&&<>
           <WorkspaceHeading eyebrow={company?.name.toUpperCase()||"COMPANY"} title="Your people" description="Browse your team and manage company administrator access."/>
