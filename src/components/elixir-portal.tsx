@@ -218,6 +218,7 @@ export default function ElixirPortal(){
   const [editingCompany,setEditingCompany]=useState<Company|null>(null);
   const [notice,setNotice]=useState("");
   const [search,setSearch]=useState("");
+  const [searchOpen,setSearchOpen]=useState(false);
   const [participantSearch,setParticipantSearch]=useState("");
   const [showAttendees,setShowAttendees]=useState(false);
   const [historyFilter,setHistoryFilter]=useState("All");
@@ -278,7 +279,7 @@ export default function ElixirPortal(){
     current?.role==="company_admin"?["home","events","registrations","people","profile"]:["home","events","registrations","profile"];
   const goto=(v:View)=>{
     setView(v);setNotice("");setParticipantSearch("");setSearch("");
-    setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");setMenu(false);
+    setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");setMenu(false);setSearchOpen(false);
     if(v!=="event"&&typeof window!=="undefined"&&new URLSearchParams(window.location.search).has("event")){
       window.history.replaceState(null,"",window.location.pathname);
     }
@@ -441,6 +442,7 @@ export default function ElixirPortal(){
           data={data} events={companyEvents} user={current} now={now}
           onOpen={e=>{openEvent(e.id);}}
           onBrowse={()=>goto("events")}
+          onSearch={()=>{goto("events");setSearchOpen(true);}}
           onCategory={c=>{goto("events");setCategory(c);}}
         />}
         {view==="events"&&current.role==="employee"&&<DiscoverBrowse
@@ -450,6 +452,7 @@ export default function ElixirPortal(){
           category={category} setCategory={setCategory}
           timeFilter={timeFilter} setTimeFilter={setTimeFilter}
           placesOnly={placesOnly} setPlacesOnly={setPlacesOnly}
+          searchOpen={searchOpen} setSearchOpen={setSearchOpen}
         />}
         {view==="home"&&current.role!=="employee"&&<>
           <div className="ep-page-head ep-overview-heading"><div><span className="ed-eyebrow">{current.role==="platform_admin"?"ELIXIR FOUNDATION":company?.name.toUpperCase()}</span><h1>{current.role==="platform_admin"?"Partner overview":"Manage your events"}</h1><p>{current.role==="platform_admin"?"Companies, people, and events in one place.":"Plan what's next and see who's joining."}</p></div></div>
