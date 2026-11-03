@@ -5,6 +5,7 @@ import Image from "next/image";
 import {DiscoverHome, DiscoverBrowse, EventTile, GoingFaces} from "@/components/event-discovery";
 import {SpeakerEditor} from "@/components/speaker-editor";
 import {SpeakerGallery} from "@/components/speaker-gallery";
+import {PlatformOverview,CompanyOverview,WorkspaceHeading,WorkspaceSection} from "@/components/admin-workspace";
 import {
   ArrowLeft, ArrowRight, CalendarDays, MapPin, ChevronRight,
   Download, LogOut, Menu, Plus, Search, X
@@ -219,6 +220,8 @@ export default function ElixirPortal(){
   const [notice,setNotice]=useState("");
   const [search,setSearch]=useState("");
   const [searchOpen,setSearchOpen]=useState(false);
+  const [directorySearch,setDirectorySearch]=useState("");
+  const [signedOut,setSignedOut]=useState(false);
   const [participantSearch,setParticipantSearch]=useState("");
   const [showAttendees,setShowAttendees]=useState(false);
   const [historyFilter,setHistoryFilter]=useState("All");
@@ -279,7 +282,7 @@ export default function ElixirPortal(){
     current?.role==="company_admin"?["home","events","registrations","people","profile"]:["home","events","registrations","profile"];
   const goto=(v:View)=>{
     setView(v);setNotice("");setParticipantSearch("");setSearch("");
-    setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");setMenu(false);setSearchOpen(false);
+    setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");setMenu(false);setSearchOpen(false);setDirectorySearch("");
     if(v!=="event"&&typeof window!=="undefined"&&new URLSearchParams(window.location.search).has("event")){
       window.history.replaceState(null,"",window.location.pathname);
     }
@@ -295,7 +298,7 @@ export default function ElixirPortal(){
     if(!u.verified)return "Verify the sample email before signing in.";
     const org=u.companyId?data.companies.find(c=>c.id===u.companyId):null;
     if(u.status==="suspended"||org?.status==="suspended")return "This account or company is suspended. Contact the platform administrator.";
-    setSession(u.id);try{localStorage.setItem(SESSION,u.id);}catch{}
+    setSession(u.id);setSignedOut(false);try{localStorage.setItem(SESSION,u.id);}catch{}
     const requested=new URLSearchParams(window.location.search).get("event");
     const target=data.events.find(e=>e.id===requested);
     if(target&&eventAccess(u,target,data)){setSelectedEvent(target.id);setView("event");}
@@ -323,7 +326,7 @@ export default function ElixirPortal(){
     save({...data,users:data.users.map(p=>p.id===u.id?{...p,password:DEMO_PASSWORD}:p)});
     return "Local demo password reset to "+DEMO_PASSWORD+". No email was sent.";
   }
-  function logout(){setSession(null);try{localStorage.removeItem(SESSION);}catch{}goto("home");}
+  function logout(){setSession(null);setSignedOut(true);try{localStorage.removeItem(SESSION);}catch{}goto("home");}
 
   function saveEvent(e:PortalEvent){
     if(current?.role!=="company_admin"||!current.companyId||e.companyId!==current.companyId){flash("Permission denied.");return;}
@@ -397,7 +400,16 @@ export default function ElixirPortal(){
     setProfilePw("");setProfilePwConfirm("");setProfileSuccess("Profile saved in this browser.");
   }
   if(!ready)return <main className="ep-loading" role="status">Loading demonstration…</main>;
-  if(!current)return <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset}/>;
+  if(!current)return signedOut?
+    <div className="ep-signedout-screen"><div className="ep-signedout-panel">
+      <div className="ep-login-mark">E</div>
+      <span className="ed-eyebrow">ELIXIR EVENTS PORTAL</span>
+      <span className="ep-signedout-icon"><LogOut size={30}/></span>
+      <h1>You&apos;re signed out</h1><p>Your demo session has ended. Event data remains saved in this browser.</p>
+      <Action onClick={()=>setSignedOut(false)}>Sign in again <ArrowRight size={17}/></Action>
+      <span className="ep-signedout-note">Account access is simulated in this database-free version.</span>
+    </div></div>:
+    <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset}/>;
   if(blocked)return <main className="ep-auth-layout"><div className="ep-auth-card"><h1>Account unavailable</h1><p>Your account or company is suspended.</p><Action onClick={logout}>Sign out</Action></div></main>;
 
   const selected=selectedEvent?data.events.find(e=>e.id===selectedEvent):null;
@@ -454,22 +466,21 @@ export default function ElixirPortal(){
           placesOnly={placesOnly} setPlacesOnly={setPlacesOnly}
           searchOpen={searchOpen} setSearchOpen={setSearchOpen}
         />}
-        {view==="home"&&current.role!=="employee"&&<>
-          <div className="ep-page-head ep-overview-heading"><div><span className="ed-eyebrow">{current.role==="platform_admin"?"ELIXIR FOUNDATION":company?.name.toUpperCase()}</span><h1>{current.role==="platform_admin"?"Partner overview":"Manage your events"}</h1><p>{current.role==="platform_admin"?"Companies, people, and events in one place.":"Plan what's next and see who's joining."}</p></div></div>
-          {current.role==="platform_admin"?<>
-            <div className="ep-stats"><div><span>Partner companies</span><b>{data.companies.length}</b></div><div><span>Active companies</span><b>{data.companies.filter(c=>c.status==="active").length}</b></div><div><span>Total events</span><b>{data.events.length}</b></div><div><span>Total registrations</span><b>{data.registrations.filter(r=>r.status==="going").length}</b></div></div>
-            <section className="ep-panel"><div className="ep-section-head"><h2>Partner companies</h2><Action onClick={()=>{setEditingCompany(null);goto("companyForm");}}><Plus size={16}/> Add company</Action></div><CompanyTable companies={availableCompanies} data={data} onView={id=>{setSelectedCompany(id);goto("companies");}}/></section>
-          </>:<>
-            <div className="ep-stats"><div><span>Upcoming events</span><b>{companyEvents.filter(e=>e.status==="published"&&new Date(e.startsAt).getTime()>now).length}</b></div><div><span>Draft events</span><b>{companyEvents.filter(e=>e.status==="draft").length}</b></div><div><span>Active registrations</span><b>{companyEvents.reduce((n,e)=>n+activeRegistrations(e.id,data).length,0)}</b></div><div><span>Nearly full events</span><b>{companyEvents.filter(e=>e.status==="published"&&remainingPlaces(e,data)<=3).length}</b></div></div>
-            <div className="ed-admin-spotlight"><div className="ed-section-head"><div><h2>Next events</h2><p>Published and ready for your employees</p></div><button onClick={()=>goto("events")}>Manage all <ArrowRight size={17}/></button></div>
-              <div className="ed-tile-grid">{companyEvents.filter(e=>e.status==="published"&&new Date(e.startsAt).getTime()>now).sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime()).slice(0,3).map(e=><EventTile event={e} data={data} key={e.id} onOpen={item=>{openEvent(item.id);}}/>)}</div>
-            </div>
-            <div className="ep-section-head"><h2>Events requiring attention</h2><Action onClick={()=>{setEditingEvent({...initialEvent(current.companyId!,current.id),contactEmail:current.email});goto("eventForm");}}><Plus size={16}/> Create event</Action></div>
-            <div className="ep-panel">{companyEvents.filter(e=>e.status==="draft"||(e.status==="published"&&remainingPlaces(e,data)<=3)).length?
-              companyEvents.filter(e=>e.status==="draft"||(e.status==="published"&&remainingPlaces(e,data)<=3)).map(e=><button className="ep-row-link" key={e.id} onClick={()=>{openEvent(e.id);}}><span><b>{e.title}</b><small>{e.status==="draft"?"Draft to review":remainingPlaces(e,data)+" places left"}</small></span><ChevronRight size={17}/></button>):
-              <EmptyState title="No events need attention" description="Drafts and nearly full events will appear here."/>}</div>
-          </>}
-        </>}
+        {view==="home"&&current.role==="platform_admin"&&<PlatformOverview
+          data={data}
+          onCompany={c=>{setSelectedCompany(c.id);goto("companies");}}
+          onAdd={()=>{setEditingCompany(null);goto("companyForm");}}
+          onCompanies={()=>goto("companies")}
+          onInvites={()=>goto("invitations")}
+          onUsers={()=>goto("users")}
+        />}
+        {view==="home"&&current.role==="company_admin"&&company&&<CompanyOverview
+          data={data} current={current} company={company} now={now}
+          onCreate={()=>{setEditingEvent({...initialEvent(current.companyId!,current.id),contactEmail:current.email});goto("eventForm");}}
+          onEvents={()=>goto("events")}
+          onPeople={()=>goto("people")}
+          onEvent={e=>openEvent(e.id)}
+        />}
         {view==="events"&&current.role!=="employee"&&<>
           <div className="ep-page-head"><div><h1>{current.role==="company_admin"?"Company events":"Events"}</h1><p>View upcoming and past events at your company.</p></div>{current.role==="company_admin"&&<Action onClick={()=>{setEditingEvent({...initialEvent(current.companyId!,current.id),contactEmail:current.email});goto("eventForm");}}><Plus size={16}/> Create event</Action>}</div>
           <div className="ep-filters">
