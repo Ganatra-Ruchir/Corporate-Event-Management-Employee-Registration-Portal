@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import {DiscoverHome, DiscoverBrowse, EventTile, GoingFaces} from "@/components/event-discovery";
+import {SpeakerEditor} from "@/components/speaker-editor";
+import {SpeakerGallery} from "@/components/speaker-gallery";
 import {
   ArrowLeft, ArrowRight, CalendarDays, MapPin, ChevronRight,
   Download, LogOut, Menu, Plus, Search, X
@@ -119,6 +121,7 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
         <FormRow label="Maximum participants"><input required min={1} max={100000} type="number" value={form.capacity} onChange={e=>update("capacity",Number(e.target.value))}/></FormRow>
         <FormRow label="Registration deadline (optional)"><input type="datetime-local" value={toInput(form.deadline)} onChange={e=>update("deadline",e.target.value?new Date(e.target.value).toISOString():"")}/></FormRow>
       </div>
+      <SpeakerEditor speakers={form.speakers||[]} onChange={speakers=>update("speakers",speakers)}/>
       <label className="ep-check"><input type="checkbox" checked={form.waitlistEnabled!==false} onChange={e=>update("waitlistEnabled",e.target.checked)}/> Allow a waitlist when the event is full</label>
       <FormRow label="Organiser contact email"><input type="email" required value={form.contactEmail} onChange={e=>update("contactEmail",e.target.value)}/></FormRow>
       <FormRow label="Status"><select value={form.status} onChange={e=>update("status",e.target.value as EventStatus)}><option value="draft">Draft (admin only)</option><option value="published">Published</option><option value="cancelled">Cancelled</option></select></FormRow>
@@ -237,9 +240,18 @@ export default function ElixirPortal(){
         const s=localStorage.getItem(STORE);
         if(s){const d=JSON.parse(s) as PortalData;if(d&&Array.isArray(d.companies)&&Array.isArray(d.users)&&Array.isArray(d.events)&&Array.isArray(d.registrations)&&Array.isArray(d.invitations)) {
           // Import previous browser-only demo state into the shared V2 status model.
-          setData({...d,registrations:d.registrations.map(r=>({
+          const updated={...d,registrations:d.registrations.map(r=>({
             ...r,status:(r.status as string)==="registered"?"going":(r.status as string)==="removed"?"cancelled":r.status
-          })) as PortalData["registrations"]});
+          })) as PortalData["registrations"]};
+          if(!localStorage.getItem("elixir-v2-speakers-onboarded")){
+            updated.events=updated.events.map(e=>{
+              const example=initialData.events.find(x=>x.id===e.id);
+              return !e.speakers?.length&&example?.speakers?.length?{...e,speakers:example.speakers}:e;
+            });
+            localStorage.setItem("elixir-v2-speakers-onboarded","1");
+            try{localStorage.setItem(STORE,JSON.stringify(updated));}catch{}
+          }
+          setData(updated);
         }}
         const u=localStorage.getItem(SESSION);
         if(u){
@@ -252,7 +264,10 @@ export default function ElixirPortal(){
       setReady(true);
     });
   },[]);
-  const save=(newData:PortalData)=>{setData(newData);try{localStorage.setItem(STORE,JSON.stringify(newData));}catch{}};
+  const save=(newData:PortalData)=>{
+    try{localStorage.setItem(STORE,JSON.stringify(newData));setData(newData);return true;}
+    catch{setNotice("Browser storage is full. Try smaller photos or remove unused images. Your changes were not saved.");return false;}
+  };
   const flash=(message:string)=>{setNotice(message);};
   const current=data.users.find(p=>p.id===session)||null;
   const company=current?.companyId?data.companies.find(c=>c.id===current.companyId)||null:null;
@@ -313,7 +328,7 @@ export default function ElixirPortal(){
     if(current?.role!=="company_admin"||!current.companyId||e.companyId!==current.companyId){flash("Permission denied.");return;}
     const existing=data.events.some(x=>x.id===e.id);
     const next={...data,events:existing?data.events.map(x=>x.id===e.id?e:x):[...data.events,e]};
-    save(promoteWaitlistLocally(e,next));setEditingEvent(null);openEvent(e.id);flash(existing?"Event updated.":"Event created.");
+    if(save(promoteWaitlistLocally(e,next))){setEditingEvent(null);openEvent(e.id);flash(existing?"Event updated.":"Event created.");}
   }
   function modifyRegistration(event:PortalEvent,cancel:boolean){
     if(!current)return;
@@ -504,6 +519,7 @@ export default function ElixirPortal(){
               {current.role==="company_admin"&&<div className="ep-admin-actions"><h3>Manage event</h3><Action kind="secondary" onClick={()=>{setEditingEvent(selected);goto("eventForm");}}>Edit event</Action>{selected.status!=="cancelled"&&<Action kind="danger" onClick={()=>cancelEvent(selected)}>Cancel event</Action>}</div>}
             </aside>
           </div>
+          {(selected.speakers||[]).length>0&&<SpeakerGallery speakers={selected.speakers||[]}/>}
           {current.role!=="platform_admin"&&<div className="ed-mobile-rsvp">
             <span>{data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?"Your RSVP is saved":remainingPlaces(selected,data)+" spots left"}</span>
             {data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?
