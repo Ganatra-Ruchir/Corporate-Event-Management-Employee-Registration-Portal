@@ -1,6 +1,6 @@
 "use client";
 
-import {Building2,ChevronRight,Mail,Search,ShieldCheck,Users,UserRound,Globe,CalendarDays,ArrowRight} from "lucide-react";
+import {Building2,ChevronRight,Mail,Search,ShieldCheck,Users,Globe,CalendarDays,ArrowRight} from "lucide-react";
 import {activeRegistrations} from "@/lib/portal-model";
 import type {Company,Invitation,Person,PortalData} from "@/lib/portal-model";
 

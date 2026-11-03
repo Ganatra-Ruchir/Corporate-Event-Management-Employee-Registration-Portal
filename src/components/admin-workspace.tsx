@@ -1,7 +1,7 @@
 "use client";
 
 import {ArrowRight, Building2, CalendarDays, Clock3, Plus, TicketCheck, Users, UserRoundCheck, AlertCircle, ChevronRight} from "lucide-react";
-import {activeRegistrations, dateText, remainingPlaces, shortDate} from "@/lib/portal-model";
+import {activeRegistrations, remainingPlaces, shortDate} from "@/lib/portal-model";
 import type {Company,Person,PortalData,PortalEvent} from "@/lib/portal-model";
 import {EventTile} from "@/components/event-discovery";
 
