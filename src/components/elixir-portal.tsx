@@ -6,6 +6,7 @@ import {DiscoverHome, DiscoverBrowse, EventTile, GoingFaces} from "@/components/
 import {SpeakerEditor} from "@/components/speaker-editor";
 import {SpeakerGallery} from "@/components/speaker-gallery";
 import {PlatformOverview,CompanyOverview,WorkspaceHeading,WorkspaceSection} from "@/components/admin-workspace";
+import {CompanyDirectory,PeopleDirectory,AccountDirectory,InvitationDirectory} from "@/components/admin-directory";
 import {
   ArrowLeft, ArrowRight, CalendarDays, MapPin, ChevronRight,
   Download, LogOut, Menu, Plus, Search, X
@@ -555,43 +556,69 @@ export default function ElixirPortal(){
           </div>
         </>}
         {view==="people"&&current.role==="company_admin"&&<>
-          <div className="ep-page-head"><div><h1>Company people</h1><p>Employees and administrators of {company?.name}.</p></div></div>
-          <div className="ep-panel ep-table-scroll"><table><thead><tr><th>Name</th><th>Email</th><th>Department</th><th>Role</th><th>Action</th></tr></thead><tbody>{companyPeople.map(p=><tr key={p.id}><td><b>{p.fullName}</b></td><td>{p.email}</td><td>{p.department||"—"}</td><td>{roleName(p.role)}</td><td>{p.id===current.id?"Your account":<button onClick={()=>changeRole(p)}>{p.role==="employee"?"Make company admin":"Remove admin access"}</button>}</td></tr>)}</tbody></table></div>
+          <WorkspaceHeading eyebrow={company?.name.toUpperCase()||"COMPANY"} title="Your people" description="Browse your team and manage company administrator access."/>
+          <PeopleDirectory people={companyPeople} search={directorySearch} onSearch={setDirectorySearch} selfId={current.id} onRole={changeRole}/>
         </>}
         {view==="companies"&&current.role==="platform_admin"&&<>
-          <div className="ep-page-head"><div><h1>Partner companies</h1><p>Manage companies and their approved work email domains.</p></div><Action onClick={()=>{setEditingCompany(null);setSelectedCompany(null);goto("companyForm");}}><Plus size={16}/> Add company</Action></div>
-          {chosenCompany&&<div className="ep-panel ep-selected-company"><div><h2>{chosenCompany.name}</h2><p>Domains: {chosenCompany.domains.join(", ")}</p><Chip tone={chosenCompany.status==="active"?"green":"red"}>{chosenCompany.status}</Chip></div><div className="ep-actions"><Action kind="secondary" onClick={()=>{setEditingCompany(chosenCompany);goto("companyForm");}}>Edit company</Action><Action kind={chosenCompany.status==="active"?"danger":"secondary"} onClick={()=>changeCompanyStatus(chosenCompany)}>{chosenCompany.status==="active"?"Suspend":"Reactivate"}</Action><Action kind="plain" onClick={()=>setSelectedCompany(null)}>Close</Action></div></div>}
-          <div className="ep-panel"><CompanyTable companies={availableCompanies} data={data} onView={setSelectedCompany}/></div>
+          <WorkspaceHeading eyebrow="PARTNER MANAGEMENT" title="Organizations" description="Every partner, approved email domain and their activity."
+            action={<Action onClick={()=>{setEditingCompany(null);setSelectedCompany(null);goto("companyForm");}}><Plus size={17}/> Add organization</Action>}/>
+          <CompanyDirectory companies={availableCompanies} data={data} selected={chosenCompany||null}
+            query={directorySearch} onQuery={setDirectorySearch} onSelect={c=>setSelectedCompany(c.id)}
+            onEdit={c=>{setEditingCompany(c);goto("companyForm");}}
+            onToggle={changeCompanyStatus} onClose={()=>setSelectedCompany(null)}/>
         </>}
         {view==="invitations"&&current.role==="platform_admin"&&<>
-          <div className="ep-page-head"><div><h1>Company admin invitations</h1><p>Invite the first administrator for a partner company.</p></div></div>
-          <form className="ep-panel ep-invite-form" onSubmit={invite}>
-            <FormRow label="Company"><select required value={inviteCompany} onChange={e=>setInviteCompany(e.target.value)}><option value="">Select company</option>{data.companies.filter(c=>c.status==="active").map(c=><option value={c.id} key={c.id}>{c.name}</option>)}</select></FormRow>
-            <FormRow label="Email address"><input required type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="manager@company.example"/></FormRow>
-            {inviteError&&<div className="ep-error" role="alert">{inviteError}</div>}
-            <Action type="submit">Create invitation</Action>
-            <p className="ep-hint">No email will be sent. The invited person can create a local demonstration account using the exact invited email. The role is assigned from the invitation, not chosen during sign-up.</p>
-          </form>
-          <section className="ep-panel"><div className="ep-section-head"><h2>Invitation records</h2></div>{data.invitations.length?<div className="ep-table-scroll"><table><thead><tr><th>Email</th><th>Company</th><th>Role</th><th>Status</th></tr></thead><tbody>{data.invitations.map(i=><tr key={i.id}><td>{i.email}</td><td>{data.companies.find(c=>c.id===i.companyId)?.name}</td><td>Company admin</td><td>{i.accepted?"Accepted":"Pending"}</td></tr>)}</tbody></table></div>:<EmptyState title="No invitations" description="Create a company-admin invitation using the form above."/>}</section>
+          <WorkspaceHeading eyebrow="PARTNER ACCESS" title="Admin invitations" description="Grant a manager access to a partner company. Roles are assigned from the invitation, never chosen at login."/>
+          <div className="aw-two-col aw-invitation-layout">
+            <WorkspaceSection title="Invite a manager" description="Choose an active company and enter the recipient's email.">
+              <form className="ep-panel ep-invite-form aw-form-panel" onSubmit={invite}>
+                <FormRow label="Partner company"><select required value={inviteCompany} onChange={e=>setInviteCompany(e.target.value)}><option value="">Select company</option>{data.companies.filter(c=>c.status==="active").map(c=><option value={c.id} key={c.id}>{c.name}</option>)}</select></FormRow>
+                <FormRow label="Manager email"><input required type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="manager@company.example"/></FormRow>
+                {inviteError&&<div className="ep-error" role="alert">{inviteError}</div>}
+                <Action type="submit">Create invitation <ArrowRight size={16}/></Action>
+                <p className="ep-hint">This is a local demonstration. No email is sent. The invited manager signs up using this exact address.</p>
+              </form>
+            </WorkspaceSection>
+            <WorkspaceSection title="Invitation history" description="Requests recorded in this browser.">
+              <InvitationDirectory invitations={data.invitations} companies={data.companies}/>
+            </WorkspaceSection>
+          </div>
         </>}
         {view==="users"&&current.role==="platform_admin"&&<>
-          <div className="ep-page-head"><div><h1>Accounts</h1><p>View and suspend accounts across partner companies.</p></div></div>
-          <div className="ep-panel ep-table-scroll"><table><thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody>{data.users.map(u=><tr key={u.id}><td><b>{u.fullName}</b></td><td>{u.email}</td><td>{data.companies.find(c=>c.id===u.companyId)?.name||"Elixir Foundation"}</td><td>{roleName(u.role)}</td><td><Chip tone={u.status==="active"?"green":"red"}>{u.status}</Chip></td><td>{u.role==="platform_admin"?"—":<button onClick={()=>changeUserStatus(u)}>{u.status==="active"?"Suspend":"Reactivate"}</button>}</td></tr>)}</tbody></table></div>
+          <WorkspaceHeading eyebrow="ELIXIR FOUNDATION · ACCOUNTS" title="Account management" description="Find people across partner companies, review roles and control demo account access."/>
+          <AccountDirectory people={data.users} companies={data.companies} search={directorySearch} onSearch={setDirectorySearch} onStatus={changeUserStatus}/>
         </>}
-        {view==="profile"&&<><div className="ep-page-head"><div><h1>My profile</h1><p>Update your demonstration account details.</p></div></div>
-          <form className="ep-panel ep-form" onSubmit={profileSave}>
-            <FormRow label="Email"><input value={current.email} disabled/></FormRow>
-            <FormRow label="Role"><input value={roleName(current.role)} disabled/></FormRow>
-            <FormRow label="Full name"><input required value={profileName??current.fullName} onChange={e=>setProfileName(e.target.value)}/></FormRow>
-            <FormRow label="Department"><input value={profileDepartment??current.department} onChange={e=>setProfileDepartment(e.target.value)}/></FormRow>
-            <label className="ep-check"><input type="checkbox" checked={current.showInAttendeeLists!==false} onChange={e=>save({...data,users:data.users.map(u=>u.id===current.id?{...u,showInAttendeeLists:e.target.checked}:u)})}/> Show my name in attendee lists</label>
-            <h2>Change demonstration password</h2><p className="ep-hint">Leave these empty to keep the current password. Never enter an actual work password in the local draft.</p>
-            <FormRow label="New demonstration password"><input type="password" minLength={6} value={profilePw} onChange={e=>setProfilePw(e.target.value)}/></FormRow>
-            <FormRow label="Confirm password"><input type="password" minLength={6} value={profilePwConfirm} onChange={e=>setProfilePwConfirm(e.target.value)}/></FormRow>
-            {profileError&&<div className="ep-error" role="alert">{profileError}</div>}
-            {profileSuccess&&<div className="ep-success" role="status">{profileSuccess}</div>}
-            <Action type="submit">Save profile</Action>
-          </form></>}
+        {view==="profile"&&<>
+          <WorkspaceHeading eyebrow="YOUR ACCOUNT" title="Profile & settings" description="Keep your display name, department and demonstration password up to date."/>
+          <div className="aw-two-col aw-profile-layout">
+            <div className="aw-profile-summary">
+              <span className="aw-profile-avatar">{current.fullName.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span>
+              <h2>{current.fullName}</h2><p>{current.email}</p><span className="md-role">{roleName(current.role)}</span>
+              <div className="aw-profile-company"><span>Organization</span><strong>{company?.name||"Elixir Foundation"}</strong></div>
+              <div className="aw-profile-company"><span>Department</span><strong>{current.department||"Not provided"}</strong></div>
+              <button type="button" className="aw-text-action" onClick={logout}>Sign out <LogOut size={16}/></button>
+            </div>
+            <form className="ep-panel ep-form aw-profile-form" onSubmit={profileSave}>
+              <h2>Personal details</h2>
+              <div className="ep-form-grid">
+                <FormRow label="Full name"><input required value={profileName??current.fullName} onChange={e=>setProfileName(e.target.value)}/></FormRow>
+                <FormRow label="Department"><input value={profileDepartment??current.department} onChange={e=>setProfileDepartment(e.target.value)}/></FormRow>
+              </div>
+              <FormRow label="Work email"><input value={current.email} disabled/></FormRow>
+              <label className="ep-check aw-privacy-setting"><input type="checkbox" checked={current.showInAttendeeLists!==false} onChange={e=>save({...data,users:data.users.map(u=>u.id===current.id?{...u,showInAttendeeLists:e.target.checked}:u)})}/> Show my name in attendee lists</label>
+              <div className="aw-form-divider"/>
+              <h2>Change demonstration password</h2>
+              <p className="ep-hint">Optional. Use a disposable demo password, not your real work password.</p>
+              <div className="ep-form-grid">
+                <FormRow label="New password"><input type="password" minLength={6} autoComplete="new-password" value={profilePw} onChange={e=>setProfilePw(e.target.value)}/></FormRow>
+                <FormRow label="Confirm password"><input type="password" minLength={6} autoComplete="new-password" value={profilePwConfirm} onChange={e=>setProfilePwConfirm(e.target.value)}/></FormRow>
+              </div>
+              {profileError&&<div className="ep-error" role="alert">{profileError}</div>}
+              {profileSuccess&&<div className="ep-success" role="status">{profileSuccess}</div>}
+              <Action type="submit">Save changes <ArrowRight size={16}/></Action>
+            </form>
+          </div>
+        </>}
         <footer className="ep-footer">Elixir Events Portal · Internal working draft · No live accounts or shared database</footer>
       </main>
     </div>
