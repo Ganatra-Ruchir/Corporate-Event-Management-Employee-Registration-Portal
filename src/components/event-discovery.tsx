@@ -1,7 +1,8 @@
 "use client";
 import Image from "next/image";
-import { ArrowRight, CalendarDays, MapPin, Clock3 } from "lucide-react";
+import { ArrowRight, CalendarDays, MapPin, Clock3, Search, X } from "lucide-react";
 import {activeRegistrations, remainingPlaces} from "@/lib/portal-model";
+import {useEffect, useRef, useState} from "react";
 import type { PortalEvent, PortalData, Person } from "@/lib/portal-model";
 
 function dateParts(stamp:string) {
@@ -58,7 +59,7 @@ function Section({title,sub,items,data,onOpen,onMore}:{title:string;sub?:string;
     <div className="ed-tile-grid">{items.slice(0,3).map(e=><EventTile event={e} data={data} onOpen={onOpen} key={e.id}/>)}</div>
   </section>;
 }
-export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now}:{data:PortalData;events:PortalEvent[];user:Person;onOpen:(e:PortalEvent)=>void;onBrowse:()=>void;onCategory:(category:string)=>void;now:number}){
+export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now,onSearch}:{data:PortalData;events:PortalEvent[];user:Person;onOpen:(e:PortalEvent)=>void;onBrowse:()=>void;onCategory:(category:string)=>void;now:number;onSearch:()=>void}){
   const future=events.filter(e=>e.status==="published"&&new Date(e.startsAt).getTime()>now).sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime());
   const selected=future.find(e=>e.category==="Volunteering"||e.category==="Environment")||future[0];
   const joined=future.filter(e=>activeRegistrations(e.id,data).some(r=>r.userId===user.id));
@@ -74,15 +75,16 @@ export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now}:{
   const learning=collect(e=>["Education","Workshop","Town Hall"].includes(e.category));
   const coming=collect(()=>true);
   return <div className="ed-discover">
-    <div className="ed-welcome"><span className="ed-eyebrow">EVENTS AT YOUR COMPANY</span><h1>Find something worth showing up for.</h1><p>Meet colleagues, learn something new, and take part in events hosted by your team.</p></div>
+    <div className="ed-home-heading"><div><span className="ed-eyebrow">YOUR COMPANY</span><h1>Upcoming events</h1><p>See what's happening and join your colleagues.</p></div><div className="ed-home-actions"><button type="button" className="ed-search-toggle" onClick={onSearch}><Search size={20}/><span>Search</span></button><button type="button" className="ed-home-explore" onClick={onBrowse}>View all <ArrowRight size={17}/></button></div></div>
+    {future.length>0?<div className="ed-tile-grid ed-home-grid">{future.slice(0,6).map(e=><EventTile key={e.id} event={e} data={data} onOpen={onOpen}/>)}</div>:<div className="ed-feature-empty"><h2>No upcoming events</h2><p>Published events from your organization will appear here.</p></div>}
+    <div className="ed-home-more"><span>Explore more</span></div>
     {selected?<button type="button" className="ed-feature" onClick={()=>onOpen(selected)}>
       <div className="ed-feature-visual"><EventCover event={selected} wide/></div>
       <div className="ed-feature-content"><span className="ed-feature-tag">Featured event</span><span className="ed-feature-date"><CalendarDays size={17}/> {dateParts(selected.startsAt).full} · {dateParts(selected.startsAt).clock}</span><h2>{selected.title}</h2><p>{selected.summary}</p><span className="ed-feature-location"><MapPin size={16}/> {selected.format==="online"?"Online":selected.location}</span><span className="ed-feature-cta">See event details <ArrowRight size={17}/></span></div>
-    </button>:<div className="ed-feature-empty"><h2>No upcoming events yet</h2><p>New company events will appear here once hosts publish them.</p></div>}
+    </button>:null}
     <nav className="ed-category-nav" aria-label="Explore categories">
       {["All events","Volunteering","Learning","Environment","Health"].map(c=><button key={c} onClick={()=>c==="All events"?onBrowse():onCategory(c)}>{c}<ArrowRight size={14}/></button>)}
     </nav>
-    {joined.length===0&&<p className="ed-no-rsvps">You haven&apos;t joined an upcoming event yet. Browse the events below to find one.</p>}
     <Section title="Your upcoming events" sub="The events you've already joined" items={joined} data={data} onOpen={onOpen} onMore={onBrowse}/>
     <Section title="This week" sub="Make plans with your team" items={week} data={data} onOpen={onOpen} onMore={onBrowse}/>
     <Section title="Volunteering" sub="Spend time on something that matters" items={volunteer} data={data} onOpen={onOpen} onMore={()=>onCategory("Volunteering")}/>
@@ -90,9 +92,11 @@ export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now}:{
     <Section title="Coming up" sub="More events on the calendar" items={coming} data={data} onOpen={onOpen} onMore={onBrowse}/>
   </div>;
 }
-export function DiscoverBrowse({data,events,onOpen,search,setSearch,category,setCategory,timeFilter,setTimeFilter,placesOnly,setPlacesOnly,now}:{data:PortalData;events:PortalEvent[];onOpen:(e:PortalEvent)=>void;search:string;setSearch:(s:string)=>void;category:string;setCategory:(s:string)=>void;timeFilter:string;setTimeFilter:(s:string)=>void;placesOnly:boolean;setPlacesOnly:(v:boolean)=>void;now:number}){
+export function DiscoverBrowse({data,events,onOpen,search,setSearch,category,setCategory,timeFilter,setTimeFilter,placesOnly,setPlacesOnly,now,searchOpen,setSearchOpen}:{data:PortalData;events:PortalEvent[];onOpen:(e:PortalEvent)=>void;search:string;setSearch:(s:string)=>void;category:string;setCategory:(s:string)=>void;timeFilter:string;setTimeFilter:(s:string)=>void;placesOnly:boolean;setPlacesOnly:(v:boolean)=>void;now:number;searchOpen:boolean;setSearchOpen:(value:boolean)=>void}){
   const categoryOptions=["All","Volunteering","Learning","Environment","Education","Workshop","Health","Community","Social","Town Hall"];
-  const [layout,setLayout]=useStateSafe();
+  const [layout,setLayout]=useState<"grid"|"calendar">("grid");
+  const searchRef=useRef<HTMLInputElement>(null);
+  useEffect(()=>{if(searchOpen)searchRef.current?.focus();},[searchOpen]);
   const filtered=events.filter(e=>{
     if(e.status!=="published")return false;
     if(search&&! [e.title,e.summary,e.category,e.location].join(" ").toLowerCase().includes(search.toLowerCase()))return false;
@@ -108,23 +112,23 @@ export function DiscoverBrowse({data,events,onOpen,search,setSearch,category,set
     return true;
   }).sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime());
   return <div className="ed-browse">
-    <div className="ed-browse-title"><span className="ed-eyebrow">COMPANY EVENTS</span><h1>Explore events</h1><p>Find events, filter by interest, and register with your colleagues.</p></div>
-    <div className="ed-browse-controls">
-      <label className="ed-input-search"><SearchIcon/><span className="sr-only">Search events</span><input aria-label="Search events" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search events, topics, or places"/></label>
+    <div className="ed-browse-title ed-browse-title-row"><div><span className="ed-eyebrow">YOUR COMPANY</span><h1>Upcoming events</h1><p>Browse published events from your organization.</p></div>
+      <button className="ed-search-toggle" type="button" onClick={()=>setSearchOpen(!searchOpen)} aria-expanded={searchOpen} aria-controls="ed-search-panel">
+        {searchOpen?<X size={20}/>:<Search size={20}/>}<span>{searchOpen?"Close search":"Search"}</span>
+      </button></div>
+    {searchOpen&&<div className="ed-browse-controls ed-search-panel" id="ed-search-panel">
+      <label className="ed-input-search"><Search size={19} aria-hidden="true"/><span className="sr-only">Search events</span><input ref={searchRef} aria-label="Search events" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search events, topics, or places"/></label>
       <label><span>Category</span><select value={category} onChange={e=>setCategory(e.target.value)}>{categoryOptions.concat(categoryOptions.includes(category)?[]:[category]).map(x=><option key={x}>{x}</option>)}</select></label>
       <label><span>When</span><select value={timeFilter} onChange={e=>setTimeFilter(e.target.value)}>{["Upcoming","Past","All"].map(x=><option key={x}>{x}</option>)}</select></label>
       <label className="ed-available"><input type="checkbox" checked={placesOnly} onChange={e=>setPlacesOnly(e.target.checked)}/> Spots available</label>
-    </div>
+      <button type="button" className="ed-clear-filters" onClick={()=>{setSearch("");setCategory("All");setTimeFilter("Upcoming");setPlacesOnly(false);}}>Clear filters</button>
+    </div>}
     <div className="ed-browse-row"><strong>{filtered.length} events</strong><div className="ed-display-switch"><button className={layout==="grid"?"active":""} onClick={()=>setLayout("grid")}>Grid</button><button className={layout==="calendar"?"active":""} onClick={()=>setLayout("calendar")}>Calendar</button></div></div>
     {layout==="grid"?<div className="ed-tile-grid">{filtered.map(e=><EventTile event={e} data={data} onOpen={onOpen} key={e.id}/>)}</div>:
       <div className="ed-calendar-view">{groupByDay(filtered).map(group=><div className="ed-calendar-day" key={group.date}><div className="ed-calendar-day-label">{group.date}</div><div>{group.events.map(e=><button key={e.id} onClick={()=>onOpen(e)}><Clock3 size={17}/><span>{dateParts(e.startsAt).clock}</span><strong>{e.title}</strong><ArrowRight size={16}/></button>)}</div></div>)}</div>}
     {filtered.length===0&&<div className="ed-small-empty">No events match your filters. Try a different date or category.</div>}
   </div>;
 }
-import {useState} from "react";
-import {Search} from "lucide-react";
-function useStateSafe(){return useState<"grid"|"calendar">("grid");}
-function SearchIcon(){return <Search size={19} aria-hidden="true"/>;}
 function groupByDay(events:PortalEvent[]){
   const groups=new Map<string,PortalEvent[]>();
   for(const event of events){const day=dateParts(event.startsAt).full;groups.set(day,[...(groups.get(day)||[]),event]);}
