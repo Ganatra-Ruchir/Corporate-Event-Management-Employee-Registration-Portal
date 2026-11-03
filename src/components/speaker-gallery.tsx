@@ -30,7 +30,6 @@ function SpeakerCard({speaker}:{speaker:Speaker}){
      ref={card}
      className="sp-flip-trigger"
      aria-pressed={flipped}
-     aria-label={(flipped?"Show front of ":"Show details of ")+speaker.name+"'s speaker card"}
      onPointerMove={pointerMove}
      onPointerLeave={resetTilt}
      onBlur={resetTilt}
@@ -65,7 +64,7 @@ function SpeakerCard({speaker}:{speaker:Speaker}){
     </span>
     <span className="sr-only">
       {speaker.name}, {speaker.jobTitle} at {speaker.company}. Talk: {speaker.talkTitle}.
-      Biography: {speaker.bio}. {speaker.agendaSlot?"Session: "+speaker.agendaSlot:""}
+      Biography: {speaker.bio}. {speaker.photoAlt?"Photo: "+speaker.photoAlt+".":""} {speaker.agendaSlot?"Session: "+speaker.agendaSlot:""}
       Activate to {flipped?"show speaker photo":"turn card over"}.
     </span>
    </button>

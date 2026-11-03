@@ -47,3 +47,19 @@ npm run lint
 npm run test
 npm run build
 ```NaN
+
+## V2 preview — speakers and motion
+
+On the staging branch (\`feature/v2-staging-foundation\`), sign in with the fictional
+company admin (\`alex@northwind.example\`, password \`Demo@2026!\`) and choose
+**Events → an event → Edit event**. The speaker editor supports:
+
+- Up to 12 speakers, each with a JPG/PNG/WebP photo (maximum 5 MB before compression), required descriptive alt text when a photo is supplied, name, job title, organization, talk title, biography, optional agenda slot and HTTPS links.
+- Move up/down, remove, and a working card preview in the editor.
+- The employee event page shows photo-forward cards with pointer-based tilt on desktop (maximum eight degrees), click/Enter/Space flip, real optional links and scroll controls for more than three speakers.
+- At reduced-motion preference, the tilt and flip animations are disabled; the back content is shown without a rotating animation. Speaker details are included in each button's accessible content.
+- Purposeful hover/press feedback and short entrance transitions across navigation, cards, RSVP notifications and expandable attendee panels.
+
+The fictional Digital Skills Workshop has example speakers with **initials instead of stock photos**. The host can upload portraits to preview the photography treatment. Photos are resized and stored in the browser's localStorage; because there is no database or file server, media is not shared between devices and large collections may exceed local storage quota (an explicit warning is shown). No real corporate photos should be uploaded into this demonstration.
+
+The separate staging SQL foundation is still **unapplied and untested against a live Supabase project**. This remains a browser-only preview.
