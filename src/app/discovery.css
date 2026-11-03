@@ -377,3 +377,58 @@
   .ed-welcome h1{font-size:34px}
   .ep-shell .ep-demobar{font-size:11px}
 }
+
+
+/* V2.3: Events-first mobile landing. Search is a top-right action, not a full-screen form. */
+.ed-home-heading,.ed-browse-title-row{display:flex;justify-content:space-between;align-items:center;gap:15px;margin:0 0 20px}
+.ed-home-heading h1,.ed-browse-title-row h1{margin:5px 0 6px;font-size:clamp(30px,3.1vw,45px);letter-spacing:-1.3px}
+.ed-home-heading p,.ed-browse-title-row p{font-size:13px;color:#68758a;margin:0}
+.ed-home-actions{display:flex;align-items:center;gap:9px;flex:none}
+.ed-search-toggle,.ed-home-explore{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:800;white-space:nowrap}
+.ed-search-toggle{background:#1954da;border:1px solid #1954da;color:#fff}
+.ed-search-toggle:hover{background:#123fae}
+.ed-home-explore{background:#fff;border:1px solid #d1dbe9;color:#24509f}
+.ed-home-explore:hover{background:#eff3fb}
+.ed-home-grid{margin:0 0 15px}
+.ed-home-more{display:flex;align-items:center;gap:12px;margin:27px 0 14px;font-size:12px;text-transform:uppercase;letter-spacing:1.1px;color:#78869a;font-weight:850}
+.ed-home-more::after{content:"";height:1px;background:#e0e6ed;flex:1}
+.ed-discover>.ed-feature{min-height:245px}
+.ed-discover>.ed-feature .ed-feature-visual{min-height:245px}
+.ed-discover>.ed-feature .ed-feature-content{padding:22px 28px}
+.ed-discover>.ed-feature .ed-feature-content h2{font-size:clamp(24px,2.2vw,34px)}
+.ed-discover>.ed-feature .ed-feature-tag{margin-bottom:9px}
+.ed-discover>.ed-feature .ed-feature-cta{margin-top:12px}
+.ed-search-panel{animation:se-enter .18s ease-out both}
+.ed-browse-title-row{margin-bottom:17px}
+.ed-browse-title-row>div{min-width:0}
+.ed-clear-filters{height:44px;padding:8px 13px;border:1px solid #d5deea;border-radius:9px;background:white;color:#2251a5;font-weight:800;font-size:12px}
+.ed-clear-filters:hover{background:#f0f4fd}
+@media(max-width:760px){
+  .ed-home-heading,.ed-browse-title-row{align-items:flex-start;gap:8px;margin-bottom:14px}
+  .ed-home-heading h1,.ed-browse-title-row h1{font-size:30px}
+  .ed-home-heading p,.ed-browse-title-row p{font-size:12px;line-height:1.45}
+  .ed-home-actions{gap:5px}
+  .ed-search-toggle,.ed-home-explore{padding:9px 10px;font-size:12px}
+  .ed-home-grid{margin-bottom:8px}
+  .ed-home-more{margin:19px 0 11px}
+  .ed-discover>.ed-feature{min-height:0}
+  .ed-discover>.ed-feature .ed-feature-visual{min-height:170px;height:170px}
+  .ed-discover>.ed-feature .ed-feature-content{padding:19px}
+  .ep-shell .ep-demobar{padding:6px 10px;font-size:11px;margin-bottom:11px}
+  .ep-shell .ep-draft-marker{display:none}
+  .ep-shell .ep-brand{font-size:16px;line-height:1.1}
+  .ep-shell .ep-topbar{height:57px}
+  .ep-shell .ep-layout{min-height:calc(100vh - 57px)}
+  .ep-shell .ep-main{padding-top:13px}
+}
+@media(max-width:490px){
+  .ed-home-heading h1,.ed-browse-title-row h1{font-size:27px}
+  .ed-home-explore{font-size:0;gap:0;min-width:42px;padding:9px}
+  .ed-home-explore svg{width:19px;height:19px}
+  .ed-search-toggle span{display:none}
+  .ed-search-toggle{width:44px;padding:8px}
+  .ed-browse-controls{grid-template-columns:1fr}
+  .ed-input-search{grid-column:1;min-width:0}
+  .ed-browse-controls .ed-available{grid-column:1}
+}
+@media(prefers-reduced-motion:reduce){.ed-search-panel{animation:none}}
