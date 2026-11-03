@@ -75,7 +75,7 @@ export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now,on
   const learning=collect(e=>["Education","Workshop","Town Hall"].includes(e.category));
   const coming=collect(()=>true);
   return <div className="ed-discover">
-    <div className="ed-home-heading"><div><span className="ed-eyebrow">YOUR COMPANY</span><h1>Upcoming events</h1><p>See what's happening and join your colleagues.</p></div><div className="ed-home-actions"><button type="button" className="ed-search-toggle" onClick={onSearch}><Search size={20}/><span>Search</span></button><button type="button" className="ed-home-explore" onClick={onBrowse}>View all <ArrowRight size={17}/></button></div></div>
+    <div className="ed-home-heading"><div><span className="ed-eyebrow">YOUR COMPANY</span><h1>Upcoming events</h1><p>See what&apos;s happening and join your colleagues.</p></div><div className="ed-home-actions"><button type="button" className="ed-search-toggle" onClick={onSearch}><Search size={20}/><span>Search</span></button><button type="button" className="ed-home-explore" onClick={onBrowse}>View all <ArrowRight size={17}/></button></div></div>
     {future.length>0?<div className="ed-tile-grid ed-home-grid">{future.slice(0,6).map(e=><EventTile key={e.id} event={e} data={data} onOpen={onOpen}/>)}</div>:<div className="ed-feature-empty"><h2>No upcoming events</h2><p>Published events from your organization will appear here.</p></div>}
     <div className="ed-home-more"><span>Explore more</span></div>
     {selected?<button type="button" className="ed-feature" onClick={()=>onOpen(selected)}>
