@@ -587,7 +587,6 @@ export default function ElixirPortal(){
   if(blocked)return <main className="ep-auth-layout"><div className="ep-auth-card"><h1>Account unavailable</h1><p>Your account or company is suspended.</p><Action onClick={logout}>Sign out</Action></div></main>;
 
   const selected=selectedEvent?data.events.find(e=>e.id===selectedEvent):null;
-  const eventHost=selected?data.users.find(u=>u.id===selected.createdBy):null;
   const permittedAttendees=selected?activeRegistrations(selected.id,data).map(r=>data.users.find(u=>u.id===r.userId))
      .filter((p):p is Person=>Boolean(p)&&p!.showInAttendeeLists!==false&&p!.companyId===selected.companyId):[];
   const chosenCompany=selectedCompany?data.companies.find(c=>c.id===selectedCompany):null;
