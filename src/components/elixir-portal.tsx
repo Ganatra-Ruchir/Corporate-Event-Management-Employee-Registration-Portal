@@ -400,12 +400,17 @@ export default function ElixirPortal(){
   }
 
   function saveEvent(e:PortalEvent){
+    if(remote){void (async()=>{if(await remoteAction("saveEvent",{event:e},"Event saved.")){setEditingEvent(null);openEvent(e.id);}})();return;}
     if(current?.role!=="company_admin"||!current.companyId||e.companyId!==current.companyId){flash("Permission denied.");return;}
     const existing=data.events.some(x=>x.id===e.id);
     const next={...data,events:existing?data.events.map(x=>x.id===e.id?e:x):[...data.events,e]};
     if(save(promoteWaitlistLocally(e,next))){setEditingEvent(null);openEvent(e.id);flash(existing?"Event updated.":"Event created.");}
   }
   function modifyRegistration(event:PortalEvent,cancel:boolean){
+    if(remote){
+      if(!window.confirm((cancel?"Cancel your RSVP for ":"Register for ")+event.title+"?"))return;
+      void remoteAction(cancel?"cancelRegistration":"register",{eventId:event.id},cancel?"RSVP cancelled.":"Registration updated.");return;
+    }
     if(!current)return;
     if(!cancel&&!window.confirm("Register for "+event.title+"?"))return;
     if(cancel&&!window.confirm("Cancel your registration for "+event.title+"?"))return;
@@ -413,6 +418,7 @@ export default function ElixirPortal(){
     if(output.error)flash(output.error);else{save(output.data);flash(cancel?"RSVP cancelled.":output.data.registrations.find(r=>r.eventId===event.id&&r.userId===current.id)?.status==="waitlisted"?"You joined the waitlist.":"You are going to this event.");}
   }
   function cancelEvent(event:PortalEvent){
+    if(remote){const reason=window.prompt("Cancellation reason (optional)","");if(reason===null||!window.confirm("Cancel this event?"))return;void remoteAction("cancelEvent",{eventId:event.id,reason},"Event cancelled.");return;}
     if(current?.role!=="company_admin"||event.companyId!==current.companyId)return;
     const reason=window.prompt("Reason for cancellation (optional):","")??null;
     if(reason===null)return;
@@ -420,6 +426,7 @@ export default function ElixirPortal(){
     save({...data,events:data.events.map(e=>e.id===event.id?{...e,status:"cancelled",cancellationReason:reason}:e)});flash("Event cancelled.");
   }
   function removeParticipant(event:PortalEvent,userId:string){
+    if(remote){if(!window.confirm("Remove this participant?"))return;void remoteAction("removeParticipant",{eventId:event.id,userId},"Participant removed.");return;}
     if(current?.role!=="company_admin"||event.companyId!==current.companyId)return;
     if(!window.confirm("Remove this participant from the event?"))return;
     const next={...data,registrations:data.registrations.map(r=>r.eventId===event.id&&r.userId===userId&&r.status==="going"?{...r,status:"cancelled" as const}:r)};
@@ -427,23 +434,27 @@ export default function ElixirPortal(){
     flash("Participant removed.");
   }
   function saveCompany(c:Company){
+    if(remote){void (async()=>{if(await remoteAction("saveCompany",{company:c},"Organization saved.")){setEditingCompany(null);goto("companies");}})();return;}
     if(current?.role!=="platform_admin")return;
     save({...data,companies:data.companies.some(x=>x.id===c.id)?data.companies.map(x=>x.id===c.id?c:x):[...data.companies,c]});
     setEditingCompany(null);goto("companies");flash("Company saved.");
   }
   function changeCompanyStatus(c:Company){
+    if(remote){if(!window.confirm("Change status for "+c.name+"?"))return;void remoteAction("companyStatus",{companyId:c.id},"Organization status updated.");return;}
     if(current?.role!=="platform_admin")return;
     const status=c.status==="active"?"suspended":"active";
     if(!window.confirm((status==="suspended"?"Suspend":"Reactivate")+" "+c.name+"?"))return;
     save({...data,companies:data.companies.map(x=>x.id===c.id?{...x,status}:x)});flash("Company "+status+".");
   }
   function changeRole(person:Person){
+    if(remote){if(!window.confirm("Change admin access for "+person.fullName+"?"))return;void remoteAction("role",{userId:person.id},"Role updated.");return;}
     if(current?.role!=="company_admin"||person.companyId!==current.companyId||person.id===current.id||person.status==="suspended")return;
     const role=person.role==="employee"?"company_admin":"employee";
     if(!window.confirm("Change "+person.fullName+" to "+roleName(role)+"?"))return;
     save({...data,users:data.users.map(x=>x.id===person.id?{...x,role}:x)});flash("Account role updated.");
   }
   function changeUserStatus(person:Person){
+    if(remote){if(!window.confirm("Change account status for "+person.fullName+"?"))return;void remoteAction("userStatus",{userId:person.id},"Account status updated.");return;}
     if(current?.role!=="platform_admin"||person.role==="platform_admin")return;
     const status=person.status==="active"?"suspended":"active";
     if(!window.confirm((status==="suspended"?"Suspend":"Reactivate")+" "+person.email+"?"))return;
