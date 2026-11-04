@@ -126,17 +126,17 @@ export async function POST(req:NextRequest){
    if(!owned.rowCount)return error("Employee email must use an approved domain of your company",403);
    const id=randomUUID();
    // Generated credentials are shown to the manager once, never logged or emailed.
-   // Email OTP is still mandatory before the employee account is activated.
+   // Privileged organization admins may provision employees directly; enforce password rotation at first login.
    const initialPassword=makeToken().slice(0,22);
    const client=await pool.connect();
    try{
     await client.query("BEGIN");
-    const inserted=await client.query("INSERT INTO users(id,full_name,email,password_hash,department,role,organization_id,verified,status) VALUES($1,$2,$3,$4,$5,'employee',$6,false,'active') ON CONFLICT(email) DO NOTHING RETURNING id",[id,name,email,await passwordHash(initialPassword),department,user.companyId]);
+    const inserted=await client.query("INSERT INTO users(id,full_name,email,password_hash,department,role,organization_id,verified,status,must_change_password) VALUES($1,$2,$3,$4,$5,'employee',$6,true,'active',true) ON CONFLICT(email) DO NOTHING RETURNING id",[id,name,email,await passwordHash(initialPassword),department,user.companyId]);
     if(!inserted.rowCount){await client.query("ROLLBACK");return error("This email already has an employee account",409);}
     await logAudit(client,user,"employee.provisioned",id,user.companyId);
     await client.query("COMMIT");
    }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
-   // The employee ID is a display code. Login uses verified work email.
+   // Login uses company email and temporary password. The employee must rotate it at first sign-in.
    return ok({success:true,email,employeeId:"EMP-"+id.slice(0,8).toUpperCase(),temporaryPassword:initialPassword,data:await snapshot(user)});
   }
   if(action==="invite"){
