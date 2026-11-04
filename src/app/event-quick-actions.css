@@ -1,0 +1,4 @@
+
+.event-quick-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:13px 0 18px}
+.event-quick-actions button,.event-quick-actions a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;border:1px solid #cfdcf0;border-radius:8px;background:#fff;color:#2e56a0;font-size:12px;font-weight:750;min-height:36px;padding:7px 10px}
+.event-quick-actions button:hover,.event-quick-actions a:hover{background:#edf3fe}
