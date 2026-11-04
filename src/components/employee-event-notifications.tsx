@@ -15,14 +15,16 @@ export function EmployeeEventNotifications({user,events,data,onOpen}:Props){
  const [browserPermission,setBrowserPermission]=useState<NotificationPermission|"unsupported">("unsupported");
  const [message,setMessage]=useState("");
  const available=useMemo(()=>events.filter(e=>e.status==="published"&&e.companyId===user.companyId),[events,user.companyId]);
- const upcoming=available.filter(e=>new Date(e.startsAt).getTime()>now&&new Date(e.startsAt).getTime()-now<=7*DAY)
-    .sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime()).slice(0,8);
- const soon=upcoming.filter(e=>new Date(e.startsAt).getTime()-now<=DAY);
+ const upcoming=useMemo(()=>available.filter(e=>new Date(e.startsAt).getTime()>now&&new Date(e.startsAt).getTime()-now<=7*DAY)
+    .sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime()).slice(0,8),[available,now]);
+ const soon=useMemo(()=>upcoming.filter(e=>new Date(e.startsAt).getTime()-now<=DAY),[upcoming,now]);
  useEffect(()=>{
-   setNow(Date.now());
-   if(typeof window!=="undefined"&&"Notification" in window)setBrowserPermission(Notification.permission);
+   const initial=window.setTimeout(()=>{
+     setNow(Date.now());
+     if("Notification" in window)setBrowserPermission(Notification.permission);
+   },0);
    const handle=window.setInterval(()=>setNow(Date.now()),60_000);
-   return ()=>window.clearInterval(handle);
+   return ()=>{window.clearTimeout(initial);window.clearInterval(handle);};
  },[]);
  useEffect(()=>{
    if(!now||browserPermission!=="granted"||typeof window==="undefined"||!("Notification" in window))return;
@@ -33,8 +35,8 @@ export function EmployeeEventNotifications({user,events,data,onOpen}:Props){
      // required to deliver notifications to closed browsers.
      try{
        new Notification("Your event is coming up",{body:event.title+" begins in "+timeLabel(new Date(event.startsAt).getTime()-now),tag:id});
-       localStorage.setItem(id,String(Date.now()));
-     }catch{setMessage("Browser notifications are blocked. Upcoming events remain visible here.");}
+       localStorage.setItem(id,String(now));
+     }catch{/* Notification permission can be revoked; in-app reminders remain available. */}
    }
  },[now,browserPermission,soon,user.id]);
  async function enableNotifications(){
