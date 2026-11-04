@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "test": "tsx --test tests/*.test.ts",
     "db:migrate": "node scripts/migrate.mjs",
-    "db:status": "node scripts/db-status.mjs"
+    "db:status": "node scripts/db-status.mjs",
+    "db:bootstrap-admin": "node scripts/bootstrap-admin.mjs"
   },
   "dependencies": {
     "lucide-react": "0.468.0",

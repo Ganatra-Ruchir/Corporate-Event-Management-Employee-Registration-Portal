@@ -59,8 +59,11 @@ export async function snapshot(current:Person):Promise<PortalData>{
  const mappedUsers=users.rows.map(toPerson);
  // Do not disclose all employees' private contact information to ordinary employees.
  const visibleUsers=current.role==="employee"?mappedUsers.filter(u=>u.id===current.id||u.showInAttendeeLists!==false):mappedUsers;
- const mappedRegs:Registration[]=registrations.rows.filter(r=>admin||current.role==="company_admin"||r.user_id===current.id).map(r=>({
-  id:r.id,eventId:r.event_id,userId:r.user_id,status:r.status,createdAt:new Date(r.created_at).toISOString(),
+ const privateUsers=new Set(mappedUsers.filter(u=>u.showInAttendeeLists===false).map(u=>u.id));
+ const mappedRegs:Registration[]=registrations.rows.map(r=>({
+  id:r.id,eventId:r.event_id,
+  userId:!admin&&current.role==="employee"&&r.user_id!==current.id&&privateUsers.has(r.user_id)?"private:"+r.id:r.user_id,
+  status:r.status,createdAt:new Date(r.created_at).toISOString(),
   waitlistedAt:r.waitlisted_at?new Date(r.waitlisted_at).toISOString():null,
   promotedAt:r.promoted_at?new Date(r.promoted_at).toISOString():null
  }));
