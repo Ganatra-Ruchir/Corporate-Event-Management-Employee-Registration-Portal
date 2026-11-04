@@ -17,8 +17,9 @@ export async function GET(req:NextRequest){
  try{
   const company=await companyFor(email);
   if(!company.rows.length)return fail("This work email domain is not registered with an organization",403);
-  const existing=await sqlPool().query("SELECT 1 FROM users WHERE email=$1",[email]);
-  if(existing.rows.length)return fail("An account with this email already exists",409);
+  const existing=await sqlPool().query("SELECT role,verified,status FROM users WHERE email=$1",[email]);
+  if(existing.rows.length&&(existing.rows[0].role!=="employee"||existing.rows[0].verified||existing.rows[0].status!=="active"))
+   return fail("This email already has an account. Sign in or contact your administrator.",409);
   return NextResponse.json({eligible:true,organization:company.rows[0].name},{headers:{"Cache-Control":"no-store"}});
  }catch{return fail("Unable to check this organization",503);}
 }
@@ -47,7 +48,15 @@ export async function POST(req:NextRequest){
    "INSERT INTO users(id,full_name,email,password_hash,department,role,organization_id,verified,status) VALUES($1,$2,$3,$4,$5,'employee',$6,true,'active') ON CONFLICT(email) DO NOTHING RETURNING id",
    [id,name,email,hash,department,company.rows[0].id]
   );
-  if(!result.rows.length)return fail("An account already exists for this email",409);
+  if(!result.rows.length){
+   // Existing unverified employee accounts from the old manual-approval flow
+   // can be activated, but only after authenticating the verified work email.
+   const changed=await sqlPool().query(
+    "UPDATE users SET verified=true,password_hash=$1,full_name=$2,department=$3 WHERE email=$4 AND role='employee' AND verified=false AND status='active' AND organization_id=$5 RETURNING id",
+    [hash,name,department,email,company.rows[0].id]
+   );
+   if(!changed.rowCount)return fail("This account cannot be activated automatically. Contact your administrator.",409);
+  }
   return NextResponse.json({success:true,organization:company.rows[0].name,message:"Email verified. Your employee account is active. You can sign in now."},{headers:{"Cache-Control":"no-store"}});
  }catch(error){
   console.error("Verified employee registration failed",error instanceof Error?error.name:"unknown");
