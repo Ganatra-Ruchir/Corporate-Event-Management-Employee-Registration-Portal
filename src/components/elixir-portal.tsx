@@ -667,12 +667,12 @@ export default function ElixirPortal(){
             </button>})}</div>:<div className="aw-empty"><CalendarDays size={23}/><strong>No registrations found</strong><p>Join an event to see it here, or choose another filter.</p><button onClick={()=>goto("events")}>Browse events <ArrowRight size={16}/></button></div>}
         </>}
         {view==="people"&&current.role==="company_admin"&&<>
-          <WorkspaceHeading eyebrow={company?.name.toUpperCase()||"COMPANY"} title="Your people" description="Employees join with work-email OTP. Approve them here, then manage company administrator access."/>
+          <WorkspaceHeading eyebrow={company?.name.toUpperCase()||"COMPANY"} title="Your people" description="Employees join automatically after work-email OTP verification. Manage company administrator access here."/>
           {remote&&<div className="ep-panel" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
             <div><strong>Invite employees</strong><p style={{fontSize:12,color:"#66768b",margin:"5px 0 0"}}>Share the signup page. Employees use their approved work-email domain, receive a code, and wait for your approval.</p></div>
             <button type="button" className="aw-primary" onClick={()=>{void navigator.clipboard.writeText(new URL("/signup",window.location.origin).toString()).then(()=>setNotice("Employee signup link copied."),()=>setNotice("Copy this link from your browser address: /signup"));}}>Copy employee signup link</button>
           </div>}
-          <PeopleDirectory people={companyPeople} search={directorySearch} onSearch={setDirectorySearch} selfId={current.id} onRole={changeRole} onApprove={remote?approveUser:undefined}/>
+          <PeopleDirectory people={companyPeople} search={directorySearch} onSearch={setDirectorySearch} selfId={current.id} onRole={changeRole}/>
         </>}
         {view==="companies"&&current.role==="platform_admin"&&<>
           <WorkspaceHeading eyebrow="PARTNER MANAGEMENT" title="Organizations" description="Every partner, approved email domain and their activity."
