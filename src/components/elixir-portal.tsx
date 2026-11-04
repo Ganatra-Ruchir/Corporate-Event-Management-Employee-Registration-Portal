@@ -700,7 +700,7 @@ export default function ElixirPortal(){
           <footer className="ed-event-bottom-info">
             <div className="ed-bottom-host"><span>Hosted by:</span> <strong>{data.companies.find(c=>c.id===selected.companyId)?.name||"Event organization"}</strong></div>
             <div className="ed-bottom-going">
-              <span>Who's going:</span> <strong>{activeRegistrations(selected.id,data).length} attendees</strong>
+              <span>Who&apos;s going:</span> <strong>{activeRegistrations(selected.id,data).length} attendees</strong>
               <GoingFaces event={selected} data={data} limit={5}/>
               <button type="button" onClick={()=>setShowAttendees(v=>!v)} aria-expanded={showAttendees}>{showAttendees?"Hide names":"See attendees"}</button>
             </div>
