@@ -74,7 +74,7 @@ export async function POST(req:NextRequest){
   if(user.mustChangePassword&&action!=="profile")return error("Change your temporary password before using the portal",403);
   if(action==="refresh")return getSnapshot(user);
   if(action==="profile"){
-   const name=text(args.fullName,100),department=text(args.department,100),jobTitle=text(args.jobTitle,100),phone=text(args.phone,25);
+   const name=text(args.fullName,100),department=text(args.department,100),jobTitle=args.jobTitle===undefined?(user.jobTitle||""):text(args.jobTitle,100),phone=args.phone===undefined?(user.phone||""):text(args.phone,25);
    if(phone&&!/^[+0-9()\s-]{7,25}$/.test(phone))return error("Enter a valid contact number");
    if(name.length<2)return error("Name too short");
    const change=typeof args.password==="string"&&args.password.length>0;
