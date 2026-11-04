@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {randomUUID} from "node:crypto";
 import {databaseEnabled,sqlPool,passwordHash,passwordValid,makeToken,hashToken,getSession,snapshot,logAudit} from "@/lib/db/server";
 import {validateEvent} from "@/lib/portal-model";
+import {storeEventImages} from "@/lib/media/server";
 import type {Person,PortalEvent,Company} from "@/lib/portal-model";
 
 export const runtime="nodejs";
@@ -180,7 +181,7 @@ export async function POST(req:NextRequest){
   if(action==="saveEvent"){
    const e=args.event as PortalEvent;
    if(!e||typeof e!=="object"||!requireCompanyAdmin(user,text(e.companyId,120)))return denied();
-   const existing=await pool.query("SELECT id,created_by FROM events WHERE id=$1",[text(e.id,120)]);
+   const existing=await pool.query("SELECT id,created_by,payload FROM events WHERE id=$1",[text(e.id,120)]);
    if(existing.rowCount){
      const ownEvent=await pool.query("SELECT organization_id FROM events WHERE id=$1",[e.id]);
      if(ownEvent.rows[0]?.organization_id!==user.companyId)return denied();
@@ -188,7 +189,8 @@ export async function POST(req:NextRequest){
    const event:PortalEvent={...e,createdBy:existing.rows[0]?.created_by||user.id};
    const issue=validateEvent(event,await snapshot(user));
    if(issue)return error(issue);
-   const payload=jsonPayload(event),cap=Number(event.capacity),starts=new Date(event.startsAt),ends=new Date(event.endsAt);
+   const sanitized=await storeEventImages(event,existing.rows[0]?.payload as PortalEvent|undefined);
+   const payload=jsonPayload(sanitized),cap=Number(event.capacity),starts=new Date(event.startsAt),ends=new Date(event.endsAt);
    if(!Number.isInteger(cap)||cap<1||cap>100000||!(starts<ends))return error("Invalid dates or capacity");
    const client=await pool.connect();
    try{

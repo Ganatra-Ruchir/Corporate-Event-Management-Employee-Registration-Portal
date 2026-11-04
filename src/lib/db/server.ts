@@ -3,6 +3,7 @@ import {Pool} from "pg";
 import {randomBytes,scrypt as scryptCallback,timingSafeEqual,createHash} from "node:crypto";
 import {promisify} from "node:util";
 import type {PortalData,Person,PortalEvent,Company,Registration,Invitation} from "@/lib/portal-model";
+import {hydrateEventImages} from "@/lib/media/server";
 
 const scrypt=promisify(scryptCallback);
 let pool:Pool|undefined;
@@ -68,7 +69,7 @@ export async function snapshot(current:Person):Promise<PortalData>{
   promotedAt:r.promoted_at?new Date(r.promoted_at).toISOString():null
  }));
  const mappedInvites:Invitation[]=current.role==="platform_admin"?invitations.rows.map(i=>({id:i.id,email:i.email,companyId:i.organization_id,role:"company_admin",code:"",accepted:i.accepted})):[];
- return {companies:mappedCompanies,users:visibleUsers,events:events.rows.map(e=>e.payload as PortalEvent),registrations:mappedRegs,invitations:mappedInvites};
+ return {companies:mappedCompanies,users:visibleUsers,events:await Promise.all(events.rows.map(e=>hydrateEventImages(e.payload as PortalEvent))),registrations:mappedRegs,invitations:mappedInvites};
 }
 export async function logAudit(client:{query:(sql:string,args?:unknown[])=>Promise<unknown>},current:Person,action:string,subject?:string,org?:string|null){
  await client.query("INSERT INTO audit_logs(actor_user_id,organization_id,action,subject_id) VALUES($1,$2,$3,$4)",[current.id,org??current.companyId,action,subject||null]);
