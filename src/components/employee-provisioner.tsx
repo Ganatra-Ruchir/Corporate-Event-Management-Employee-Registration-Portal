@@ -25,13 +25,13 @@ export function EmployeeProvisioner({onCreate}:Props){
  async function copy(){
   if(!credential)return;
   try{
-   await navigator.clipboard.writeText("Employee ID: "+credential.employeeId+"\nEmail / Login: "+credential.email+"\nTemporary password: "+credential.temporaryPassword+"\nVerify your work email at: "+window.location.origin+"/signup");
+   await navigator.clipboard.writeText("Employee ID: "+credential.employeeId+"\nEmail / Login: "+credential.email+"\nTemporary password: "+credential.temporaryPassword+"\nSign in at: "+window.location.origin+"\nChange the temporary password on first login.");
    setCopied(true);
   }catch{setError("Unable to copy. Select the credentials manually.");}
  }
  return <section className="ep-panel" style={{padding:18,marginBottom:18}}>
   <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"center",flexWrap:"wrap"}}>
-   <div><strong style={{display:"flex",alignItems:"center",gap:8}}><UserPlus size={18}/>Add employee directly</strong><p style={{margin:"6px 0 0",color:"#6a7a90",fontSize:12,lineHeight:1.6}}>Create an employee ID and a temporary password for a company email address. Email OTP verification is still required before sign-in.</p></div>
+   <div><strong style={{display:"flex",alignItems:"center",gap:8}}><UserPlus size={18}/>Add employee directly</strong><p style={{margin:"6px 0 0",color:"#6a7a90",fontSize:12,lineHeight:1.6}}>Create an employee ID and a temporary password for a company email address. No OTP required. The employee can sign in immediately and must set their own password on first login.</p></div>
    <button type="button" className="aw-primary" onClick={()=>{setExpanded(v=>!v);setCredential(null);setError("");}}>{expanded?<><X size={16}/>Close</>:<><Plus size={16}/>Add employee</>}</button>
   </div>
   {expanded&&<div style={{display:"grid",gap:14,marginTop:18,maxWidth:500}}>
@@ -49,7 +49,7 @@ export function EmployeeProvisioner({onCreate}:Props){
     <label style={{fontSize:12}}>Login email <input readOnly value={credential.email}/></label>
     <label style={{fontSize:12}}>Temporary password <div style={{display:"flex",gap:8}}><input readOnly type={visible?"text":"password"} value={credential.temporaryPassword} style={{flex:1,minWidth:0}}/><button type="button" aria-label={visible?"Hide password":"Show password"} onClick={()=>setVisible(v=>!v)}>{visible?<EyeOff size={17}/>:<Eye size={17}/>}</button></div></label>
     <button type="button" className="aw-primary" onClick={()=>void copy()}>{copied?<Check size={16}/>:<Copy size={16}/>} {copied?"Copied":"Copy credentials once"}</button>
-    <small>The employee must open <strong>/signup</strong>, enter their work email, receive a verification code, and set their own password. Admin-created credentials do not bypass email verification.</small>
+    <small>The employee signs in with this email and temporary password, then must change the password. Do not share the temporary password in a group chat.</small>
     <button type="button" onClick={()=>{setCredential(null);setVisible(false);setError("");}}>Add another employee</button>
    </div>}
   </div>}
