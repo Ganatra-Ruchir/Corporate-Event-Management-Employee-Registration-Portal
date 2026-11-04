@@ -60,3 +60,22 @@ This command refuses Vercel production execution. Both current staging branches 
 - Migrate production only after explicit approval and staging acceptance.
 
 This document records verifiable staging infrastructure; it does not imply that real-user production readiness is complete.
+
+
+## Employee signup with free email OTP (staging)
+
+The database preview now includes \`/signup\`. Company admins can open **People → Copy employee signup link** and share it with staff. Every employee:
+1. Enters their full name, department and approved company-domain email address.
+2. Creates a password and requests a time-limited email code.
+3. Enters the OTP received from Neon Auth.
+4. Waits for their company's admin to approve the account on the **People** page.
+5. Signs in and sees only their company's events.
+
+The API does **not** trust a client-side "verified" flag. \`/api/portal/register\` requires a valid Neon Auth session with \`user.emailVerified === true\`; it then creates an unapproved employee record. The old unverified signup endpoint is disabled.
+
+**One mandatory Neon Console setting before this can be tested:**
+Go to the \`preview/feature/neon-postgres-backend\` branch → **Auth → Configuration → Email**. Turn on **Verify at Sign-up**, select **Verification code (OTP)**, and require email verification. In the latest inspection, \`verify_email_on_sign_up\` and \`require_email_verification\` were still off. Neon’s exposed app connection does not currently provide an operation to change these toggles.
+
+Neon's shared development SMTP can deliver testing codes without another mail-provider account. This shared sender is **not recommended for production**. A zero-cost option for low-volume production is Resend's Free plan (currently 3,000 emails/month, 100/day); it requires domain ownership verification and configuring custom SMTP in Neon. Do not put SMTP passwords into the frontend or GitHub. Verify a real company-owned sender domain before inviting live employees.
+
+**Additional admin accounts:** Only the already-activated initial Platform Admin exists by default. To grant company-admin access, use a verified employee account and a matching invitation; never automatically promote arbitrary email input. Any further desired Elixir admin email addresses must be supplied explicitly before granting access.
