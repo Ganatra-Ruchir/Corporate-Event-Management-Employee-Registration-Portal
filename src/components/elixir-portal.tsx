@@ -8,6 +8,9 @@ import {SpeakerGallery} from "@/components/speaker-gallery";
 import {PlatformOverview,CompanyOverview,WorkspaceHeading,WorkspaceSection} from "@/components/admin-workspace";
 import {CompanyDirectory,PeopleDirectory,AccountDirectory,InvitationDirectory} from "@/components/admin-directory";
 import {EmployeeProvisioner} from "@/components/employee-provisioner";
+import {EmployeeEditor} from "@/components/employee-editor";
+import {PersonAvatar} from "@/components/person-avatar";
+import {EventQuickActions} from "@/components/event-quick-actions";
 import {FirstLoginPasswordChange} from "@/components/first-login-password-change";
 import {EmployeeEventNotifications} from "@/components/employee-event-notifications";
 import {
@@ -261,6 +264,11 @@ export default function ElixirPortal(){
   const [inviteError,setInviteError]=useState("");
   const [profileName,setProfileName]=useState<string|null>(null);
   const [profileDepartment,setProfileDepartment]=useState<string|null>(null);
+  const [profileJobTitle,setProfileJobTitle]=useState<string|null>(null);
+  const [profilePhone,setProfilePhone]=useState<string|null>(null);
+  const [profilePhotoBusy,setProfilePhotoBusy]=useState(false);
+  const [editingEmployeeId,setEditingEmployeeId]=useState<string|null>(null);
+  const [employeeFilter,setEmployeeFilter]=useState("All");
   const [profilePw,setProfilePw]=useState("");
   const [profilePwConfirm,setProfilePwConfirm]=useState("");
   const [profileError,setProfileError]=useState("");
@@ -512,7 +520,7 @@ export default function ElixirPortal(){
     e.preventDefault();if(!current)return;
     if(remote){
       if(profilePw&&profilePw!==profilePwConfirm){setProfileError("Passwords do not match");return;}
-      const result=await remoteRequest("profile",{fullName:profileName??current.fullName,department:profileDepartment??current.department,password:profilePw});
+      const result=await remoteRequest("profile",{fullName:profileName??current.fullName,department:profileDepartment??current.department,jobTitle:profileJobTitle??current.jobTitle??"",phone:profilePhone??current.phone??"",password:profilePw});
       if(result.error){setProfileError(result.error);return;}
       if(result.data)setData(result.data);setProfilePw("");setProfilePwConfirm("");setProfileError("");setProfileSuccess("Profile saved to PostgreSQL.");return;
     }
@@ -522,8 +530,41 @@ export default function ElixirPortal(){
     if(profilePw&&profilePw!==profilePwConfirm){setProfileError("The new passwords do not match.");return;}
     if(profilePw&&profilePw.length<6){setProfileError("Use at least six characters for the demonstration password.");return;}
     const password=profilePw?await encodePassword(profilePw):current.password;
-    save({...data,users:data.users.map(u=>u.id===current.id?{...u,fullName:fullName.trim(),department:department.trim(),password}:u)});
+    save({...data,users:data.users.map(u=>u.id===current.id?{...u,fullName:fullName.trim(),department:department.trim(),jobTitle:profileJobTitle??current.jobTitle??"",phone:profilePhone??current.phone??"",password}:u)});
     setProfilePw("");setProfilePwConfirm("");setProfileSuccess("Profile saved in this browser.");
+  }
+  async function uploadProfilePhoto(file?:File){
+    if(!file||!current||!remote)return;
+    if(file.type!=="image/png"||file.size>1024*1024){setProfileError("Use a PNG image smaller than 1 MB.");return;}
+    setProfilePhotoBusy(true);setProfileError("");setProfileSuccess("");
+    try{
+      const form=new FormData();form.set("avatar",file);
+      const r=await fetch("/api/portal/avatar",{method:"POST",body:form});
+      const response=await r.json();
+      if(!r.ok){setProfileError(response.error||"Unable to upload the picture.");return;}
+      if(response.data)setData(response.data);
+      setProfileSuccess("Profile picture updated.");
+    }catch{setProfileError("Unable to upload profile picture.");}
+    finally{setProfilePhotoBusy(false);}
+  }
+  async function removeProfilePhoto(){
+    if(!remote||!current)return;
+    setProfilePhotoBusy(true);setProfileError("");setProfileSuccess("");
+    try{
+      const r=await fetch("/api/portal/avatar",{method:"DELETE"});
+      const response=await r.json();
+      if(!r.ok){setProfileError(response.error||"Unable to remove profile picture.");return;}
+      if(response.data)setData(response.data);
+      setProfileSuccess("Profile picture removed.");
+    }catch{setProfileError("Unable to remove picture.");}
+    finally{setProfilePhotoBusy(false);}
+  }
+  async function employeeAction(action:"editEmployee"|"changeEmployeeStatus",args:Record<string,unknown>){
+    const result=await remoteRequest(action,args);
+    if(result.error)return result.error;
+    if(result.data)setData(result.data);
+    setNotice(action==="editEmployee"?"Employee details updated.":"Employee account status updated.");
+    return null;
   }
   if(!ready)return <main className="ep-loading" role="status">Loading portal…</main>;
   if(remoteError&&remote)return <main className="ep-loading" role="alert">Database connection error: {remoteError}. Refresh to retry.</main>;
@@ -570,7 +611,7 @@ export default function ElixirPortal(){
     <a className="ep-skip" href="#main-content">Skip to main content</a>
     <header className="ep-topbar">
       <div className="ep-top-left"><button className="ep-menu" aria-label="Toggle navigation" onClick={()=>setMenu(!menu)}><Menu size={20}/></button><span className="ep-brand">Elixir Events Portal</span><span className="ep-divider-line"/><span className="ep-context">{current.role==="platform_admin"?"Platform management":company?.name||"Company events"}</span></div>
-      <div className="ep-top-right">{current.role==="employee"&&<EmployeeEventNotifications user={current} data={data} events={companyEvents} onOpen={openEvent}/>}<span className="ep-draft-marker">{remote?"POSTGRESQL · STAGING":"LOCAL DRAFT · NO DATABASE"}</span><button className="ep-account" onClick={()=>goto("profile")}><span className="ep-initials">{current.fullName.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span><span>{current.fullName}</span></button></div>
+      <div className="ep-top-right">{current.role==="employee"&&<EmployeeEventNotifications user={current} data={data} events={companyEvents} onOpen={openEvent}/>}<span className="ep-draft-marker">{remote?"POSTGRESQL · STAGING":"LOCAL DRAFT · NO DATABASE"}</span><button className="ep-account" onClick={()=>goto("profile")}><PersonAvatar person={current} size={27}/><span>{current.fullName}</span></button></div>
     </header>
     <div className="ep-layout">
       <nav className={"ep-sidebar "+(menu?"expanded":"")} aria-label="Main navigation">
@@ -631,6 +672,7 @@ export default function ElixirPortal(){
           <button className="ep-back" onClick={()=>goto("events")}><ArrowLeft size={16}/> Back to events</button>
           <div className="ep-banner ed-event-detail-preview"><EventCover event={selected} wide/></div>
           <div className="ep-page-head"><div><div className="ep-event-label">{selected.category} · {selected.format.replace("_"," ")}</div><h1>{selected.title}</h1><p>{selected.summary}</p></div><Chip tone={selected.status==="published"?"green":selected.status==="cancelled"?"red":"neutral"}>{selected.status}</Chip></div>
+          <EventQuickActions event={selected}/>
           {selected.status==="cancelled"&&<div className="ep-error" role="status">Event cancelled. {selected.cancellationReason||"Contact the organiser for details."}</div>}
           <div className="ep-detail-layout"><article className="ep-panel ep-detail-copy">
               <div className="ed-detail-keyfacts"><span><CalendarDays size={19}/>{dateText(selected.startsAt)}</span><span><MapPin size={19}/>{selected.format==="online"?"Online event":selected.location}</span></div>
@@ -707,7 +749,23 @@ export default function ElixirPortal(){
               return {result:{email:result.email,employeeId:result.employeeId,temporaryPassword:result.temporaryPassword}};
             }catch{return {error:"Unable to reach the employee creation service"};}
           }}/>}
-          <PeopleDirectory people={companyPeople} search={directorySearch} onSearch={setDirectorySearch} selfId={current.id} onRole={changeRole}/>
+          <div className="employee-list-stats">
+            <span>{companyPeople.length} total staff</span>
+            <span>{companyPeople.filter(p=>p.status==="active").length} active</span>
+            <span>{companyPeople.filter(p=>p.status==="suspended").length} suspended</span>
+          </div>
+          <div className="employee-list-actions" style={{marginBottom:15}}>
+            <label style={{fontSize:12,fontWeight:800}}>Status <select value={employeeFilter} onChange={e=>setEmployeeFilter(e.target.value)} style={{marginLeft:6,padding:8,borderRadius:8}}><option>All</option><option value="active">Active</option><option value="suspended">Suspended</option></select></label>
+            <button type="button" onClick={()=>exportCsv("company-employees.csv",["Employee ID","Name","Email","Department","Job title","Phone","Role","Status"],companyPeople.map(p=>["EMP-"+p.id.slice(0,8).toUpperCase(),p.fullName,p.email,p.department,p.jobTitle||"",p.phone||"",p.role,p.status]))}><Download size={15}/> Export employees CSV</button>
+          </div>
+          {editingEmployeeId&&companyPeople.some(p=>p.id===editingEmployeeId&&p.role==="employee")&&<EmployeeEditor key={editingEmployeeId} person={companyPeople.find(p=>p.id===editingEmployeeId)!}
+            onSave={values=>employeeAction("editEmployee",values)}
+            onStatus={person=>employeeAction("changeEmployeeStatus",{userId:person.id})}
+            onClose={()=>setEditingEmployeeId(null)}/>}
+          <PeopleDirectory people={employeeFilter==="All"?companyPeople:companyPeople.filter(p=>p.status===employeeFilter)}
+            search={directorySearch} onSearch={setDirectorySearch} selfId={current.id} onRole={changeRole}
+            onEdit={remote?p=>setEditingEmployeeId(p.id):undefined}
+            onStatus={remote?p=>{void (async()=>{if(window.confirm((p.status==="active"?"Suspend ":"Reactivate ")+p.fullName+"?"))await employeeAction("changeEmployeeStatus",{userId:p.id});})();}:undefined}/>
         </>}
         {view==="companies"&&current.role==="platform_admin"&&<>
           <WorkspaceHeading eyebrow="PARTNER MANAGEMENT" title="Organizations" description="Every partner, approved email domain and their activity."
@@ -739,26 +797,37 @@ export default function ElixirPortal(){
           <AccountDirectory people={data.users} companies={data.companies} search={directorySearch} onSearch={setDirectorySearch} onStatus={changeUserStatus} onApprove={remote?approveUser:undefined} onGrantAdmin={remote?grantInvitedAdmin:undefined}/>
         </>}
         {view==="profile"&&<>
-          <WorkspaceHeading eyebrow="YOUR ACCOUNT" title="Profile & settings" description="Keep your display name, department and demonstration password up to date."/>
+          <WorkspaceHeading eyebrow="YOUR ACCOUNT" title="Profile & settings" description="Manage your personal details, PNG profile photo and password."/>
           <div className="aw-two-col aw-profile-layout">
             <div className="aw-profile-summary">
-              <span className="aw-profile-avatar">{current.fullName.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span>
+              <PersonAvatar person={current} size={88}/>
               <h2>{current.fullName}</h2><p>{current.email}</p><span className="md-role">{roleName(current.role)}</span>
               <div className="aw-profile-company"><span>Organization</span><strong>{company?.name||"Elixir Foundation"}</strong></div>
               <div className="aw-profile-company"><span>Department</span><strong>{current.department||"Not provided"}</strong></div>
+              {current.jobTitle&&<div className="aw-profile-company"><span>Job title</span><strong>{current.jobTitle}</strong></div>}
               <button type="button" className="aw-text-action" onClick={logout}>Sign out <LogOut size={16}/></button>
             </div>
             <form className="ep-panel ep-form aw-profile-form" onSubmit={profileSave}>
               <h2>Personal details</h2>
+              {remote&&<div className="profile-photo-control">
+                <PersonAvatar person={current} size={82}/>
+                <label>Profile photo (PNG, max 1 MB)<input type="file" accept="image/png" disabled={profilePhotoBusy} onChange={e=>{void uploadProfilePhoto(e.currentTarget.files?.[0]);e.currentTarget.value="";}}/></label>
+                {current.avatarUrl&&<button type="button" disabled={profilePhotoBusy} onClick={()=>void removeProfilePhoto()}>Remove profile picture</button>}
+                <small>{profilePhotoBusy?"Uploading photo…":"Visible in your profile, company directory and event attendee list."}</small>
+              </div>}
               <div className="ep-form-grid">
                 <FormRow label="Full name"><input required value={profileName??current.fullName} onChange={e=>setProfileName(e.target.value)}/></FormRow>
                 <FormRow label="Department"><input value={profileDepartment??current.department} onChange={e=>setProfileDepartment(e.target.value)}/></FormRow>
               </div>
+              <div className="ep-form-grid">
+                <FormRow label="Job title"><input maxLength={100} value={profileJobTitle??current.jobTitle??""} onChange={e=>setProfileJobTitle(e.target.value)}/></FormRow>
+                <FormRow label="Phone (optional)"><input type="tel" maxLength={25} value={profilePhone??current.phone??""} onChange={e=>setProfilePhone(e.target.value)}/></FormRow>
+              </div>
               <FormRow label="Work email"><input value={current.email} disabled/></FormRow>
               <label className="ep-check aw-privacy-setting"><input type="checkbox" checked={current.showInAttendeeLists!==false} onChange={e=>remote?void remoteAction("privacy",{visible:e.target.checked},"Privacy preference saved."):save({...data,users:data.users.map(u=>u.id===current.id?{...u,showInAttendeeLists:e.target.checked}:u)})}/> Show my name in attendee lists</label>
               <div className="aw-form-divider"/>
-              <h2>Change demonstration password</h2>
-              <p className="ep-hint">Optional. Use a disposable demo password, not your real work password.</p>
+              <h2>{remote?"Change password":"Change demonstration password"}</h2>
+              <p className="ep-hint">{remote?"Optional: choose a new unique password of at least 12 characters.":"Optional. Use a disposable demo password, not your real work password."}</p>
               <div className="ep-form-grid">
                 <FormRow label="New password"><input type="password" minLength={6} autoComplete="new-password" value={profilePw} onChange={e=>setProfilePw(e.target.value)}/></FormRow>
                 <FormRow label="Confirm password"><input type="password" minLength={6} autoComplete="new-password" value={profilePwConfirm} onChange={e=>setProfilePwConfirm(e.target.value)}/></FormRow>
