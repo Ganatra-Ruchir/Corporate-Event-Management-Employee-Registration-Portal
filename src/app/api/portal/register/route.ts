@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from "next/server";
 import {randomUUID} from "node:crypto";
-import {emailAuth} from "@/lib/auth/email-server";
+import {getEmailAuth} from "@/lib/auth/email-server";
 import {databaseEnabled,passwordHash,sqlPool} from "@/lib/db/server";
 
 export const runtime="nodejs";
@@ -35,7 +35,7 @@ export async function POST(req:NextRequest){
  const password=typeof body.password==="string"?body.password:"";
  if(!validEmail(email)||name.length<2||name.length>100||department.length>100||password.length<12||password.length>128)return fail("Invalid registration details");
  try{
-  const {data:identity,error:sessionError}=await emailAuth.getSession();
+  const {data:identity,error:sessionError}=await getEmailAuth().getSession();
   const verifiedIdentity=identity?.user;
   if(sessionError||!verifiedIdentity||verifiedIdentity.email?.trim().toLowerCase()!==email||verifiedIdentity.emailVerified!==true){
    return fail("Verify the emailed OTP before completing registration",403);
