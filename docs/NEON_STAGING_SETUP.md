@@ -91,3 +91,14 @@ A logged-in Company Admin can open **People → Add employee**, enter a name, de
 - Employees who choose **self-signup** at `/signup` still need email OTP and automatic domain matching.
 - The same-company rule and employee-only role are enforced server-side; employee creation does not grant admin privileges.
 - One legacy staging employee created via an audited `employee.provisioned` action was migrated to the new forced-password-change policy; self-signups and production were not affected.
+
+
+## Discovery and employee reminder UX (4 November 2026)
+
+- The event form no longer asks for Banner alt text or Short summary. A concise summary is derived from Description, and image accessibility text is generated from the event title.
+- The Discover landing page assigns each event ID to one visual section. The featured card is excluded from the upcoming grid and all later category sections. On the current staging database, published events are distinct; prior repeated cards came from the layout.
+- Banners transition to available speaker photos every two seconds in event cards, featured previews and event details. If the event has no speaker photo, the banner remains. Reduced-motion preferences disable cycling.
+- Mouse hover and keyboard focus show event title, venue/online status, available seats and up to three speaker portrait cards.
+- Employee header includes a notification bell for published events starting within seven days; those within 24 hours get a highlighted count. Employees can opt into browser notifications, which appear only while the portal is open. Background push/email delivery is **not** implemented.
+- The portal refreshes shared database event data every minute when visible so newly published events can appear in the reminder list without manual reload.
+- No data migrations or production deployment were needed for these frontend changes.
