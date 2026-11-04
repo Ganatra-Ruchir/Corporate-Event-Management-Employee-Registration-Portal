@@ -306,6 +306,23 @@ export default function ElixirPortal(){
       setReady(true);
     });
   },[]);
+  // Refresh the database feed while employees are signed in so newly
+  // published events also reach the reminder bell without reloading.
+  useEffect(()=>{
+    if(!remote||!session)return;
+    const timer=window.setInterval(()=>{
+      if(document.visibilityState!=="visible")return;
+      void fetch("/api/portal",{cache:"no-store"}).then(async r=>{
+        if(!r.ok)return;
+        const payload=await r.json();
+        if(payload.enabled&&payload.currentId===session&&payload.data){
+          setData(payload.data);
+          setNow(Date.now());
+        }
+      }).catch(()=>{});
+    },60_000);
+    return ()=>window.clearInterval(timer);
+  },[remote,session]);
   const remoteRequest=async(action:string,args:Record<string,unknown>={}):Promise<{error?:string;data?:PortalData;currentId?:string;message?:string}>=>{
     try{
       const r=await fetch("/api/portal",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,args}),cache:"no-store"});
