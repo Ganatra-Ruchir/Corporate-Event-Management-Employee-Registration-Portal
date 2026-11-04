@@ -117,6 +117,28 @@ export async function POST(req:NextRequest){
    await logAudit(pool,user,"organization.status",id,id);
    return getSnapshot(user);
   }
+  if(action==="createEmployee"){
+   if(user.role!=="company_admin"||!user.companyId)return denied();
+   const name=text(args.name,100),email=text(args.email,255).toLowerCase(),department=text(args.department,100);
+   if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return error("Enter an employee name and valid company email");
+   const domain=email.split("@")[1];
+   const owned=await pool.query("SELECT 1 FROM organization_domains d JOIN organizations o ON o.id=d.organization_id WHERE d.organization_id=$1 AND d.domain=$2 AND o.status='active'",[user.companyId,domain]);
+   if(!owned.rowCount)return error("Employee email must use an approved domain of your company",403);
+   const id=randomUUID();
+   // Generated credentials are shown to the manager once, never logged or emailed.
+   // Email OTP is still mandatory before the employee account is activated.
+   const initialPassword=makeToken().slice(0,22);
+   const client=await pool.connect();
+   try{
+    await client.query("BEGIN");
+    const inserted=await client.query("INSERT INTO users(id,full_name,email,password_hash,department,role,organization_id,verified,status) VALUES($1,$2,$3,$4,$5,'employee',$6,false,'active') ON CONFLICT(email) DO NOTHING RETURNING id",[id,name,email,await passwordHash(initialPassword),department,user.companyId]);
+    if(!inserted.rowCount){await client.query("ROLLBACK");return error("This email already has an employee account",409);}
+    await logAudit(client,user,"employee.provisioned",id,user.companyId);
+    await client.query("COMMIT");
+   }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
+   // The employee ID is a display code. Login uses verified work email.
+   return ok({success:true,email,employeeId:"EMP-"+id.slice(0,8).toUpperCase(),temporaryPassword:initialPassword,data:await snapshot(user)});
+  }
   if(action==="invite"){
    if(!requireAdmin(user))return denied();
    const email=text(args.email,255).toLowerCase(),companyId=text(args.companyId,120);
@@ -149,9 +171,9 @@ export async function POST(req:NextRequest){
   }
   if(action==="role"){
    const id=text(args.userId,120);
-   const person=await pool.query("SELECT id,role,organization_id,status FROM users WHERE id=$1",[id]);
+   const person=await pool.query("SELECT id,role,organization_id,status,verified FROM users WHERE id=$1",[id]);
    const target=person.rows[0];
-   if(!target||!requireCompanyAdmin(user,target.organization_id)||target.id===user.id||target.status!=="active"||target.role==="platform_admin")return denied();
+   if(!target||!requireCompanyAdmin(user,target.organization_id)||target.id===user.id||target.status!=="active"||!target.verified||target.role==="platform_admin")return denied();
    await pool.query("UPDATE users SET role=CASE WHEN role='employee' THEN 'company_admin' ELSE 'employee' END WHERE id=$1",[id]);
    await logAudit(pool,user,"membership.role",id,target.organization_id);
    return getSnapshot(user);
