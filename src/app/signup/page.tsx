@@ -52,8 +52,8 @@ export default function SignupPage(){
   <div className="join-grid"><article className="join-panel">
    <small>EMPLOYEE SIGNUP · EMAIL OTP</small>
    <h1>{step==="details"?"Join your company's events":step==="otp"?"Verify your work email":"Registration received"}</h1>
-   <p>{step==="details"?"Employees register using their organization's approved email domain.":step==="otp"?"Enter the verification code sent to "+mail+" ("+company+").":"Your email is verified. Your company admin must approve the account before you can sign in."}</p>
-   <div className="join-steps"><span className={step==="details"?"active":""}>1 · Details</span><span className={step==="otp"?"active":""}>2 · Email OTP</span><span className={step==="done"?"active":""}>3 · Approval</span></div>
+   <p>{step==="details"?"Employees register using their organization's approved email domain.":step==="otp"?"Enter the verification code sent to "+mail+" ("+company+").":"Your work email is verified. Your employee account is ready to use."}</p>
+   <div className="join-steps"><span className={step==="details"?"active":""}>1 · Details</span><span className={step==="otp"?"active":""}>2 · Email OTP</span><span className={step==="done"?"active":""}>3 · Access</span></div>
    {step==="details"&&<form onSubmit={start}>
     <label>Full name<input required autoComplete="name" value={name} onChange={e=>setName(e.target.value)} minLength={2} maxLength={100} placeholder="Your full name"/></label>
     <label>Work email<input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@company.com"/></label>
@@ -70,8 +70,8 @@ export default function SignupPage(){
     <button disabled={busy||!otp.trim()} type="submit">{busy?"Verifying…":"Verify and register"}<ArrowRight size={17}/></button>
     <div className="join-actions"><button type="button" onClick={resend} disabled={busy}>Resend OTP</button><button type="button" disabled={busy} onClick={()=>setStep("details")}>Change email</button></div>
    </form>}
-   {step==="done"&&<div className="join-done"><CheckCircle2 size={38}/><strong>Email verified</strong><p>Ask your organization admin to approve your employee account.</p><button onClick={()=>router.push("/")}>Go to sign in <ArrowRight size={17}/></button></div>}
+   {step==="done"&&<div className="join-done"><CheckCircle2 size={38}/><strong>Email verified</strong><p>You can sign in now and see your company's events.</p><button onClick={()=>router.push("/")}>Go to sign in <ArrowRight size={17}/></button></div>}
   </article>
-  <aside className="join-panel join-aside"><ShieldCheck size={36}/><h2>Secure company event access</h2><p>One-time email verification helps confirm you own your work email. Company admins control who can access their events.</p><div className="join-tip"><Mail size={18}/> Neon sends OTP emails during development at no additional email-service setup cost.</div><small>Development email delivery has limits. Production use needs a dedicated provider.</small></aside></div>
+  <aside className="join-panel join-aside"><ShieldCheck size={36}/><h2>Secure company event access</h2><p>One-time email verification helps confirm you own your work email. No admin approval is required after successful email verification. Company admins still control administrator access and suspensions.</p><div className="join-tip"><Mail size={18}/> Neon sends OTP emails during development at no additional email-service setup cost.</div><small>Development email delivery has limits. Production use needs a dedicated provider.</small></aside></div>
  </section></main>;
 }
