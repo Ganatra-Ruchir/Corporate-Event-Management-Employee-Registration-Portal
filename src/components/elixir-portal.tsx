@@ -684,19 +684,8 @@ export default function ElixirPortal(){
                 <div><dt>Available places</dt><dd>{remainingPlaces(selected,data)} of {selected.capacity}</dd></div>
                 {selected.deadline&&<div><dt>Registration closes</dt><dd>{dateText(selected.deadline)}</dd></div>}
               </dl>
-              <div className="ed-detail-section">
-                <h2>Hosted by</h2>
-                <div className="ed-host-card"><span className="ed-host-avatar">{(eventHost?.fullName||"Company host").split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span><div><strong>{eventHost?.fullName||"Company team"}</strong><p>{eventHost?.department||company?.name||"Event organizer"}</p></div><a href={"mailto:"+selected.contactEmail}>Contact host</a></div>
-              </div>
-              <div className="ed-detail-section">
-                <div className="ed-attendee-heading"><h2>Who&apos;s going</h2><strong>{activeRegistrations(selected.id,data).length} going</strong></div>
-                <GoingFaces event={selected} data={data} limit={5}/>
-                <p className="ed-privacy-note">People who choose to stay private are included in the count but not listed by name.</p>
-                <button className="ed-see-attendees" type="button" onClick={()=>setShowAttendees(v=>!v)} aria-expanded={showAttendees}>{showAttendees?"Hide attendee list":"See attendees"} <ChevronRight size={17}/></button>
-                {showAttendees&&<div className="ed-attendee-list">{permittedAttendees.length?permittedAttendees.map(person=><div key={person.id} className="ed-attendee-row"><span className="ed-attendee-avatar">{person.fullName.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span><span><strong>{person.fullName}</strong><small>{person.department||"Colleague"}</small></span></div>):<p className="ep-hint">No colleagues have opted in to appear by name.</p>}</div>}
-              </div>
             </article>
-            <aside className="ep-panel ep-detail-side"><h2>Registration</h2>
+            <aside className="ep-detail-right"><section className="ep-panel ep-detail-side ed-linktree-registration"><div className="ed-rsvp-pill">JOIN THE EVENT</div><h2>Registration</h2><p className="ed-rsvp-invite">Be part of something meaningful.</p>
               <div className="ed-rsvp-count"><strong>{remainingPlaces(selected,data)}</strong><span>spots left of {selected.capacity}</span></div>
               <div className="ed-rsvp-progress" role="progressbar" aria-label="Reserved places" aria-valuenow={activeRegistrations(selected.id,data).length} aria-valuemax={selected.capacity} aria-valuemin={0}><span style={{width:(100*activeRegistrations(selected.id,data).length/selected.capacity)+"%"}}/></div>
               <p>{activeRegistrations(selected.id,data).length} going</p>
@@ -704,11 +693,22 @@ export default function ElixirPortal(){
               {data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?
                 <><div className="ep-success">{waitlistPosition(selected.id,current.id,data)>0?"You're #"+waitlistPosition(selected.id,current.id,data)+" on the waitlist":"You're going"}</div><Action kind="secondary" onClick={()=>modifyRegistration(selected,true)} disabled={!!canCancel(current,selected,data)}>Cancel RSVP</Action></>:
                 <><Action disabled={!!canRegister(current,selected,data)} onClick={()=>modifyRegistration(selected,false)}>{remainingPlaces(selected,data)===0?"Join waitlist":"Attend"}</Action>{canRegister(current,selected,data)&&<p className="ep-hint">{canRegister(current,selected,data)}</p>}</>}
-              <div className="ep-calendar-actions"><Action kind="secondary" onClick={()=>saveCalendarEvent(selected)}>Add to calendar (.ics)</Action><Action kind="secondary" onClick={()=>window.open(googleCalendarUrl(selected),"_blank","noopener,noreferrer")}>Google Calendar</Action><Action kind="secondary" onClick={()=>navigator.clipboard.writeText(window.location.origin+window.location.pathname+"?event="+encodeURIComponent(selected.id)).then(()=>flash("Preview link copied. Saved events are available only in this browser.")).catch(()=>flash("Clipboard access was blocked."))}>Copy preview link</Action></div>
               {current.role==="company_admin"&&<div className="ep-admin-actions"><h3>Manage event</h3><Action kind="secondary" onClick={()=>{setEditingEvent(selected);goto("eventForm");}}>Edit event</Action>{selected.status!=="cancelled"&&<Action kind="danger" onClick={()=>cancelEvent(selected)}>Cancel event</Action>}</div>}
+            </section>
+            {(selected.speakers||[]).length>0&&<div className="ed-detail-speakers"><SpeakerGallery speakers={selected.speakers||[]}/></div>}
             </aside>
           </div>
-          {(selected.speakers||[]).length>0&&<SpeakerGallery speakers={selected.speakers||[]}/>}
+          <footer className="ed-event-bottom-info">
+            <div className="ed-bottom-host"><span>Hosted by:</span> <strong>{data.companies.find(c=>c.id===selected.companyId)?.name||"Event organization"}</strong></div>
+            <div className="ed-bottom-going">
+              <span>Who's going:</span> <strong>{activeRegistrations(selected.id,data).length} attendees</strong>
+              <GoingFaces event={selected} data={data} limit={5}/>
+              <button type="button" onClick={()=>setShowAttendees(v=>!v)} aria-expanded={showAttendees}>{showAttendees?"Hide names":"See attendees"}</button>
+            </div>
+            {showAttendees&&<div className="ed-bottom-attendee-list">
+              {permittedAttendees.length?permittedAttendees.map(person=><span key={person.id}>{person.fullName}</span>):<span>No public attendee names yet.</span>}
+            </div>}
+          </footer>
           {current.role!=="platform_admin"&&<div className="ed-mobile-rsvp">
             <span>{data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?"Your RSVP is saved":remainingPlaces(selected,data)+" spots left"}</span>
             {data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?
