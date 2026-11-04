@@ -5,7 +5,7 @@ export type RegistrationStatus = "going" | "waitlisted" | "cancelled";
 export type EventFormat = "in_person" | "online" | "hybrid";
 
 export type Company = { id:string; name:string; domains:string[]; status:CompanyStatus; createdAt:string };
-export type Person = { id:string; fullName:string; email:string; department:string; role:Role; companyId:string|null; status:CompanyStatus; verified:boolean; password:string; mustChangePassword?:boolean; showInAttendeeLists?:boolean };
+export type Person = { id:string; fullName:string; email:string; department:string; role:Role; companyId:string|null; status:CompanyStatus; verified:boolean; password:string; mustChangePassword?:boolean; showInAttendeeLists?:boolean; jobTitle?:string; phone?:string; avatarUrl?:string };
 export type Speaker = {
  id:string; name:string; jobTitle:string; company:string; talkTitle:string;
  bio:string; agendaSlot?:string; linkedIn?:string; website?:string;
