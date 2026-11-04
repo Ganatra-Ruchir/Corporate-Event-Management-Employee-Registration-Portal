@@ -462,6 +462,12 @@ export default function ElixirPortal(){
   }
   function invite(e:React.FormEvent){
     e.preventDefault();setInviteError("");
+    if(remote){void (async()=>{
+      const result=await remoteRequest("invite",{email:inviteEmail,companyId:inviteCompany});
+      if(result.error){setInviteError(result.error);return;}
+      if(result.data)setData(result.data);
+      setInviteEmail("");setNotice("Invitation recorded. The manager can sign up using this address.");
+    })();return;}
     if(current?.role!=="platform_admin")return;
     const email=inviteEmail.trim().toLowerCase(),c=data.companies.find(x=>x.id===inviteCompany);
     if(!emailOk(email)||!c||c.status==="suspended"){setInviteError("Enter a valid email and select an active company.");return;}
@@ -472,6 +478,12 @@ export default function ElixirPortal(){
   }
   async function profileSave(e:React.FormEvent){
     e.preventDefault();if(!current)return;
+    if(remote){
+      if(profilePw&&profilePw!==profilePwConfirm){setProfileError("Passwords do not match");return;}
+      const result=await remoteRequest("profile",{fullName:profileName??current.fullName,department:profileDepartment??current.department,password:profilePw});
+      if(result.error){setProfileError(result.error);return;}
+      if(result.data)setData(result.data);setProfilePw("");setProfilePwConfirm("");setProfileError("");setProfileSuccess("Profile saved to PostgreSQL.");return;
+    }
     setProfileError("");setProfileSuccess("");
     const fullName=profileName??current.fullName,department=profileDepartment??current.department;
     if(fullName.trim().length<2){setProfileError("Enter your full name.");return;}
@@ -520,7 +532,7 @@ export default function ElixirPortal(){
     <a className="ep-skip" href="#main-content">Skip to main content</a>
     <header className="ep-topbar">
       <div className="ep-top-left"><button className="ep-menu" aria-label="Toggle navigation" onClick={()=>setMenu(!menu)}><Menu size={20}/></button><span className="ep-brand">Elixir Events Portal</span><span className="ep-divider-line"/><span className="ep-context">{current.role==="platform_admin"?"Platform management":company?.name||"Company events"}</span></div>
-      <div className="ep-top-right"><span className="ep-draft-marker">LOCAL DRAFT · NO DATABASE</span><button className="ep-account" onClick={()=>goto("profile")}><span className="ep-initials">{current.fullName.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span><span>{current.fullName}</span></button></div>
+      <div className="ep-top-right"><span className="ep-draft-marker">{remote?"POSTGRESQL · STAGING":"LOCAL DRAFT · NO DATABASE"}</span><button className="ep-account" onClick={()=>goto("profile")}><span className="ep-initials">{current.fullName.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span><span>{current.fullName}</span></button></div>
     </header>
     <div className="ep-layout">
       <nav className={"ep-sidebar "+(menu?"expanded":"")} aria-label="Main navigation">
@@ -529,7 +541,7 @@ export default function ElixirPortal(){
         <div className="ep-side-bottom"><button className="ep-nav-link" onClick={logout}><LogOut size={17}/> Sign out</button></div>
       </nav>
       <main className="ep-main" id="main-content" tabIndex={-1}>
-        <div className="ep-demobar"><strong>Preview mode.</strong> Sample data is saved only in this browser. No real accounts or shared database. <button type="button" onClick={()=>{if(window.confirm("Reset every sample company, account and event in this browser?")){save(structuredClone(initialData));setSession(null);localStorage.removeItem(SESSION);}}}>Reset all sample data</button></div>
+        {!remote&&<div className="ep-demobar"><strong>Preview mode.</strong> Sample data is saved only in this browser. No real accounts or shared database. <button type="button" onClick={()=>{if(window.confirm("Reset every sample company, account and event in this browser?")){save(structuredClone(initialData));setSession(null);localStorage.removeItem(SESSION);}}}>Reset all sample data</button></div>}
         {notice&&<div className="ep-info ep-notice" role="status"><span>{notice}</span><button aria-label="Dismiss message" onClick={()=>setNotice("")}><X size={17}/></button></div>}
         {view==="eventForm"&&editingEvent&&<EventEditor key={editingEvent.id} event={editingEvent} data={data} onSave={saveEvent} onBack={()=>goto("events")}/>}
         {view==="companyForm"&&<CompanyEditor key={editingCompany?.id||"new"} company={editingCompany||undefined} data={data} onSave={saveCompany} onBack={()=>goto("companies")}/>}
@@ -694,7 +706,7 @@ export default function ElixirPortal(){
                 <FormRow label="Department"><input value={profileDepartment??current.department} onChange={e=>setProfileDepartment(e.target.value)}/></FormRow>
               </div>
               <FormRow label="Work email"><input value={current.email} disabled/></FormRow>
-              <label className="ep-check aw-privacy-setting"><input type="checkbox" checked={current.showInAttendeeLists!==false} onChange={e=>save({...data,users:data.users.map(u=>u.id===current.id?{...u,showInAttendeeLists:e.target.checked}:u)})}/> Show my name in attendee lists</label>
+              <label className="ep-check aw-privacy-setting"><input type="checkbox" checked={current.showInAttendeeLists!==false} onChange={e=>remote?void remoteAction("privacy",{visible:e.target.checked},"Privacy preference saved."):save({...data,users:data.users.map(u=>u.id===current.id?{...u,showInAttendeeLists:e.target.checked}:u)})}/> Show my name in attendee lists</label>
               <div className="aw-form-divider"/>
               <h2>Change demonstration password</h2>
               <p className="ep-hint">Optional. Use a disposable demo password, not your real work password.</p>
@@ -708,7 +720,7 @@ export default function ElixirPortal(){
             </form>
           </div>
         </>}
-        <footer className="ep-footer">Elixir Events Portal · Internal working draft · No live accounts or shared database</footer>
+        <footer className="ep-footer">{remote?"Elixir Events Portal · PostgreSQL staging · Server-side sessions":"Elixir Events Portal · Internal working draft · No live accounts or shared database"}</footer>
       </main>
     </div>
   </div>;
