@@ -59,7 +59,7 @@ export async function snapshot(current:Person):Promise<PortalData>{
  const mappedCompanies:Company[]=companies.rows.map(c=>({id:c.id,name:c.name,status:c.status,createdAt:new Date(c.created_at).toISOString(),domains:domainMap.get(c.id)||[]}));
  const mappedUsers=users.rows.map(toPerson);
  // Do not disclose all employees' private contact information to ordinary employees.
- const visibleUsers=current.role==="employee"?mappedUsers.filter(u=>u.id===current.id||u.showInAttendeeLists!==false):mappedUsers;
+ const visibleUsers=current.role==="employee"?mappedUsers.filter(u=>u.id===current.id||u.showInAttendeeLists!==false).map(u=>u.id===current.id?u:{...u,email:""}):mappedUsers;
  const privateUsers=new Set(mappedUsers.filter(u=>u.showInAttendeeLists===false).map(u=>u.id));
  const mappedRegs:Registration[]=registrations.rows.map(r=>({
   id:r.id,eventId:r.event_id,

@@ -93,8 +93,17 @@ export async function POST(req:NextRequest){
    if(name.length<2)return error("Name too short");
    const change=typeof args.password==="string"&&args.password.length>0;
    if(change&&(args.password as string).length<12)return error("New password must contain at least 12 characters");
-   await pool.query("UPDATE users SET full_name=$1,department=$2,password_hash=CASE WHEN $3::text IS NOT NULL THEN $3 ELSE password_hash END WHERE id=$4",
-    [name,department,change?await passwordHash(String(args.password)):null,user.id]);
+   const client=await pool.connect();
+   try{
+    await client.query("BEGIN");
+    await client.query("UPDATE users SET full_name=$1,department=$2,password_hash=CASE WHEN $3::text IS NOT NULL THEN $3 ELSE password_hash END WHERE id=$4",
+     [name,department,change?await passwordHash(String(args.password)):null,user.id]);
+    if(change){
+      const activeToken=req.cookies.get(COOKIE)?.value;
+      await client.query("DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2",[user.id,activeToken?hashToken(activeToken):""]);
+    }
+    await client.query("COMMIT");
+   }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
    return getSnapshot(user);
   }
   if(action==="privacy"){
@@ -202,6 +211,13 @@ export async function POST(req:NextRequest){
       if(Number(reserved.rows[0].count)>cap){await client.query("ROLLBACK");return error("Capacity cannot be below registered attendees");}
       await client.query("UPDATE events SET title=$1,status=$2,starts_at=$3,ends_at=$4,capacity=$5,waitlist_enabled=$6,payload=$7::jsonb,updated_at=now() WHERE id=$8",
        [event.title,event.status,event.startsAt,event.endsAt,cap,event.waitlistEnabled!==false,payload,event.id]);
+      if(event.status==="published"&&new Date(event.startsAt)>new Date()){
+       const openSlots=Math.max(0,cap-Number(reserved.rows[0].count));
+       if(openSlots>0){
+        const waiting=await client.query("SELECT id FROM registrations WHERE event_id=$1 AND status='waitlisted' ORDER BY waitlisted_at,id LIMIT $2 FOR UPDATE",[event.id,openSlots]);
+        for(const item of waiting.rows)await client.query("UPDATE registrations SET status='going',promoted_at=now() WHERE id=$1",[item.id]);
+       }
+      }
     }else{
       await client.query("INSERT INTO events(id,organization_id,created_by,title,status,starts_at,ends_at,capacity,waitlist_enabled,payload) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb)",
        [event.id,user.companyId,user.id,event.title,event.status,event.startsAt,event.endsAt,cap,event.waitlistEnabled!==false,payload]);
