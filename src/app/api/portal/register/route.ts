@@ -52,7 +52,7 @@ export async function POST(req:NextRequest){
    // Existing unverified employee accounts from the old manual-approval flow
    // can be activated, but only after authenticating the verified work email.
    const changed=await sqlPool().query(
-    "UPDATE users SET verified=true,password_hash=$1,full_name=$2,department=$3 WHERE email=$4 AND role='employee' AND verified=false AND status='active' AND organization_id=$5 RETURNING id",
+    "UPDATE users SET verified=true,password_hash=$1,full_name=$2,department=$3,failed_attempts=0,locked_until=NULL WHERE email=$4 AND role='employee' AND verified=false AND status='active' AND organization_id=$5 RETURNING id",
     [hash,name,department,email,company.rows[0].id]
    );
    if(!changed.rowCount)return fail("This account cannot be activated automatically. Contact your administrator.",409);
