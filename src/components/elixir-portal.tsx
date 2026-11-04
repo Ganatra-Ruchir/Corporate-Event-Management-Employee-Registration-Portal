@@ -98,7 +98,7 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
   function submit(e:React.FormEvent){
     e.preventDefault();
     const next={...form,
-      summary:form.description.trim().replace(/\\s+/g," ").slice(0,180),
+      summary:form.description.trim().replace(/\s+/g," ").slice(0,180),
       bannerAlt:form.title.trim()+" event banner",
       startsAt:new Date(form.startsAt).toISOString(),endsAt:new Date(form.endsAt).toISOString(),
       deadline:form.deadline?new Date(form.deadline).toISOString():""};
