@@ -23,8 +23,7 @@ export default function SignupPage(){
    if(!r.ok){setMessage(detail.error||"Your company has not been registered.");return;}
    const sign=await emailAuthClient.signUp.email({name:name.trim(),email:mail,password});
    if(sign.error){setMessage(sign.error.message||"Could not create your verification account.");return;}
-   const send=await emailAuthClient.emailOtp.sendVerificationOtp({email:mail,type:"email-verification"});
-   if(send.error){setMessage(send.error.message||"Could not send OTP. Try again later.");return;}
+   // Neon sends the initial verification OTP automatically when Verify at Sign-up is enabled.
    setCompany(detail.organization);setStep("otp");
   }catch{setMessage("Connection failed. Try again.");}finally{setBusy(false);}
  }
