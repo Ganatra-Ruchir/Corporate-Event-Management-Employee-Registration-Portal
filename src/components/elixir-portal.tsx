@@ -204,7 +204,7 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false}:{d
       </form>}
       <div className="ep-auth-links">
         {mode!=="login"&&<button type="button" onClick={()=>{setMode("login");setError("");setMessage("");}}>Back to sign in</button>}
-        {mode==="login"&&<><button type="button" onClick={()=>{setMode("signup");setError("");setMessage("");}}>Create an account</button>{!remoteMode&&<><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button><button type="button" onClick={()=>{const u=data.users.find(p=>p.email===email.toLowerCase().trim()&&!p.verified);if(!u){setError("Enter the email of an unverified demonstration account.");return;}setVerifyId(u.id);setMode("verify");setError("");}}>Verify demo email</button></>}</>}
+        {mode==="login"&&<><button type="button" onClick={()=>{if(remoteMode){window.location.href="/signup";return;}setMode("signup");setError("");setMessage("");}}>Create an account</button>{!remoteMode&&<><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button><button type="button" onClick={()=>{const u=data.users.find(p=>p.email===email.toLowerCase().trim()&&!p.verified);if(!u){setError("Enter the email of an unverified demonstration account.");return;}setVerifyId(u.id);setMode("verify");setError("");}}>Verify demo email</button></>}</>}
       </div>
       {mode==="login"&&!remoteMode&&<section className="ep-demo-users" aria-label="Sample accounts">
         <div className="ep-demo-heading"><div><strong>Explore the demo</strong><p>Three roles, one sign-in page. Choose a sample account to fill its credentials.</p></div><button type="button" onClick={()=>setShowDemoAccounts(v=>!v)} aria-expanded={showDemoAccounts}>{showDemoAccounts?"Hide":"Show"}</button></div>
@@ -667,7 +667,11 @@ export default function ElixirPortal(){
             </button>})}</div>:<div className="aw-empty"><CalendarDays size={23}/><strong>No registrations found</strong><p>Join an event to see it here, or choose another filter.</p><button onClick={()=>goto("events")}>Browse events <ArrowRight size={16}/></button></div>}
         </>}
         {view==="people"&&current.role==="company_admin"&&<>
-          <WorkspaceHeading eyebrow={company?.name.toUpperCase()||"COMPANY"} title="Your people" description="Browse your team and manage company administrator access."/>
+          <WorkspaceHeading eyebrow={company?.name.toUpperCase()||"COMPANY"} title="Your people" description="Employees join with work-email OTP. Approve them here, then manage company administrator access."/>
+          {remote&&<div className="ep-panel" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+            <div><strong>Invite employees</strong><p style={{fontSize:12,color:"#66768b",margin:"5px 0 0"}}>Share the signup page. Employees use their approved work-email domain, receive a code, and wait for your approval.</p></div>
+            <button type="button" className="aw-primary" onClick={()=>{void navigator.clipboard.writeText(new URL("/signup",window.location.origin).toString()).then(()=>setNotice("Employee signup link copied."),()=>setNotice("Copy this link from your browser address: /signup"));}}>Copy employee signup link</button>
+          </div>}
           <PeopleDirectory people={companyPeople} search={directorySearch} onSearch={setDirectorySearch} selfId={current.id} onRole={changeRole} onApprove={remote?approveUser:undefined}/>
         </>}
         {view==="companies"&&current.role==="platform_admin"&&<>
