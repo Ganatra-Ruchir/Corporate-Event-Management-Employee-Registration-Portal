@@ -30,7 +30,12 @@ export default function SignupPage(){
     const retry=await emailAuthClient.emailOtp.sendVerificationOtp({email:mail,type:"email-verification"});
     if(retry.error){setMessage(retry.error.message||"Unable to request the verification code.");return;}
    }
-   // Neon sends the initial verification OTP automatically when Verify at Sign-up is enabled.
+   // Explicitly request verification even when automatic sign-up emails are disabled.
+   // This does not verify the account: the user must enter the emailed OTP.
+   if(!sign.error){
+    const sent=await emailAuthClient.emailOtp.sendVerificationOtp({email:mail,type:"email-verification"});
+    if(sent.error){setMessage(sent.error.message||"Unable to send verification OTP. Try again later.");return;}
+   }
    setCompany(detail.organization);setStep("otp");
   }catch{setMessage("Connection failed. Try again.");}finally{setBusy(false);}
  }
