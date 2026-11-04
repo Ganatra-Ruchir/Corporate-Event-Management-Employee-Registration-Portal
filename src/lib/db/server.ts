@@ -3,7 +3,7 @@ import {Pool} from "pg";
 import {randomBytes,scrypt as scryptCallback,timingSafeEqual,createHash} from "node:crypto";
 import {promisify} from "node:util";
 import type {PortalData,Person,PortalEvent,Company,Registration,Invitation} from "@/lib/portal-model";
-import {hydrateEventImages} from "@/lib/media/server";
+import {hydrateEventImages,avatarSignedUrl} from "@/lib/media/server";
 
 const scrypt=promisify(scryptCallback);
 let pool:Pool|undefined;
@@ -30,7 +30,7 @@ export async function passwordValid(password:string,stored:string){
 export function toPerson(u:Record<string,unknown>):Person{
  return {id:String(u.id),fullName:String(u.full_name),email:String(u.email),department:String(u.department||""),
  role:u.role as Person["role"],companyId:u.organization_id===null?null:String(u.organization_id),status:u.status as Person["status"],
- verified:Boolean(u.verified),password:"",mustChangePassword:Boolean(u.must_change_password),showInAttendeeLists:Boolean(u.show_in_attendee_lists)};
+ verified:Boolean(u.verified),password:"",mustChangePassword:Boolean(u.must_change_password),showInAttendeeLists:Boolean(u.show_in_attendee_lists),jobTitle:String(u.job_title||""),phone:String(u.phone||"")};
 }
 export async function getSession(token?:string){
  if(!token)return null;
@@ -57,9 +57,9 @@ export async function snapshot(current:Person):Promise<PortalData>{
  const domainMap=new Map<string,string[]>();
  for(const d of domains.rows){domainMap.set(d.organization_id,[...(domainMap.get(d.organization_id)||[]),d.domain]);}
  const mappedCompanies:Company[]=companies.rows.map(c=>({id:c.id,name:c.name,status:c.status,createdAt:new Date(c.created_at).toISOString(),domains:domainMap.get(c.id)||[]}));
- const mappedUsers=users.rows.map(toPerson);
+ const mappedUsers:Person[]=await Promise.all(users.rows.map(async u=>({...toPerson(u),avatarUrl:await avatarSignedUrl(u.avatar_storage_key)})));
  // Do not disclose all employees' private contact information to ordinary employees.
- const visibleUsers=current.role==="employee"?mappedUsers.filter(u=>u.id===current.id||u.showInAttendeeLists!==false).map(u=>u.id===current.id?u:{...u,email:""}):mappedUsers;
+ const visibleUsers=current.role==="employee"?mappedUsers.filter(u=>u.id===current.id||u.showInAttendeeLists!==false).map(u=>u.id===current.id?u:{...u,email:"",phone:""}):mappedUsers;
  const privateUsers=new Set(mappedUsers.filter(u=>u.showInAttendeeLists===false).map(u=>u.id));
  const mappedRegs:Registration[]=registrations.rows.map(r=>({
   id:r.id,eventId:r.event_id,
