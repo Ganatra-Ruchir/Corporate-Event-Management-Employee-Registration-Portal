@@ -20,7 +20,6 @@ export function EventCover({event,wide=false}:{event:PortalEvent;wide?:boolean})
   const photos=(event.speakers||[]).filter(person=>Boolean(person.photoDataUrl));
   const [slide,setSlide]=useState(0);
   useEffect(()=>{
-    setSlide(0);
     if(!photos.length||typeof window==="undefined"||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
     const timer=window.setInterval(()=>setSlide(value=>(value+1)%(photos.length+1)),2000);
     return ()=>window.clearInterval(timer);
