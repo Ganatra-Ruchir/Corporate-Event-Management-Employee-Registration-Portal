@@ -65,12 +65,15 @@ export async function POST(req:NextRequest){
    const invite=await pool.query("SELECT * FROM invitations WHERE email=$1 AND accepted=false ORDER BY created_at DESC LIMIT 1",[email]);
    const companyId=invite.rows[0]?.organization_id||owner.rows[0]?.id;
    if(!companyId)return error("Email domain not associated with a partner company");
-   const role=invite.rows[0]?"company_admin":"employee",id=randomUUID();
+   // Never assign privileged roles to an unauthenticated email claim.
+   // An existing company/platform administrator must approve an account
+   // after the employee has verified ownership through an out-of-band process.
+   const role="employee",id=randomUUID();
    const client=await pool.connect();
    try{
     await client.query("BEGIN");
     await client.query("INSERT INTO users(id,full_name,email,password_hash,department,role,organization_id,verified) VALUES($1,$2,$3,$4,$5,$6,$7,false)",[id,name,email,await passwordHash(password),department,role,companyId]);
-    if(invite.rows[0])await client.query("UPDATE invitations SET accepted=true WHERE id=$1",[invite.rows[0].id]);
+    // Pending invitations remain pending until a privileged administrator approves the account.
     await client.query("COMMIT");
    }catch(e){await client.query("ROLLBACK");if((e as {code?:string}).code==="23505")return error("Account already exists");throw e;}
    finally{client.release();}
@@ -150,8 +153,9 @@ export async function POST(req:NextRequest){
    const id=text(args.userId,120);
    const target=(await pool.query("SELECT id,role,organization_id,verified FROM users WHERE id=$1",[id])).rows[0];
    if(!target||target.role==="platform_admin"||!(requireAdmin(user)||(action==="approveUser"&&requireCompanyAdmin(user,target.organization_id))))return denied();
-   if(action==="approveUser")await pool.query("UPDATE users SET verified=true WHERE id=$1",[id]);
-   else await pool.query("UPDATE users SET status=CASE WHEN status='active' THEN 'suspended' ELSE 'active' END WHERE id=$1",[id]);
+   if(action==="approveUser"){
+     await pool.query("UPDATE users SET verified=true WHERE id=$1",[id]);
+   }else await pool.query("UPDATE users SET status=CASE WHEN status='active' THEN 'suspended' ELSE 'active' END WHERE id=$1",[id]);
    await logAudit(pool,user,action==="approveUser"?"user.approve":"user.status",id,target.organization_id);
    return getSnapshot(user);
   }
@@ -159,6 +163,10 @@ export async function POST(req:NextRequest){
    const e=args.event as PortalEvent;
    if(!e||typeof e!=="object"||!requireCompanyAdmin(user,text(e.companyId,120)))return denied();
    const existing=await pool.query("SELECT id,created_by FROM events WHERE id=$1",[text(e.id,120)]);
+   if(existing.rowCount){
+     const ownEvent=await pool.query("SELECT organization_id FROM events WHERE id=$1",[e.id]);
+     if(ownEvent.rows[0]?.organization_id!==user.companyId)return denied();
+   }
    const event:PortalEvent={...e,createdBy:existing.rows[0]?.created_by||user.id};
    const issue=validateEvent(event,await snapshot(user));
    if(issue)return error(issue);
@@ -169,7 +177,7 @@ export async function POST(req:NextRequest){
     await client.query("BEGIN");
     const present=await client.query("SELECT * FROM events WHERE id=$1 FOR UPDATE",[event.id]);
     if(present.rowCount){
-      if(present.rows[0].organization_id!==user.companyId)return denied();
+      if(present.rows[0].organization_id!==user.companyId){await client.query("ROLLBACK");return denied();}
       const reserved=await client.query("SELECT count(*)::int AS count FROM registrations WHERE event_id=$1 AND status='going'",[event.id]);
       if(Number(reserved.rows[0].count)>cap){await client.query("ROLLBACK");return error("Capacity cannot be below registered attendees");}
       await client.query("UPDATE events SET title=$1,status=$2,starts_at=$3,ends_at=$4,capacity=$5,waitlist_enabled=$6,payload=$7::jsonb,updated_at=now() WHERE id=$8",
