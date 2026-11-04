@@ -74,7 +74,7 @@ export async function checkMediaStorage(){
 // Only authenticated users may upload their own photo through /api/portal/avatar.
 // Verify magic bytes and PNG dimensions; do not trust Content-Type or extension.
 export async function uploadAvatarPng(userId:string,png:Buffer,oldKey?:string|null){
- if(png.length>1024*1024||png.length<45)throw new Error("PNG must be smaller than 1 MB.");
+ if(png.length>Math.floor(2.5*1024*1024)||png.length<45)throw new Error("Processed PNG exceeds the 2.5 MB storage limit.");
  const signature=Buffer.from([137,80,78,71,13,10,26,10]);
  if(!png.subarray(0,8).equals(signature)||png.toString("ascii",12,16)!=="IHDR")throw new Error("Invalid PNG image");
  const width=png.readUInt32BE(16),height=png.readUInt32BE(20);

@@ -10,6 +10,7 @@ import {CompanyDirectory,PeopleDirectory,AccountDirectory,InvitationDirectory} f
 import {EmployeeProvisioner} from "@/components/employee-provisioner";
 import {EmployeeEditor} from "@/components/employee-editor";
 import {PersonAvatar} from "@/components/person-avatar";
+import {optimizePngAvatar,MAX_AVATAR_SOURCE_BYTES} from "@/lib/avatar-optimization";
 import {EventQuickActions} from "@/components/event-quick-actions";
 import {FirstLoginPasswordChange} from "@/components/first-login-password-change";
 import {EmployeeEventNotifications} from "@/components/employee-event-notifications";
@@ -535,10 +536,11 @@ export default function ElixirPortal(){
   }
   async function uploadProfilePhoto(file?:File){
     if(!file||!current||!remote)return;
-    if(file.type!=="image/png"||file.size>1024*1024){setProfileError("Use a PNG image smaller than 1 MB.");return;}
+    if(file.type!=="image/png"||file.size>MAX_AVATAR_SOURCE_BYTES){setProfileError("Use a PNG image up to 20 MB.");return;}
     setProfilePhotoBusy(true);setProfileError("");setProfileSuccess("");
     try{
-      const form=new FormData();form.set("avatar",file);
+      const optimized=await optimizePngAvatar(file);
+      const form=new FormData();form.set("avatar",optimized);
       const r=await fetch("/api/portal/avatar",{method:"POST",body:form});
       const response=await r.json();
       if(!r.ok){setProfileError(response.error||"Unable to upload the picture.");return;}
@@ -810,9 +812,9 @@ export default function ElixirPortal(){
               <h2>Personal details</h2>
               {remote&&<div className="profile-photo-control">
                 <PersonAvatar person={current} size={82}/>
-                <label>Profile photo (PNG, max 1 MB)<input type="file" accept="image/png" disabled={profilePhotoBusy} onChange={e=>{void uploadProfilePhoto(e.currentTarget.files?.[0]);e.currentTarget.value="";}}/></label>
+                <label>Profile photo (PNG, max 20 MB)<input type="file" accept="image/png" disabled={profilePhotoBusy} onChange={e=>{void uploadProfilePhoto(e.currentTarget.files?.[0]);e.currentTarget.value="";}}/></label>
                 {current.avatarUrl&&<button type="button" disabled={profilePhotoBusy} onClick={()=>void removeProfilePhoto()}>Remove profile picture</button>}
-                <small>{profilePhotoBusy?"Uploading photo…":"Visible in your profile, company directory and event attendee list."}</small>
+                <small>{profilePhotoBusy?"Uploading photo…":"PNG images up to 20 MB are resized automatically for faster uploads and display."}</small>
               </div>}
               <div className="ep-form-grid">
                 <FormRow label="Full name"><input required value={profileName??current.fullName} onChange={e=>setProfileName(e.target.value)}/></FormRow>

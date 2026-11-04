@@ -14,10 +14,10 @@ export async function POST(req:NextRequest){
  const user=await currentUser(req);
  if(!user)return fail("Sign in required",401);
  if(user.mustChangePassword)return fail("Change your temporary password first",403);
- if(Number(req.headers.get("content-length")||0)>1_500_000)return fail("PNG must be less than 1 MB",413);
+ if(Number(req.headers.get("content-length")||0)>3_500_000)return fail("The processed PNG exceeds the upload limit",413);
  try{
   const body=await req.formData(),file=body.get("avatar");
-  if(!(file instanceof File)||file.type!=="image/png"||file.size>1024*1024)return fail("Choose a PNG image smaller than 1 MB",400);
+  if(!(file instanceof File)||file.type!=="image/png"||file.size>Math.floor(2.5*1024*1024))return fail("The processed PNG is too large. Re-select your image.",400);
   const bytes=Buffer.from(await file.arrayBuffer());
   const db=sqlPool(),previous=await db.query("SELECT avatar_storage_key FROM users WHERE id=$1",[user.id]);
   const oldKey=previous.rows[0]?.avatar_storage_key as string|null;
