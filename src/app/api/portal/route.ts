@@ -58,7 +58,8 @@ export async function POST(req:NextRequest){
    res.cookies.set(COOKIE,token,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge:604800});
    return res;
   }
-  if(action==="signup"){
+  if(action==="signup")return error("Use email OTP signup to verify your company email address",409);
+  if(action==="legacySignupDisabled"){
    const email=text(args.email,255).toLowerCase(),name=text(args.name,100),department=text(args.department,100),password=typeof args.password==="string"?args.password:"";
    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||name.length<2||password.length<12||password.length>128)return error("Enter a valid work email, name, and a demo password of at least 12 characters");
    const domain=email.split("@")[1];
