@@ -1,6 +1,6 @@
 import "server-only";
 import {randomUUID} from "node:crypto";
-import {S3Client,PutObjectCommand,GetObjectCommand,ListObjectsV2Command} from "@aws-sdk/client-s3";
+import {S3Client,PutObjectCommand,GetObjectCommand,DeleteObjectCommand,ListObjectsV2Command} from "@aws-sdk/client-s3";
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import type {PortalEvent,Speaker} from "@/lib/portal-model";
 
@@ -68,4 +68,29 @@ export async function hydrateEventImages(event:PortalEvent):Promise<PortalEvent>
 export async function checkMediaStorage(){
  if(!storageConfigured())return false;
  try{await s3().send(new ListObjectsV2Command({Bucket:BUCKET,Prefix:"_health/",MaxKeys:1}));return true;}catch{return false;}
+}
+
+
+// Only authenticated users may upload their own photo through /api/portal/avatar.
+// Verify magic bytes and PNG dimensions; do not trust Content-Type or extension.
+export async function uploadAvatarPng(userId:string,png:Buffer,oldKey?:string|null){
+ if(png.length>1024*1024||png.length<45)throw new Error("PNG must be smaller than 1 MB.");
+ const signature=Buffer.from([137,80,78,71,13,10,26,10]);
+ if(!png.subarray(0,8).equals(signature)||png.toString("ascii",12,16)!=="IHDR")throw new Error("Invalid PNG image");
+ const width=png.readUInt32BE(16),height=png.readUInt32BE(20);
+ if(width<16||height<16||width>2048||height>2048)throw new Error("PNG dimensions must be between 16 and 2048 pixels.");
+ const key="profiles/"+encodeURIComponent(userId)+"/"+randomUUID()+".png";
+ await s3().send(new PutObjectCommand({Bucket:BUCKET,Key:key,Body:png,ContentType:"image/png",CacheControl:"private, max-age=3600"}));
+ if(oldKey?.startsWith("profiles/"+encodeURIComponent(userId)+"/")){
+  await s3().send(new DeleteObjectCommand({Bucket:BUCKET,Key:oldKey})).catch(()=>{});
+ }
+ return key;
+}
+export async function avatarSignedUrl(key:string|null|undefined){
+ if(!key)return undefined;
+ if(!/^profiles\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9-]+\.png$/.test(key))return undefined;
+ return getSignedUrl(s3(),new GetObjectCommand({Bucket:BUCKET,Key:key}),{expiresIn:3600});
+}
+export async function deleteAvatar(key:string|null|undefined){
+ if(key?.startsWith("profiles/"))await s3().send(new DeleteObjectCommand({Bucket:BUCKET,Key:key}));
 }
