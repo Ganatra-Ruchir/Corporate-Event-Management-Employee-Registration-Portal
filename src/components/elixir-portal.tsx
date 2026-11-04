@@ -9,6 +9,7 @@ import {PlatformOverview,CompanyOverview,WorkspaceHeading,WorkspaceSection} from
 import {CompanyDirectory,PeopleDirectory,AccountDirectory,InvitationDirectory} from "@/components/admin-directory";
 import {EmployeeProvisioner} from "@/components/employee-provisioner";
 import {FirstLoginPasswordChange} from "@/components/first-login-password-change";
+import {EmployeeEventNotifications} from "@/components/employee-event-notifications";
 import {
   ArrowLeft, ArrowRight, CalendarDays, MapPin, ChevronRight,
   Download, LogOut, Menu, Plus, Search, X
@@ -552,7 +553,7 @@ export default function ElixirPortal(){
     <a className="ep-skip" href="#main-content">Skip to main content</a>
     <header className="ep-topbar">
       <div className="ep-top-left"><button className="ep-menu" aria-label="Toggle navigation" onClick={()=>setMenu(!menu)}><Menu size={20}/></button><span className="ep-brand">Elixir Events Portal</span><span className="ep-divider-line"/><span className="ep-context">{current.role==="platform_admin"?"Platform management":company?.name||"Company events"}</span></div>
-      <div className="ep-top-right"><span className="ep-draft-marker">{remote?"POSTGRESQL · STAGING":"LOCAL DRAFT · NO DATABASE"}</span><button className="ep-account" onClick={()=>goto("profile")}><span className="ep-initials">{current.fullName.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span><span>{current.fullName}</span></button></div>
+      <div className="ep-top-right">{current.role==="employee"&&<EmployeeEventNotifications user={current} data={data} events={companyEvents} onOpen={openEvent}/>}<span className="ep-draft-marker">{remote?"POSTGRESQL · STAGING":"LOCAL DRAFT · NO DATABASE"}</span><button className="ep-account" onClick={()=>goto("profile")}><span className="ep-initials">{current.fullName.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span><span>{current.fullName}</span></button></div>
     </header>
     <div className="ep-layout">
       <nav className={"ep-sidebar "+(menu?"expanded":"")} aria-label="Main navigation">
