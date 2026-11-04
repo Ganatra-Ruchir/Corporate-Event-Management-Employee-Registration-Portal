@@ -30,7 +30,7 @@ export async function passwordValid(password:string,stored:string){
 export function toPerson(u:Record<string,unknown>):Person{
  return {id:String(u.id),fullName:String(u.full_name),email:String(u.email),department:String(u.department||""),
  role:u.role as Person["role"],companyId:u.organization_id===null?null:String(u.organization_id),status:u.status as Person["status"],
- verified:Boolean(u.verified),password:"",showInAttendeeLists:Boolean(u.show_in_attendee_lists)};
+ verified:Boolean(u.verified),password:"",mustChangePassword:Boolean(u.must_change_password),showInAttendeeLists:Boolean(u.show_in_attendee_lists)};
 }
 export async function getSession(token?:string){
  if(!token)return null;
