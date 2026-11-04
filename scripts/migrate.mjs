@@ -1,4 +1,4 @@
-import {readFile} from "node:fs/promises";
+import {readFile,readdir} from "node:fs/promises";
 import {fileURLToPath} from "node:url";
 import pg from "pg";
 const value=process.env.DATABASE_URL_UNPOOLED||process.env.DIRECT_URL;
@@ -10,8 +10,13 @@ if(process.env.VERCEL_ENV==="production"||process.env.ALLOW_STAGING_MIGRATIONS!=
 const client=new pg.Client({connectionString:value,ssl:{rejectUnauthorized:true}});
 try{
  await client.connect();
- const sql=await readFile(fileURLToPath(new URL("../db/migrations/001_init.sql",import.meta.url)),"utf8");
- await client.query(sql);
- console.log("Staging schema migration applied.");
+ const folder=fileURLToPath(new URL("../db/migrations/",import.meta.url));
+ const files=(await readdir(folder)).filter(name=>/^\d+_[a-z0-9_-]+\.sql$/.test(name)).sort();
+ if(!files.length)throw Error("No migrations found.");
+ for(const name of files){
+  const sql=await readFile(new URL("../db/migrations/"+name,import.meta.url),"utf8");
+  await client.query(sql);
+  console.log("Applied "+name);
+ }
 }catch(error){console.error("Migration failed:",error.message);process.exitCode=1;}
 finally{await client.end().catch(()=>{});}

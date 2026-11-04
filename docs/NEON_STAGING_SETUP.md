@@ -1,78 +1,62 @@
-# Neon PostgreSQL staging setup — Elixir Events Portal
+# Neon PostgreSQL: Staging deployment and verification
 
-This branch adds PostgreSQL schema, server-side sessions and backend API actions. The UI defaults to the existing local demo until explicitly switched to database mode.
+## Verified infrastructure (4 November 2026)
 
-## Important safeguards
+- Neon project: \`elixir-events\`, AWS Singapore, PostgreSQL 18
+- Permanent branch \`production\`: **untouched application schema**
+- Permanent branch \`staging\`: application tables and private \`event-media\` bucket created
+- Vercel-managed branch \`preview/feature/neon-postgres-backend\`: matching application tables, admin setup table, private media bucket
+- Vercel Preview branch variables: \`DATABASE_URL\`, \`DATABASE_URL_UNPOOLED\`, \`PORTAL_BACKEND_MODE=database\`, branch-scoped S3 storage credentials
+- Live \`/api/portal/health\` response: \`{"mode":"postgresql","ready":true}\`
+- Live \`/api/portal/media-health\` response: \`{"storage":"neon-private","ready":true}\`
+- GitHub CI: typecheck, lint, unit tests and Next.js build passed
 
-- Do **not** run the previous \`supabase/migrations/20261102_v2_foundation.sql\` on Neon. It references Supabase Auth.
-- Do **not** point preview to the production database branch.
-- Never paste connection strings, credentials or bootstrap passwords into chat, GitHub, screenshots or issue discussions.
-- Do not enable \`PORTAL_BACKEND_MODE=database\` until the schema and initial administrator exist.
-- The prototype's \`Demo@2026!\` passwords are **not** imported to PostgreSQL. Database users require separate credentials.
+No database schema migration has been applied to production, and the Vercel Production environment has no database feature flag.
 
-## 1. Neon database branches
+## First Platform Admin
 
-The Neon project is named \`elixir-events\` in AWS Singapore. It should have two branches:
-- \`production\`: real production records
-- \`staging\`: independent schema/data used for testing
+A one-time administrator activation link has been sent to the owner's connected Elixir Foundation work email. Its SHA-256 digest is recorded in \`admin_setup_tokens\` in the **preview** database, and it expires after 24 hours. The recipient must open the email and choose a password of at least 14 characters. The activation endpoint verifies the email allowlist, token expiry, lack of an existing admin, and one-time use under a transaction lock.
 
-Confirm the branch displayed in the Neon SQL Editor before applying migrations. No user data is copied or initialized by this repository automatically.
+Do not copy activation URLs into issues, commit logs, public screenshots or production environment variables.
 
-## 2. Vercel environment variables
+Once the administrator finishes the activation, the app can be tested end-to-end. Only administrators may approve other staging users. **Manual approval is not a substitute for email ownership verification for live production users.**
 
-Configure only **Preview** with connections copied from Neon **staging** (prefer the project's secure Neon/Vercel connection flow). Production/Development integration variables may already be provisioned, but do not assume they are staging:
+An alternative guarded command-line bootstrap exists for isolated testing: \`npm run db:bootstrap-admin\`, requiring a secure staging direct connection and \`ALLOW_STAGING_BOOTSTRAP=true\`. Do not run it after the first admin has been activated.
 
-| Name | Environment | Purpose |
-| --- | --- | --- |
-| \`DATABASE_URL\` | Preview | Staging PostgreSQL pooled connection |
-| \`DATABASE_URL_UNPOOLED\` | Preview | Staging direct connection for schema changes |
-| \`PORTAL_BACKEND_MODE\` | Preview | Set to \`database\` **after** migrations and initial admin are ready |
+## Reproducible migrations
 
-Keep \`PORTAL_BACKEND_MODE\` unset in Production. The production site will continue to operate as the existing local browser demo until a separate go-live.
+The migrations are tracked in source:
 
-Vercel Preview deployments must be rebuilt after changing environment variables.
+- \`db/migrations/001_init.sql\`: organizations, domains, accounts, sessions, invitations, events, registrations and audit logs
+- \`db/migrations/002_admin_setup.sql\`: expiring one-time first-admin activation links
 
-## 3. Staging migrations
+From a secure terminal, with a **staging direct** PostgreSQL connection in \`DATABASE_URL_UNPOOLED\`:
 
-Run from a trusted development machine where your Neon staging direct connection has been configured securely:
-
-\`\`\`bash
+\`\`\`sh
 npm install
-# Populate DATABASE_URL_UNPOOLED using staging credentials in your terminal's secure environment, not a committed file.
 ALLOW_STAGING_MIGRATIONS=true npm run db:migrate
 \`\`\`
 
-The script refuses to run when \`VERCEL_ENV=production\` or the staging guard is missing. Before running, verify the Neon connection points to your **staging** database branch, not just the project name.
+This command refuses Vercel production execution. Both current staging branches have already been migrated, so rerunning is not necessary.
 
-The migration file is \`db/migrations/001_init.sql\`. It creates organizations, domains, users, sessions, invitations, events, registrations and audit logs.
+## Role acceptance tests after activation
 
-## 4. Bootstrap first Platform Admin
+1. Platform Admin signs in and creates a partner organization with its approved work-email domain.
+2. Company manager registers, is approved, and is explicitly granted admin access through a matching invitation.
+3. Employee signs in on another device and sees only the published events in their organization.
+4. Company Admin publishes a complete event, including banner and speaker photos.
+5. Multiple employees register for limited capacity. Registrations do not exceed the event capacity.
+6. Cancelling an RSVP moves the earliest waitlisted registration to Going.
+7. Company Admin raises capacity, automatically promoting waiting attendees.
+8. Employee profile changes and sign-out persist securely across browser reloads.
+9. Platform Admin can suspend a company or account and server-side access is immediately denied.
 
-After migration, use the staging direct connection with the administrator email and a new disposable staging password of at least 14 characters.
+## Before real production rollout
 
-\`\`\`bash
-ALLOW_STAGING_BOOTSTRAP=true npm run db:bootstrap-admin
-\`\`\`
+- Add verified work-email ownership via managed Auth or equivalent and implement password reset.
+- Connect a transactional email provider for RSVP confirmations, reminders and cancellation notices.
+- Complete cross-browser/mobile, role-isolation and concurrent-RSVP integration tests with actual test users.
+- Configure storage retention, backups, monitoring, data export and deletion policies.
+- Migrate production only after explicit approval and staging acceptance.
 
-Required environment variables: \`DATABASE_URL_UNPOOLED\`, \`BOOTSTRAP_ADMIN_EMAIL\`, \`BOOTSTRAP_ADMIN_PASSWORD\`, and \`ALLOW_STAGING_BOOTSTRAP=true\`. Supply them through a secure terminal/CI secret manager. The script stops if any platform admin already exists. Remove bootstrap credentials afterward.
-
-## 5. Activate staging preview
-
-Once migration, administrator creation, and login tests are successful, set \`PORTAL_BACKEND_MODE=database\` **only** for the appropriate Vercel Preview environment/branch. Redeploy and verify:
-1. Platform administrator logs in and creates a company with approved email domain(s).
-2. Employee signs up. Company/Platform administrator approves account. No real email verification is implemented yet.
-3. Employee logs in from a second device and sees the organization's events.
-4. Company administrator creates and publishes an event, including speaker details.
-5. Two employees compete for a final RSVP spot and capacity is never exceeded.
-6. Cancelling an RSVP promotes the earliest waitlisted attendee.
-
-## Remaining requirements before real production accounts
-
-- Verify email address ownership with a real provider, not manual approval alone.
-- Add production-ready password recovery and email notifications.
-- Move banner and speaker photos out of JSON/database into private object storage with signed access.
-- Add automated database integration tests (including authorization isolation and concurrent RSVPs).
-- Review data protection, monitoring, backups and retention.
-- Repeat migrations in a separate production rollout only after completing staging acceptance tests.
-
-This branch is a **staging integration foundation**, not a declaration that the live Neon database has already been migrated.
+This document records verifiable staging infrastructure; it does not imply that real-user production readiness is complete.
