@@ -158,7 +158,7 @@ function CompanyEditor({company,data,onSave,onBack}:{company?:Company;data:Porta
     </form>
   </>;
 }
-function AuthPage({data,onLogin,onSignup,onVerified,onReset}:{data:PortalData;onLogin:(email:string,password:string)=>Promise<string|null>;onSignup:(fullName:string,email:string,department:string,password:string)=>Promise<string|null>;onVerified:(id:string)=>void;onReset:(email:string)=>string}){
+function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false}:{data:PortalData;onLogin:(email:string,password:string)=>Promise<string|null>;onSignup:(fullName:string,email:string,department:string,password:string)=>Promise<string|null>;onVerified:(id:string)=>void;onReset:(email:string)=>string;remoteMode?:boolean}){
   const [mode,setMode]=useState<AuthView>("login");
   const [email,setEmail]=useState("");
   const [pass,setPass]=useState("");
@@ -177,6 +177,7 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset}:{data:PortalData;on
       const issue=await onLogin(email,pass);if(issue)setError(issue);
     }else if(mode==="signup"){
       const issue=await onSignup(name,email,department,pass);if(issue)setError(issue);
+      else if(remoteMode){setMode("login");setMessage("Account created. An administrator must approve it before sign-in.");setPass("");}
       else{const u=data.users.find(p=>p.email===email.toLowerCase().trim());setVerifyId(u?.id||"");setMode("verify");}
     }else if(mode==="forgot"){setMessage(onReset(email));}
     setBusy(false);
@@ -203,16 +204,16 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset}:{data:PortalData;on
       </form>}
       <div className="ep-auth-links">
         {mode!=="login"&&<button type="button" onClick={()=>{setMode("login");setError("");setMessage("");}}>Back to sign in</button>}
-        {mode==="login"&&<><button type="button" onClick={()=>{setMode("signup");setError("");setMessage("");}}>Create an account</button><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button><button type="button" onClick={()=>{const u=data.users.find(p=>p.email===email.toLowerCase().trim()&&!p.verified);if(!u){setError("Enter the email of an unverified demonstration account.");return;}setVerifyId(u.id);setMode("verify");setError("");}}>Verify demo email</button></>}
+        {mode==="login"&&<><button type="button" onClick={()=>{setMode("signup");setError("");setMessage("");}}>Create an account</button>{!remoteMode&&<><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button><button type="button" onClick={()=>{const u=data.users.find(p=>p.email===email.toLowerCase().trim()&&!p.verified);if(!u){setError("Enter the email of an unverified demonstration account.");return;}setVerifyId(u.id);setMode("verify");setError("");}}>Verify demo email</button></>}</>}
       </div>
-      {mode==="login"&&<section className="ep-demo-users" aria-label="Sample accounts">
+      {mode==="login"&&!remoteMode&&<section className="ep-demo-users" aria-label="Sample accounts">
         <div className="ep-demo-heading"><div><strong>Explore the demo</strong><p>Three roles, one sign-in page. Choose a sample account to fill its credentials.</p></div><button type="button" onClick={()=>setShowDemoAccounts(v=>!v)} aria-expanded={showDemoAccounts}>{showDemoAccounts?"Hide":"Show"}</button></div>
         {showDemoAccounts&&<div className="ep-demo-account-grid">{exampleAccounts.map(u=><button key={u.id} type="button" onClick={()=>{setEmail(u.email);setPass(DEMO_PASSWORD);setError("");}}>
           <span className="ep-demo-icon" aria-hidden="true">{u.role==="platform_admin"?"P":u.role==="company_admin"?"C":"E"}</span><span className="ep-demo-info"><b>{roleName(u.role)}</b><small>{u.email}</small></span><ChevronRight size={17}/>
         </button>)}</div>}
         <p className="ep-hint">Sample password: <code>{DEMO_PASSWORD}</code>. Do not enter real credentials.</p>
       </section>}
-      <p className="ep-auth-footnote">Browser-only demonstration · No secure shared accounts or database</p>
+      <p className="ep-auth-footnote">{remoteMode?"PostgreSQL staging · Server-side session":"Browser-only demonstration · No secure shared accounts or database"}</p>
     </main>
     <aside className="ep-auth-aside" aria-label="About Elixir events">
       <div className="ep-auth-aside-content"><span className="ep-auth-side-label">EVENTS THAT BRING TEAMS TOGETHER</span>
@@ -349,6 +350,12 @@ export default function ElixirPortal(){
   };
 
   async function login(email:string,password:string):Promise<string|null>{
+    if(remote){
+      const result=await remoteRequest("login",{email,password});
+      if(result.error)return result.error;
+      if(!await remoteRefresh())return "Signed in, but could not load your account. Refresh the page.";
+      setSignedOut(false);setView("home");return null;
+    }
     const u=data.users.find(x=>x.email.toLowerCase()===email.toLowerCase().trim());
     if(!u||!(await passwordMatches(u.password,password)))return "Invalid email or password.";
     if(!u.verified)return "Verify the sample email before signing in.";
@@ -362,6 +369,10 @@ export default function ElixirPortal(){
     return null;
   }
   async function signup(name:string,email:string,dept:string,password:string):Promise<string|null>{
+    if(remote){
+      const result=await remoteRequest("signup",{name,email,department:dept,password});
+      return result.error||null;
+    }
     const result=signupCompany(email,data);
     if(result.error||!result.company)return result.error||"Company not found.";
     if(name.trim().length<2)return "Enter your full name.";
@@ -377,12 +388,16 @@ export default function ElixirPortal(){
   }
   function verify(id:string){save({...data,users:data.users.map(u=>u.id===id?{...u,verified:true}:u)});}
   function reset(email:string){
+    if(remote)return "Password reset by email is not yet available. Contact an administrator.";
     const u=data.users.find(x=>x.email.toLowerCase()===email.toLowerCase().trim());
     if(!u)return "If an account exists, its demonstration password has been reset.";
     save({...data,users:data.users.map(p=>p.id===u.id?{...p,password:DEMO_PASSWORD}:p)});
     return "Local demo password reset to "+DEMO_PASSWORD+". No email was sent.";
   }
-  function logout(){setSession(null);setSignedOut(true);try{localStorage.removeItem(SESSION);}catch{}goto("home");}
+  function logout(){
+    if(remote){void remoteRequest("logout");}
+    setSession(null);setSignedOut(true);try{localStorage.removeItem(SESSION);}catch{}goto("home");
+  }
 
   function saveEvent(e:PortalEvent){
     if(current?.role!=="company_admin"||!current.companyId||e.companyId!==current.companyId){flash("Permission denied.");return;}
@@ -455,7 +470,8 @@ export default function ElixirPortal(){
     save({...data,users:data.users.map(u=>u.id===current.id?{...u,fullName:fullName.trim(),department:department.trim(),password}:u)});
     setProfilePw("");setProfilePwConfirm("");setProfileSuccess("Profile saved in this browser.");
   }
-  if(!ready)return <main className="ep-loading" role="status">Loading demonstration…</main>;
+  if(!ready)return <main className="ep-loading" role="status">Loading portal…</main>;
+  if(remoteError&&remote)return <main className="ep-loading" role="alert">Database connection error: {remoteError}. Refresh to retry.</main>;
   if(!current)return signedOut?
     <div className="ep-signedout-screen"><div className="ep-signedout-panel">
       <div className="ep-login-mark">E</div>
@@ -465,7 +481,7 @@ export default function ElixirPortal(){
       <Action onClick={()=>setSignedOut(false)}>Sign in again <ArrowRight size={17}/></Action>
       <span className="ep-signedout-note">Account access is simulated in this database-free version.</span>
     </div></div>:
-    <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset}/>;
+    <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset} remoteMode={remote}/>
   if(blocked)return <main className="ep-auth-layout"><div className="ep-auth-card"><h1>Account unavailable</h1><p>Your account or company is suspended.</p><Action onClick={logout}>Sign out</Action></div></main>;
 
   const selected=selectedEvent?data.events.find(e=>e.id===selectedEvent):null;
