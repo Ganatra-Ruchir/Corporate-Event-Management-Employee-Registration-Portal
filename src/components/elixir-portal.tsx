@@ -228,6 +228,8 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset}:{data:PortalData;on
 
 export default function ElixirPortal(){
   const [data,setData]=useState<PortalData>(initialData);
+  const [remote,setRemote]=useState(false);
+  const [remoteError,setRemoteError]=useState("");
   const [session,setSession]=useState<string|null>(null);
   const [ready,setReady]=useState(false);
   const [now,setNow]=useState(0);
@@ -258,7 +260,18 @@ export default function ElixirPortal(){
   const [profileError,setProfileError]=useState("");
   const [profileSuccess,setProfileSuccess]=useState("");
   useEffect(()=>{
-    void Promise.resolve().then(()=>{
+    void Promise.resolve().then(async()=>{
+      try{
+        const response=await fetch("/api/portal",{cache:"no-store"});
+        const payload=await response.json();
+        if(payload.enabled===true || !response.ok){
+          setRemote(true);
+          if(!response.ok){setRemoteError(payload.error||"Database unavailable");setReady(true);return;}
+          if(payload.data)setData(payload.data);
+          setSession(payload.currentId||null);
+          setNow(Date.now());setReady(true);return;
+        }
+      }catch{setRemoteError("Unable to check backend");}
       try{
         const s=localStorage.getItem(STORE);
         if(s){const d=JSON.parse(s) as PortalData;if(d&&Array.isArray(d.companies)&&Array.isArray(d.users)&&Array.isArray(d.events)&&Array.isArray(d.registrations)&&Array.isArray(d.invitations)) {
@@ -287,7 +300,31 @@ export default function ElixirPortal(){
       setReady(true);
     });
   },[]);
+  const remoteRequest=async(action:string,args:Record<string,unknown>={}):Promise<{error?:string;data?:PortalData;currentId?:string;message?:string}>=>{
+    try{
+      const r=await fetch("/api/portal",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,args}),cache:"no-store"});
+      const result=await r.json();
+      if(!r.ok)return {error:result.error||"Request failed"};
+      return result;
+    }catch{return {error:"Unable to reach the database server"};}
+  };
+  const remoteRefresh=async()=>{
+    try{
+      const r=await fetch("/api/portal",{cache:"no-store"});
+      const json=await r.json();
+      if(r.ok&&json.data){setData(json.data);setSession(json.currentId||null);return true;}
+    }catch{}
+    return false;
+  };
+  const remoteAction=async(action:string,args:Record<string,unknown>={},success="Saved")=>{
+    const result=await remoteRequest(action,args);
+    if(result.error){setNotice(result.error);return false;}
+    if(result.data)setData(result.data);
+    else await remoteRefresh();
+    setNotice(success);return true;
+  };
   const save=(newData:PortalData)=>{
+    if(remote){setNotice("Database mode requires a server action.");return false;}
     try{localStorage.setItem(STORE,JSON.stringify(newData));setData(newData);return true;}
     catch{setNotice("Browser storage is full. Try smaller photos or remove unused images. Your changes were not saved.");return false;}
   };
