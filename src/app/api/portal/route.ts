@@ -140,6 +140,24 @@ export async function POST(req:NextRequest){
    await logAudit(pool,user,"invitation.create",email,companyId);
    return getSnapshot(user);
   }
+  if(action==="grantCompanyAdmin"){
+   if(!requireAdmin(user))return denied();
+   const id=text(args.userId,120);
+   const client=await pool.connect();
+   try{
+    await client.query("BEGIN");
+    const target=await client.query("SELECT id,email,organization_id,role,verified,status FROM users WHERE id=$1 FOR UPDATE",[id]);
+    const person=target.rows[0];
+    if(!person||person.role!=="employee"||person.verified!==true||person.status!=="active"||!person.organization_id){await client.query("ROLLBACK");return denied();}
+    const invite=await client.query("SELECT id FROM invitations WHERE email=$1 AND organization_id=$2 AND accepted=false FOR UPDATE",[person.email,person.organization_id]);
+    if(!invite.rowCount){await client.query("ROLLBACK");return error("An approved pending company-admin invitation is required",409);}
+    await client.query("UPDATE users SET role='company_admin' WHERE id=$1",[id]);
+    await client.query("UPDATE invitations SET accepted=true WHERE id=$1",[invite.rows[0].id]);
+    await logAudit(client,user,"membership.grant_company_admin",id,person.organization_id);
+    await client.query("COMMIT");
+   }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
+   return getSnapshot(user);
+  }
   if(action==="role"){
    const id=text(args.userId,120);
    const person=await pool.query("SELECT id,role,organization_id,status FROM users WHERE id=$1",[id]);

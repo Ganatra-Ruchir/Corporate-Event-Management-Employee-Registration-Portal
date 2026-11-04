@@ -51,7 +51,7 @@ export function PeopleDirectory({people,search,onSearch,selfId,onRole,onApprove}
   {!visible.length&&<Empty query={search} label="people"/>}
  </div>;
 }
-export function AccountDirectory({people,companies,search,onSearch,onStatus,onApprove}:{people:Person[];companies:Company[];search:string;onSearch:(v:string)=>void;onStatus:(person:Person)=>void;onApprove?:(person:Person)=>void}){
+export function AccountDirectory({people,companies,search,onSearch,onStatus,onApprove,onGrantAdmin}:{people:Person[];companies:Company[];search:string;onSearch:(v:string)=>void;onStatus:(person:Person)=>void;onApprove?:(person:Person)=>void;onGrantAdmin?:(person:Person)=>void}){
  const visible=people.filter(p=>[p.fullName,p.email,p.department,p.role,companies.find(c=>c.id===p.companyId)?.name||"Elixir Foundation"].join(" ").toLowerCase().includes(search.trim().toLowerCase()));
  return <div className="md-root">
   <div className="md-toolbar"><DirectorySearch value={search} onChange={onSearch} placeholder="Search accounts, companies or email"/><span>{visible.length} accounts</span></div>
@@ -59,7 +59,7 @@ export function AccountDirectory({people,companies,search,onSearch,onStatus,onAp
     <div className="md-person-profile"><Initials name={person.fullName}/><div><strong>{person.fullName}</strong><small>{person.email}</small></div></div>
     <div className="md-account-company"><Building2 size={15}/>{companies.find(c=>c.id===person.companyId)?.name||"Elixir Foundation"}</div>
     <div className="md-account-tags"><span className="md-role">{person.role==="platform_admin"?"Platform admin":person.role==="company_admin"?"Company admin":"Employee"}</span><span className={"aw-status "+person.status}>{person.status}</span></div>
-    {person.role==="platform_admin"?<span className="md-self-label">Protected</span>:<div className="md-account-actions">{!person.verified&&onApprove&&<button className="md-outline-action" onClick={()=>onApprove(person)}>Approve</button>}<button className="md-outline-action" onClick={()=>onStatus(person)}>{person.status==="active"?"Suspend":"Reactivate"}</button></div>}
+    {person.role==="platform_admin"?<span className="md-self-label">Protected</span>:<div className="md-account-actions">{!person.verified&&onApprove&&<button className="md-outline-action" onClick={()=>onApprove(person)}>Approve</button>}{person.role==="employee"&&person.verified&&onGrantAdmin&&<button className="md-outline-action" onClick={()=>onGrantAdmin(person)}>Grant invited admin</button>}<button className="md-outline-action" onClick={()=>onStatus(person)}>{person.status==="active"?"Suspend":"Reactivate"}</button></div>}
    </article>)}</div>
   {!visible.length&&<Empty query={search} label="accounts"/>}
  </div>;

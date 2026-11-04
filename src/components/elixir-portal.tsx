@@ -453,6 +453,11 @@ export default function ElixirPortal(){
     if(!window.confirm("Change "+person.fullName+" to "+roleName(role)+"?"))return;
     save({...data,users:data.users.map(x=>x.id===person.id?{...x,role}:x)});flash("Account role updated.");
   }
+  function grantInvitedAdmin(person:Person){
+    if(!remote){setNotice("Only database-mode invitations support this action.");return;}
+    if(!window.confirm("Grant company administrator access to "+person.email+"? An existing invitation is required."))return;
+    void remoteAction("grantCompanyAdmin",{userId:person.id},"Company administrator access granted.");
+  }
   function approveUser(person:Person){
     if(!remote){setNotice("Local sample accounts use simulated verification.");return;}
     if(!window.confirm("Approve the account for "+person.email+"?"))return;
@@ -692,7 +697,7 @@ export default function ElixirPortal(){
         </>}
         {view==="users"&&current.role==="platform_admin"&&<>
           <WorkspaceHeading eyebrow="ELIXIR FOUNDATION · ACCOUNTS" title="Account management" description="Find people across partner companies, review roles and control demo account access."/>
-          <AccountDirectory people={data.users} companies={data.companies} search={directorySearch} onSearch={setDirectorySearch} onStatus={changeUserStatus} onApprove={remote?approveUser:undefined}/>
+          <AccountDirectory people={data.users} companies={data.companies} search={directorySearch} onSearch={setDirectorySearch} onStatus={changeUserStatus} onApprove={remote?approveUser:undefined} onGrantAdmin={remote?grantInvitedAdmin:undefined}/>
         </>}
         {view==="profile"&&<>
           <WorkspaceHeading eyebrow="YOUR ACCOUNT" title="Profile & settings" description="Keep your display name, department and demonstration password up to date."/>
