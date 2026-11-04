@@ -74,7 +74,8 @@ export async function POST(req:NextRequest){
   if(user.mustChangePassword&&action!=="profile")return error("Change your temporary password before using the portal",403);
   if(action==="refresh")return getSnapshot(user);
   if(action==="profile"){
-   const name=text(args.fullName,100),department=text(args.department,100);
+   const name=text(args.fullName,100),department=text(args.department,100),jobTitle=text(args.jobTitle,100),phone=text(args.phone,25);
+   if(phone&&!/^[+0-9()\s-]{7,25}$/.test(phone))return error("Enter a valid contact number");
    if(name.length<2)return error("Name too short");
    const change=typeof args.password==="string"&&args.password.length>0;
    if(user.mustChangePassword&&!change)return error("Set a new password to activate your account",400);
@@ -88,8 +89,8 @@ export async function POST(req:NextRequest){
        await client.query("ROLLBACK");return error("Choose a new password different from your temporary password",400);
       }
     }
-    await client.query("UPDATE users SET full_name=$1,department=$2,password_hash=COALESCE($3::text,password_hash),must_change_password=CASE WHEN $3::text IS NOT NULL THEN false ELSE must_change_password END WHERE id=$4",
-     [name,department,change?await passwordHash(String(args.password)):null,user.id]);
+    await client.query("UPDATE users SET full_name=$1,department=$2,password_hash=COALESCE($3::text,password_hash),must_change_password=CASE WHEN $3::text IS NOT NULL THEN false ELSE must_change_password END,job_title=$5,phone=$6 WHERE id=$4",
+     [name,department,change?await passwordHash(String(args.password)):null,user.id,jobTitle,phone]);
     if(change){
       const activeToken=req.cookies.get(COOKIE)?.value;
       await client.query("DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2",[user.id,activeToken?hashToken(activeToken):""]);
@@ -129,6 +130,41 @@ export async function POST(req:NextRequest){
    await pool.query("UPDATE organizations SET status=CASE WHEN status='active' THEN 'suspended' ELSE 'active' END WHERE id=$1",[id]);
    await logAudit(pool,user,"organization.status",id,id);
    return getSnapshot(user);
+  }
+  if(action==="editEmployee"||action==="changeEmployeeStatus"){
+   if(user.role!=="company_admin"||!user.companyId)return denied();
+   const id=text(args.userId,120);
+   const db=sqlPool(),client=await db.connect();
+   try{
+    await client.query("BEGIN");
+    const found=await client.query("SELECT id,role,email,status FROM users WHERE id=$1 AND organization_id=$2 FOR UPDATE",[id,user.companyId]);
+    const target=found.rows[0];
+    if(!target||target.role!=="employee"){await client.query("ROLLBACK");return denied();}
+    if(action==="changeEmployeeStatus"){
+     const next=target.status==="active"?"suspended":"active";
+     await client.query("UPDATE users SET status=$1 WHERE id=$2",[next,id]);
+     if(next==="suspended")await client.query("DELETE FROM sessions WHERE user_id=$1",[id]);
+     await logAudit(client,user,"employee.status",id,user.companyId);
+     await client.query("COMMIT");
+     return getSnapshot(user);
+    }
+    const fullName=text(args.fullName,100),department=text(args.department,100),jobTitle=text(args.jobTitle,100),phone=text(args.phone,25);
+    const email=text(args.email,255).toLowerCase();
+    if(fullName.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||phone&&!/^[+0-9()\s-]{7,25}$/.test(phone)){
+     await client.query("ROLLBACK");return error("Check employee name, work email, and contact number");
+    }
+    if(email!==target.email){
+     const valid=await client.query("SELECT 1 FROM organization_domains WHERE organization_id=$1 AND domain=$2",[user.companyId,email.split("@")[1]]);
+     if(!valid.rowCount){await client.query("ROLLBACK");return error("Work email must use an approved company domain",403);}
+     const duplicate=await client.query("SELECT 1 FROM users WHERE email=$1 AND id<>$2",[email,id]);
+     if(duplicate.rowCount){await client.query("ROLLBACK");return error("Another account already uses this email",409);}
+    }
+    await client.query("UPDATE users SET full_name=$1,email=$2,department=$3,job_title=$4,phone=$5 WHERE id=$6",[fullName,email,department,jobTitle,phone,id]);
+    if(email!==target.email)await client.query("DELETE FROM sessions WHERE user_id=$1",[id]);
+    await logAudit(client,user,"employee.details_updated",id,user.companyId);
+    await client.query("COMMIT");
+    return getSnapshot(user);
+   }catch(e){await client.query("ROLLBACK").catch(()=>{});throw e;}finally{client.release();}
   }
   if(action==="createEmployee"){
    if(user.role!=="company_admin"||!user.companyId)return denied();
