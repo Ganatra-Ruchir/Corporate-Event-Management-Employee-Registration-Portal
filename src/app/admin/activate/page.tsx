@@ -1,10 +1,11 @@
 "use client";
 import {Suspense,useState} from "react";
-import {useSearchParams} from "next/navigation";
+import {useSearchParams,useRouter} from "next/navigation";
 import {ArrowRight,ShieldCheck} from "lucide-react";
 import "./activate.css";
 function AdminActivation(){
  const params=useSearchParams();
+ const router=useRouter();
  const token=params.get("token")||"";
  const [name,setName]=useState("");
  const [password,setPassword]=useState("");
@@ -19,7 +20,7 @@ function AdminActivation(){
    const r=await fetch("/api/portal/activate-admin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token,name,password})});
    const result=await r.json();
    if(!r.ok){setError(result.error||"Activation failed");return;}
-   window.location.assign("/");
+   router.push("/");router.refresh();
   }catch{setError("Unable to reach the server. Try again.");}
   finally{setBusy(false);}
  }
@@ -28,7 +29,7 @@ function AdminActivation(){
    <span className="admin-activation-icon"><ShieldCheck size={24}/></span>
    <span className="admin-activation-eyebrow">ELIXIR EVENTS PORTAL · STAGING</span>
    <h1>Set up Platform Admin</h1>
-   <p>Use this one-time invitation to activate the first administrator account. Choose a unique password that you don't use elsewhere.</p>
+   <p>Use this one-time invitation to activate the first administrator account. Choose a unique password that you don&apos;t use elsewhere.</p>
    {!token?<div className="admin-activation-error" role="alert">This page requires a valid activation link sent to your work email.</div>:
     <form onSubmit={submit}>
      <label>Full name<input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name"/></label>
