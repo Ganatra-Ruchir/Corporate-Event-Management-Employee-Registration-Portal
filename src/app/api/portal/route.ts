@@ -59,28 +59,6 @@ export async function POST(req:NextRequest){
    return res;
   }
   if(action==="signup")return error("Use email OTP signup to verify your company email address",409);
-  if(action==="legacySignupDisabled"){
-   const email=text(args.email,255).toLowerCase(),name=text(args.name,100),department=text(args.department,100),password=typeof args.password==="string"?args.password:"";
-   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||name.length<2||password.length<12||password.length>128)return error("Enter a valid work email, name, and a demo password of at least 12 characters");
-   const domain=email.split("@")[1];
-   const owner=await pool.query("SELECT o.id FROM organization_domains d JOIN organizations o ON o.id=d.organization_id WHERE d.domain=$1 AND o.status='active'",[domain]);
-   const invite=await pool.query("SELECT * FROM invitations WHERE email=$1 AND accepted=false ORDER BY created_at DESC LIMIT 1",[email]);
-   const companyId=invite.rows[0]?.organization_id||owner.rows[0]?.id;
-   if(!companyId)return error("Email domain not associated with a partner company");
-   // Never assign privileged roles to an unauthenticated email claim.
-   // An existing company/platform administrator must approve an account
-   // after the employee has verified ownership through an out-of-band process.
-   const role="employee",id=randomUUID();
-   const client=await pool.connect();
-   try{
-    await client.query("BEGIN");
-    await client.query("INSERT INTO users(id,full_name,email,password_hash,department,role,organization_id,verified) VALUES($1,$2,$3,$4,$5,$6,$7,false)",[id,name,email,await passwordHash(password),department,role,companyId]);
-    // Pending invitations remain pending until a privileged administrator approves the account.
-    await client.query("COMMIT");
-   }catch(e){await client.query("ROLLBACK");if((e as {code?:string}).code==="23505")return error("Account already exists");throw e;}
-   finally{client.release();}
-   return ok({success:true,message:"Registration pending administrator approval. No email is sent from this staging system."});
-  }
   const user=await getSession(req.cookies.get(COOKIE)?.value);
   if(!user)return error("Sign in required",401);
   if(action==="logout"){
