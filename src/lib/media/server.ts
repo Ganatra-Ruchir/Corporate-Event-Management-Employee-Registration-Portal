@@ -1,6 +1,6 @@
 import "server-only";
 import {randomUUID} from "node:crypto";
-import {S3Client,PutObjectCommand,GetObjectCommand} from "@aws-sdk/client-s3";
+import {S3Client,PutObjectCommand,GetObjectCommand,ListObjectsV2Command} from "@aws-sdk/client-s3";
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import type {PortalEvent,Speaker} from "@/lib/portal-model";
 
@@ -63,4 +63,9 @@ export async function hydrateEventImages(event:PortalEvent):Promise<PortalEvent>
   return sp;
  }));
  return next;
+}
+
+export async function checkMediaStorage(){
+ if(!storageConfigured())return false;
+ try{await s3().send(new ListObjectsV2Command({Bucket:BUCKET,Prefix:"_health/",MaxKeys:1}));return true;}catch{return false;}
 }
