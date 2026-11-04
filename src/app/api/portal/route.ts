@@ -25,7 +25,12 @@ function jsonPayload(value:unknown){
  if(!raw||raw.length>3_500_000)throw new Error("Event payload is too large");
  return raw;
 }
-async function getSnapshot(user:Person){return ok({enabled:true,currentId:user.id,data:await snapshot(user)});}
+async function getSnapshot(user:Person){
+ if(user.mustChangePassword){
+  return ok({enabled:true,currentId:user.id,data:{companies:[],users:[user],events:[],registrations:[],invitations:[]}});
+ }
+ return ok({enabled:true,currentId:user.id,data:await snapshot(user)});
+}
 export async function GET(req:NextRequest){
  if(!databaseEnabled())return ok({enabled:false});
  try{
@@ -66,16 +71,18 @@ export async function POST(req:NextRequest){
    if(token)await pool.query("DELETE FROM sessions WHERE token_hash=$1",[hashToken(token)]);
    const response=ok({success:true});response.cookies.delete(COOKIE);return response;
   }
+  if(user.mustChangePassword&&action!=="profile")return error("Change your temporary password before using the portal",403);
   if(action==="refresh")return getSnapshot(user);
   if(action==="profile"){
    const name=text(args.fullName,100),department=text(args.department,100);
    if(name.length<2)return error("Name too short");
    const change=typeof args.password==="string"&&args.password.length>0;
+   if(user.mustChangePassword&&!change)return error("Set a new password to activate your account",400);
    if(change&&(args.password as string).length<12)return error("New password must contain at least 12 characters");
    const client=await pool.connect();
    try{
     await client.query("BEGIN");
-    await client.query("UPDATE users SET full_name=$1,department=$2,password_hash=CASE WHEN $3::text IS NOT NULL THEN $3 ELSE password_hash END WHERE id=$4",
+    await client.query("UPDATE users SET full_name=$1,department=$2,password_hash=COALESCE($3::text,password_hash),must_change_password=CASE WHEN $3::text IS NOT NULL THEN false ELSE must_change_password END WHERE id=$4",
      [name,department,change?await passwordHash(String(args.password)):null,user.id]);
     if(change){
       const activeToken=req.cookies.get(COOKIE)?.value;
@@ -83,7 +90,7 @@ export async function POST(req:NextRequest){
     }
     await client.query("COMMIT");
    }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
-   return getSnapshot(user);
+   return getSnapshot({...user,mustChangePassword:change?false:user.mustChangePassword});
   }
   if(action==="privacy"){
    await pool.query("UPDATE users SET show_in_attendee_lists=$1 WHERE id=$2",[args.visible===true,user.id]);
