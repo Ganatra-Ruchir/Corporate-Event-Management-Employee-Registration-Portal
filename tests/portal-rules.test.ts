@@ -97,3 +97,9 @@ test("speaker form requires complete details and image alt text",()=>{
   assert.match(validateSpeakers([{...sample,linkedIn:"javascript:alert(1)"}])!,/HTTPS/);
   assert.match(validateSpeakers([{...sample,company:""}])!,/company/);
 });
+
+test("banner alt text and short summary are optional for event creation",()=>{
+  const data=makeData();
+  const e={...event(data,"event-1"),summary:"",bannerAlt:"",bannerDataUrl:"data:image/webp;base64,abc"};
+  assert.equal(validateEvent(e,data),null);
+});
