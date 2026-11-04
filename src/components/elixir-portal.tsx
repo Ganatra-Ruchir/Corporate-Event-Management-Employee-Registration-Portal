@@ -7,6 +7,7 @@ import {SpeakerEditor} from "@/components/speaker-editor";
 import {SpeakerGallery} from "@/components/speaker-gallery";
 import {PlatformOverview,CompanyOverview,WorkspaceHeading,WorkspaceSection} from "@/components/admin-workspace";
 import {CompanyDirectory,PeopleDirectory,AccountDirectory,InvitationDirectory} from "@/components/admin-directory";
+import {EmployeeProvisioner} from "@/components/employee-provisioner";
 import {
   ArrowLeft, ArrowRight, CalendarDays, MapPin, ChevronRight,
   Download, LogOut, Menu, Plus, Search, X
@@ -669,9 +670,18 @@ export default function ElixirPortal(){
         {view==="people"&&current.role==="company_admin"&&<>
           <WorkspaceHeading eyebrow={company?.name.toUpperCase()||"COMPANY"} title="Your people" description="Employees join automatically after work-email OTP verification. Manage company administrator access here."/>
           {remote&&<div className="ep-panel" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
-            <div><strong>Invite employees</strong><p style={{fontSize:12,color:"#66768b",margin:"5px 0 0"}}>Share the signup page. Employees use their approved work-email domain, receive a code, and wait for your approval.</p></div>
+            <div><strong>Invite employees</strong><p style={{fontSize:12,color:"#66768b",margin:"5px 0 0"}}>Share the signup page with employees. Work-email OTP activates their accounts automatically.</p></div>
             <button type="button" className="aw-primary" onClick={()=>{void navigator.clipboard.writeText(new URL("/signup",window.location.origin).toString()).then(()=>setNotice("Employee signup link copied."),()=>setNotice("Copy this link from your browser address: /signup"));}}>Copy employee signup link</button>
           </div>}
+          {remote&&<EmployeeProvisioner onCreate={async fields=>{
+            try{
+              const response=await fetch("/api/portal",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"createEmployee",args:fields})});
+              const result=await response.json();
+              if(!response.ok)return {error:result.error||"Could not create employee"};
+              if(result.data)setData(result.data);
+              return {result:{email:result.email,employeeId:result.employeeId,temporaryPassword:result.temporaryPassword}};
+            }catch{return {error:"Unable to reach the employee creation service"};}
+          }}/>}
           <PeopleDirectory people={companyPeople} search={directorySearch} onSearch={setDirectorySearch} selfId={current.id} onRole={changeRole}/>
         </>}
         {view==="companies"&&current.role==="platform_admin"&&<>
