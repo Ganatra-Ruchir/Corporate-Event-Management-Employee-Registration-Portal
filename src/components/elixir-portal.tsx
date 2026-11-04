@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import {DiscoverHome, DiscoverBrowse, EventTile, GoingFaces} from "@/components/event-discovery";
+import {DiscoverHome, DiscoverBrowse, EventTile, GoingFaces, EventCover} from "@/components/event-discovery";
 import {SpeakerEditor} from "@/components/speaker-editor";
 import {SpeakerGallery} from "@/components/speaker-gallery";
 import {PlatformOverview,CompanyOverview,WorkspaceHeading,WorkspaceSection} from "@/components/admin-workspace";
@@ -97,7 +97,11 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
   }
   function submit(e:React.FormEvent){
     e.preventDefault();
-    const next={...form,startsAt:new Date(form.startsAt).toISOString(),endsAt:new Date(form.endsAt).toISOString(),deadline:form.deadline?new Date(form.deadline).toISOString():""};
+    const next={...form,
+      summary:form.description.trim().replace(/\\s+/g," ").slice(0,180),
+      bannerAlt:form.title.trim()+" event banner",
+      startsAt:new Date(form.startsAt).toISOString(),endsAt:new Date(form.endsAt).toISOString(),
+      deadline:form.deadline?new Date(form.deadline).toISOString():""};
     const issue=validateEvent(next,data);
     if(issue){setError(issue);return;}
     onSave(next);
@@ -109,9 +113,7 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
       <h2>Event information</h2>
       <FormRow label="Event banner (optional, JPG/PNG/WebP up to 5 MB)"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>void uploadBanner(e.target.files?.[0])}/></FormRow>
       {form.bannerDataUrl&&<div className="ep-banner-preview"><Image src={form.bannerDataUrl} width={600} height={338} unoptimized alt={form.bannerAlt||"Draft event banner"}/><Action kind="secondary" onClick={()=>update("bannerDataUrl",undefined)}>Remove banner</Action></div>}
-      {form.bannerDataUrl&&<FormRow label="Banner alt text (required)"><input required maxLength={200} value={form.bannerAlt||""} onChange={e=>update("bannerAlt",e.target.value)} placeholder="Describe the banner for screen reader users"/></FormRow>}
       <FormRow label="Event title"><input required minLength={3} maxLength={160} value={form.title} onChange={e=>update("title",e.target.value)}/></FormRow>
-      <FormRow label="Short summary"><input required maxLength={240} value={form.summary} onChange={e=>update("summary",e.target.value)}/></FormRow>
       <FormRow label="Description"><textarea required rows={5} value={form.description} onChange={e=>update("description",e.target.value)}/></FormRow>
       <div className="ep-form-grid">
         <FormRow label="Category"><select value={form.category} onChange={e=>update("category",e.target.value)}>{CATEGORIES.map(x=><option key={x}>{x}</option>)}</select></FormRow>
@@ -609,9 +611,7 @@ export default function ElixirPortal(){
         </>}
         {view==="event"&&selected&&(eventAccess(current,selected,data))&&<>
           <button className="ep-back" onClick={()=>goto("events")}><ArrowLeft size={16}/> Back to events</button>
-          <div className={"ep-banner ep-banner-"+selected.category.toLowerCase().replace(/[^a-z]/g,"-")} role="img" aria-label={selected.bannerAlt||selected.title}>
-            {selected.bannerDataUrl?<Image src={selected.bannerDataUrl} alt={selected.bannerAlt||selected.title} width={1280} height={720} unoptimized/>:<div className="ep-banner-fallback"><span>{selected.category}</span><strong>{selected.title}</strong></div>}
-          </div>
+          <div className="ep-banner ed-event-detail-preview"><EventCover event={selected} wide/></div>
           <div className="ep-page-head"><div><div className="ep-event-label">{selected.category} · {selected.format.replace("_"," ")}</div><h1>{selected.title}</h1><p>{selected.summary}</p></div><Chip tone={selected.status==="published"?"green":selected.status==="cancelled"?"red":"neutral"}>{selected.status}</Chip></div>
           {selected.status==="cancelled"&&<div className="ep-error" role="status">Event cancelled. {selected.cancellationReason||"Contact the organiser for details."}</div>}
           <div className="ep-detail-layout"><article className="ep-panel ep-detail-copy">
