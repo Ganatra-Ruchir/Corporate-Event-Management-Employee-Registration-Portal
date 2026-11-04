@@ -8,6 +8,7 @@ import {SpeakerGallery} from "@/components/speaker-gallery";
 import {PlatformOverview,CompanyOverview,WorkspaceHeading,WorkspaceSection} from "@/components/admin-workspace";
 import {CompanyDirectory,PeopleDirectory,AccountDirectory,InvitationDirectory} from "@/components/admin-directory";
 import {EmployeeProvisioner} from "@/components/employee-provisioner";
+import {FirstLoginPasswordChange} from "@/components/first-login-password-change";
 import {
   ArrowLeft, ArrowRight, CalendarDays, MapPin, ChevronRight,
   Download, LogOut, Menu, Plus, Search, X
@@ -516,6 +517,12 @@ export default function ElixirPortal(){
       <span className="ep-signedout-note">Account access is simulated in this database-free version.</span>
     </div></div>:
     <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset} remoteMode={remote}/>
+  if(remote&&current.mustChangePassword)return <FirstLoginPasswordChange person={current} onLogout={logout} onSave={async password=>{
+    const result=await remoteRequest("profile",{fullName:current.fullName,department:current.department,password});
+    if(result.error)return result.error;
+    if(!await remoteRefresh())return "Password updated. Refresh to continue.";
+    setView("home");return null;
+  }}/>;
   if(blocked)return <main className="ep-auth-layout"><div className="ep-auth-card"><h1>Account unavailable</h1><p>Your account or company is suspended.</p><Action onClick={logout}>Sign out</Action></div></main>;
 
   const selected=selectedEvent?data.events.find(e=>e.id===selectedEvent):null;
