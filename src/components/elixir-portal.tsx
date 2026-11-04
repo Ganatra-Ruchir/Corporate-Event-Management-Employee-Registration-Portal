@@ -453,6 +453,11 @@ export default function ElixirPortal(){
     if(!window.confirm("Change "+person.fullName+" to "+roleName(role)+"?"))return;
     save({...data,users:data.users.map(x=>x.id===person.id?{...x,role}:x)});flash("Account role updated.");
   }
+  function approveUser(person:Person){
+    if(!remote){setNotice("Local sample accounts use simulated verification.");return;}
+    if(!window.confirm("Approve the account for "+person.email+"?"))return;
+    void remoteAction("approveUser",{userId:person.id},"Account approved.");
+  }
   function changeUserStatus(person:Person){
     if(remote){if(!window.confirm("Change account status for "+person.fullName+"?"))return;void remoteAction("userStatus",{userId:person.id},"Account status updated.");return;}
     if(current?.role!=="platform_admin"||person.role==="platform_admin")return;
@@ -658,7 +663,7 @@ export default function ElixirPortal(){
         </>}
         {view==="people"&&current.role==="company_admin"&&<>
           <WorkspaceHeading eyebrow={company?.name.toUpperCase()||"COMPANY"} title="Your people" description="Browse your team and manage company administrator access."/>
-          <PeopleDirectory people={companyPeople} search={directorySearch} onSearch={setDirectorySearch} selfId={current.id} onRole={changeRole}/>
+          <PeopleDirectory people={companyPeople} search={directorySearch} onSearch={setDirectorySearch} selfId={current.id} onRole={changeRole} onApprove={remote?approveUser:undefined}/>
         </>}
         {view==="companies"&&current.role==="platform_admin"&&<>
           <WorkspaceHeading eyebrow="PARTNER MANAGEMENT" title="Organizations" description="Every partner, approved email domain and their activity."
@@ -687,7 +692,7 @@ export default function ElixirPortal(){
         </>}
         {view==="users"&&current.role==="platform_admin"&&<>
           <WorkspaceHeading eyebrow="ELIXIR FOUNDATION · ACCOUNTS" title="Account management" description="Find people across partner companies, review roles and control demo account access."/>
-          <AccountDirectory people={data.users} companies={data.companies} search={directorySearch} onSearch={setDirectorySearch} onStatus={changeUserStatus}/>
+          <AccountDirectory people={data.users} companies={data.companies} search={directorySearch} onSearch={setDirectorySearch} onStatus={changeUserStatus} onApprove={remote?approveUser:undefined}/>
         </>}
         {view==="profile"&&<>
           <WorkspaceHeading eyebrow="YOUR ACCOUNT" title="Profile & settings" description="Keep your display name, department and demonstration password up to date."/>
