@@ -82,7 +82,7 @@ export default function SignupPage(){
     <button disabled={busy||!otp.trim()} type="submit">{busy?"Verifying…":"Verify and register"}<ArrowRight size={17}/></button>
     <div className="join-actions"><button type="button" onClick={resend} disabled={busy}>Resend OTP</button><button type="button" disabled={busy} onClick={()=>setStep("details")}>Change email</button></div>
    </form>}
-   {step==="done"&&<div className="join-done"><CheckCircle2 size={38}/><strong>Email verified</strong><p>You can sign in now and see your company's events.</p><button onClick={()=>router.push("/")}>Go to sign in <ArrowRight size={17}/></button></div>}
+   {step==="done"&&<div className="join-done"><CheckCircle2 size={38}/><strong>Email verified</strong><p>You can sign in now and see your company&apos;s events.</p><button onClick={()=>router.push("/")}>Go to sign in <ArrowRight size={17}/></button></div>}
   </article>
   <aside className="join-panel join-aside"><ShieldCheck size={36}/><h2>Secure company event access</h2><p>One-time email verification helps confirm you own your work email. No admin approval is required after successful email verification. Company admins still control administrator access and suspensions.</p><div className="join-tip"><Mail size={18}/> Neon sends OTP emails during development at no additional email-service setup cost.</div><small>Development email delivery has limits. Production use needs a dedicated provider.</small></aside></div>
  </section></main>;
