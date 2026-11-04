@@ -79,3 +79,15 @@ Go to the \`preview/feature/neon-postgres-backend\` branch → **Auth → Config
 Neon's shared development SMTP can deliver testing codes without another mail-provider account. This shared sender is **not recommended for production**. A zero-cost option for low-volume production is Resend's Free plan (currently 3,000 emails/month, 100/day); it requires domain ownership verification and configuring custom SMTP in Neon. Do not put SMTP passwords into the frontend or GitHub. Verify a real company-owned sender domain before inviting live employees.
 
 **Additional admin accounts:** Only the already-activated initial Platform Admin exists by default. To grant company-admin access, use a verified employee account and a matching invitation; never automatically promote arbitrary email input. Any further desired Elixir admin email addresses must be supplied explicitly before granting access.
+
+
+## Admin-created employees (updated)
+
+A logged-in Company Admin can open **People → Add employee**, enter a name, department and work email on an approved domain for that same active organization, then generate an employee ID and a temporary password.
+
+- **No email OTP** is required for this administrator-provisioned path. The already-authenticated Company Admin is responsible for verifying who receives the credentials.
+- The employee signs in using **work email + generated temporary password**, then **must choose a new password** on the first login before any events or other organization data are shown.
+- The server prevents reuse of the temporary password; changing it invalidates other outstanding sessions. The temporary password is never sent via email or logged. Share it privately, not in a group chat.
+- Employees who choose **self-signup** at `/signup` still need email OTP and automatic domain matching.
+- The same-company rule and employee-only role are enforced server-side; employee creation does not grant admin privileges.
+- One legacy staging employee created via an audited `employee.provisioned` action was migrated to the new forced-password-change policy; self-signups and production were not affected.
