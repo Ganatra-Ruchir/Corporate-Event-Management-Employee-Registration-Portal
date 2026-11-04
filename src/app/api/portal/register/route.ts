@@ -44,11 +44,11 @@ export async function POST(req:NextRequest){
   if(!company.rows.length)return fail("Your company is not registered",403);
   const id=randomUUID(),hash=await passwordHash(password);
   const result=await sqlPool().query(
-   "INSERT INTO users(id,full_name,email,password_hash,department,role,organization_id,verified,status) VALUES($1,$2,$3,$4,$5,'employee',$6,false,'active') ON CONFLICT(email) DO NOTHING RETURNING id",
+   "INSERT INTO users(id,full_name,email,password_hash,department,role,organization_id,verified,status) VALUES($1,$2,$3,$4,$5,'employee',$6,true,'active') ON CONFLICT(email) DO NOTHING RETURNING id",
    [id,name,email,hash,department,company.rows[0].id]
   );
   if(!result.rows.length)return fail("An account already exists for this email",409);
-  return NextResponse.json({success:true,organization:company.rows[0].name,message:"Email verified. Your organization administrator must approve your account before you can sign in."},{headers:{"Cache-Control":"no-store"}});
+  return NextResponse.json({success:true,organization:company.rows[0].name,message:"Email verified. Your employee account is active. You can sign in now."},{headers:{"Cache-Control":"no-store"}});
  }catch(error){
   console.error("Verified employee registration failed",error instanceof Error?error.name:"unknown");
   return fail("Unable to finish registration",503);
