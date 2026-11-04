@@ -82,6 +82,12 @@ export async function POST(req:NextRequest){
    const client=await pool.connect();
    try{
     await client.query("BEGIN");
+    if(user.mustChangePassword){
+      const previous=await client.query("SELECT password_hash FROM users WHERE id=$1 FOR UPDATE",[user.id]);
+      if(previous.rowCount&&await passwordValid(String(args.password),previous.rows[0].password_hash)){
+       await client.query("ROLLBACK");return error("Choose a new password different from your temporary password",400);
+      }
+    }
     await client.query("UPDATE users SET full_name=$1,department=$2,password_hash=COALESCE($3::text,password_hash),must_change_password=CASE WHEN $3::text IS NOT NULL THEN false ELSE must_change_password END WHERE id=$4",
      [name,department,change?await passwordHash(String(args.password)):null,user.id]);
     if(change){
