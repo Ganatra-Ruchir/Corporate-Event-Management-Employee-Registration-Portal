@@ -151,3 +151,12 @@
  .md-company-grid,.md-person-grid{grid-template-columns:1fr}
  .ep-auth-v2 .ep-auth-intro h1{font-size:29px}
 }
+
+/* Compact speaker profile editor */
+.se-additional{margin-top:14px;border:1px solid #d9e2ee;border-radius:12px;background:#fafcff;overflow:hidden}
+.se-additional>summary{cursor:pointer;display:flex;flex-direction:column;gap:3px;padding:13px 15px;font-weight:700;color:#18345b;list-style-position:inside}
+.se-additional>summary span{font-size:12px;font-weight:400;color:#62748a}
+.se-additional[open]>summary{border-bottom:1px solid #d9e2ee}
+.se-additional-content{display:grid;gap:13px;padding:14px}
+.se-additional .se-fields-grid{gap:12px}
+@media(max-width:640px){.se-additional>summary{padding:12px}.se-additional-content{padding:12px}}
