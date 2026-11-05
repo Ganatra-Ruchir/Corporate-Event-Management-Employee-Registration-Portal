@@ -52,7 +52,7 @@ export function SpeakerEditor({speakers,onChange}:{speakers:Speaker[];onChange:(
  async function upload(id:string,file?:File){
   if(!file)return;
   setUploading(id);setError("");
-  try{const photo=await prepareSpeakerPhoto(file);update(id,"photoDataUrl",photo);}
+  try{const photo=await prepareSpeakerPhoto(file);onChange(speakers.map(s=>s.id===id?{...s,photoDataUrl:photo,photoAlt:s.name.trim()?s.name.trim()+" speaker photo":"Speaker photo"}:s));}
   catch(e){setError(e instanceof Error?e.message:"Unable to process speaker photo.");}
   finally{setUploading(null);}
  }
@@ -80,7 +80,7 @@ export function SpeakerEditor({speakers,onChange}:{speakers:Speaker[];onChange:(
      <div className="se-photo-column">
        <div className="se-photo-preview">
          {speaker.photoDataUrl?
-           <Image src={speaker.photoDataUrl} width={320} height={380} unoptimized alt={speaker.photoAlt||"Speaker photo preview"}/>:
+           <Image src={speaker.photoDataUrl} width={320} height={380} unoptimized alt={speaker.name.trim()?speaker.name.trim()+" speaker photo":"Speaker photo preview"}/>:
            <span>{speaker.name.trim().split(/\s+/).slice(0,2).map(p=>p.slice(0,1)).join("").toUpperCase()||"SP"}</span>}
        </div>
        <label className="se-upload-label">Speaker photo (JPG, PNG or WebP, max 5 MB)
@@ -88,9 +88,6 @@ export function SpeakerEditor({speakers,onChange}:{speakers:Speaker[];onChange:(
        </label>
        {uploading===speaker.id&&<span role="status" className="ep-hint">Processing photo…</span>}
        {speaker.photoDataUrl&&<button type="button" className="se-remove-photo" onClick={()=>{onChange(speakers.map(x=>x.id===speaker.id?{...x,photoDataUrl:undefined,photoAlt:""}:x));}}>Remove photo</button>}
-       <label className="ep-field">Photo alt text {speaker.photoDataUrl&&<span className="se-required">required</span>}
-         <input required={Boolean(speaker.photoDataUrl)} maxLength={180} value={speaker.photoAlt||""} onChange={e=>update(speaker.id,"photoAlt",e.target.value)} placeholder="Describe the speaker photo"/>
-       </label>
      </div>
      <div className="se-fields">
        <div className="se-fields-grid">
