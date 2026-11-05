@@ -10,7 +10,7 @@ import type {Speaker} from "@/lib/portal-model";
 const MAX_BYTES=5*1024*1024;
 const emptySpeaker=():Speaker=>({
  id:makeId("speaker"),name:"",jobTitle:"",company:"",talkTitle:"",
- bio:"",agendaSlot:"",linkedIn:"",website:"",photoDataUrl:undefined,photoAlt:""
+ bio:"",agendaSlot:"",linkedIn:"",github:"",website:"",photoDataUrl:undefined,photoAlt:""
 });
 
 export async function prepareSpeakerPhoto(file:File):Promise<string>{
@@ -93,15 +93,21 @@ export function SpeakerEditor({speakers,onChange}:{speakers:Speaker[];onChange:(
        <div className="se-fields-grid">
          <label className="ep-field">Full name<input required minLength={2} maxLength={100} value={speaker.name} onChange={e=>update(speaker.id,"name",e.target.value)} placeholder="e.g. Priya Raman"/></label>
          <label className="ep-field">Job title<input required maxLength={120} value={speaker.jobTitle} onChange={e=>update(speaker.id,"jobTitle",e.target.value)} placeholder="e.g. Senior Program Lead"/></label>
-         <label className="ep-field">Company<input required maxLength={120} value={speaker.company} onChange={e=>update(speaker.id,"company",e.target.value)} placeholder="e.g. Northwind Services"/></label>
          <label className="ep-field">Talk title<input required maxLength={160} value={speaker.talkTitle} onChange={e=>update(speaker.id,"talkTitle",e.target.value)} placeholder="e.g. Practical digital skills"/></label>
        </div>
-       <label className="ep-field">Short biography<textarea required rows={3} maxLength={700} value={speaker.bio} onChange={e=>update(speaker.id,"bio",e.target.value)} placeholder="Background, expertise and what the audience will learn."/></label>
-       <label className="ep-field">Agenda slot (optional)<input value={speaker.agendaSlot||""} maxLength={160} onChange={e=>update(speaker.id,"agendaSlot",e.target.value)} placeholder="10:30 AM — Workshop introduction"/></label>
-       <div className="se-fields-grid">
-        <label className="ep-field">LinkedIn (optional)<input type="url" value={speaker.linkedIn||""} onChange={e=>update(speaker.id,"linkedIn",e.target.value)} placeholder="https://www.linkedin.com/in/…"/></label>
-        <label className="ep-field">Website (optional)<input type="url" value={speaker.website||""} onChange={e=>update(speaker.id,"website",e.target.value)} placeholder="https://example.com"/></label>
-       </div>
+       <details className="se-additional" open={undefined}>
+         <summary>Additional information <span>Company and biography required · social links optional</span></summary>
+         <div className="se-additional-content">
+           <label className="ep-field">Company name <span className="se-required">required</span><input required maxLength={120} value={speaker.company} onChange={e=>update(speaker.id,"company",e.target.value)} placeholder="e.g. Elixir Foundation"/></label>
+           <label className="ep-field">About the speaker <span className="se-required">required</span><textarea required rows={3} maxLength={700} value={speaker.bio} onChange={e=>update(speaker.id,"bio",e.target.value)} placeholder="Speaker background, expertise and experience"/></label>
+           <label className="ep-field">Agenda slot (optional)<input value={speaker.agendaSlot||""} maxLength={160} onChange={e=>update(speaker.id,"agendaSlot",e.target.value)} placeholder="10:30 AM — Workshop introduction"/></label>
+           <div className="se-fields-grid">
+             <label className="ep-field">LinkedIn (optional)<input type="url" value={speaker.linkedIn||""} onChange={e=>update(speaker.id,"linkedIn",e.target.value)} placeholder="https://www.linkedin.com/in/…"/></label>
+             <label className="ep-field">GitHub (optional)<input type="url" value={speaker.github||""} onChange={e=>update(speaker.id,"github",e.target.value)} placeholder="https://github.com/username"/></label>
+             <label className="ep-field">Website (optional)<input type="url" value={speaker.website||""} onChange={e=>update(speaker.id,"website",e.target.value)} placeholder="https://example.com"/></label>
+           </div>
+         </div>
+       </details>
      </div>
     </div>
    </article>)}
