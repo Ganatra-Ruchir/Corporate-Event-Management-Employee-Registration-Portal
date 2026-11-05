@@ -23,7 +23,7 @@ function SpeakerCard({speaker}:{speaker:Speaker}){
   card.current?.style.setProperty("--card-ry","0deg");
   card.current?.style.setProperty("--card-rx","0deg");
  }
- const links=[speaker.linkedIn?{label:"LinkedIn",url:speaker.linkedIn}:null,speaker.website?{label:"Website",url:speaker.website}:null].filter((x):x is {label:string,url:string}=>Boolean(x));
+ const links=[speaker.linkedIn?{label:"LinkedIn",url:speaker.linkedIn}:null,speaker.github?{label:"GitHub",url:speaker.github}:null,speaker.website?{label:"Website",url:speaker.website}:null].filter((x):x is {label:string,url:string}=>Boolean(x));
  return <article className={"sp-card"+(flipped?" is-flipped":"")} aria-label={"Speaker: "+speaker.name}>
    <button
      type="button"
