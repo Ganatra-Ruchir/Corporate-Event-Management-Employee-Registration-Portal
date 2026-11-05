@@ -53,7 +53,7 @@ export function GoingFaces({event,data,limit=3}:{event:PortalEvent;data:PortalDa
 }
 export function EventTile({event,data,onOpen}:{event:PortalEvent;data:PortalData;onOpen:(event:PortalEvent)=>void}){
   const d=dateParts(event.startsAt);
-  const host=data.users.find(u=>u.id===event.createdBy);
+  const host=data.companies.find(c=>c.id===event.companyId);
   return <button type="button" className="ed-tile" onClick={()=>onOpen(event)} aria-label={"View "+event.title}>
     <div className="ed-tile-cover"><EventCover event={event}/>{event.status!=="published"&&<span className={"ed-tile-status "+event.status}>{event.status}</span>}
       <div className="ed-tile-hover" aria-hidden="true">
@@ -65,7 +65,7 @@ export function EventTile({event,data,onOpen}:{event:PortalEvent;data:PortalData
     </div>
     <div className="ed-tile-content">
       <div className="ed-tile-top"><div className="ed-date-mini"><strong>{d.day}</strong><span>{d.month}</span></div><div className="ed-tile-title-wrap"><span className="ed-eyebrow">{d.weekday} · {d.clock}</span><h3>{event.title}</h3></div></div>
-      <div className="ed-tile-host">Hosted by {host?.fullName||"Company team"}</div>
+      <div className="ed-tile-host">Hosted by {host?.name||"Event organization"}</div>
       <div className="ed-tile-meta"><MapPin size={15}/><span>{event.format==="online"?"Online":event.location}</span></div>
       <div className="ed-tile-foot"><GoingFaces event={event} data={data}/><span className="ed-tile-spots">{event.status==="published"?remainingPlaces(event,data)+" spots left":event.status==="draft"?"Not published":"Cancelled"}</span></div>
     </div>
