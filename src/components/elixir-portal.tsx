@@ -178,8 +178,6 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false}:{d
   const [verifyId,setVerifyId]=useState("");
   const [busy,setBusy]=useState(false);
   const [showPassword,setShowPassword]=useState(false);
-  const [showDemoAccounts,setShowDemoAccounts]=useState(true);
-  const exampleAccounts=data.users.filter(u=>["platform","manager","employee"].includes(u.id));
   async function submit(e:React.FormEvent){
     e.preventDefault();setBusy(true);setError("");setMessage("");
     if(mode==="login"){
@@ -215,13 +213,6 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false}:{d
         {mode!=="login"&&<button type="button" onClick={()=>{setMode("login");setError("");setMessage("");}}>Back to sign in</button>}
         {mode==="login"&&<><button type="button" onClick={()=>{if(remoteMode){window.location.href="/signup";return;}setMode("signup");setError("");setMessage("");}}>Create an account</button>{!remoteMode&&<><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button><button type="button" onClick={()=>{const u=data.users.find(p=>p.email===email.toLowerCase().trim()&&!p.verified);if(!u){setError("Enter the email of an unverified demonstration account.");return;}setVerifyId(u.id);setMode("verify");setError("");}}>Verify demo email</button></>}</>}
       </div>
-      {mode==="login"&&!remoteMode&&<section className="ep-demo-users" aria-label="Sample accounts">
-        <div className="ep-demo-heading"><div><strong>Explore the demo</strong><p>Three roles, one sign-in page. Choose a sample account to fill its credentials.</p></div><button type="button" onClick={()=>setShowDemoAccounts(v=>!v)} aria-expanded={showDemoAccounts}>{showDemoAccounts?"Hide":"Show"}</button></div>
-        {showDemoAccounts&&<div className="ep-demo-account-grid">{exampleAccounts.map(u=><button key={u.id} type="button" onClick={()=>{setEmail(u.email);setPass(DEMO_PASSWORD);setError("");}}>
-          <span className="ep-demo-icon" aria-hidden="true">{u.role==="platform_admin"?"P":u.role==="company_admin"?"C":"E"}</span><span className="ep-demo-info"><b>{roleName(u.role)}</b><small>{u.email}</small></span><ChevronRight size={17}/>
-        </button>)}</div>}
-        <p className="ep-hint">Sample password: <code>{DEMO_PASSWORD}</code>. Do not enter real credentials.</p>
-      </section>}
       <p className="ep-auth-footnote">{remoteMode?"PostgreSQL staging · Server-side session":"Browser-only demonstration · No secure shared accounts or database"}</p>
     </main>
     <aside className="ep-auth-aside" aria-label="About Elixir events">
