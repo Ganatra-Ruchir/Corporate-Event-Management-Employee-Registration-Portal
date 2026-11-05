@@ -95,7 +95,7 @@ export function SpeakerEditor({speakers,onChange}:{speakers:Speaker[];onChange:(
          <label className="ep-field">Job title<input required maxLength={120} value={speaker.jobTitle} onChange={e=>update(speaker.id,"jobTitle",e.target.value)} placeholder="e.g. Senior Program Lead"/></label>
          <label className="ep-field">Talk title<input required maxLength={160} value={speaker.talkTitle} onChange={e=>update(speaker.id,"talkTitle",e.target.value)} placeholder="e.g. Practical digital skills"/></label>
        </div>
-       <details className="se-additional" defaultOpen={!speaker.company.trim()||!speaker.bio.trim()}>
+       <details className="se-additional" open={!speaker.company.trim()||!speaker.bio.trim()}>
          <summary>Additional information <span>Company and biography required · social links optional</span></summary>
          <div className="se-additional-content">
            <label className="ep-field">Company name <span className="se-required">required</span><input maxLength={120} value={speaker.company} onChange={e=>update(speaker.id,"company",e.target.value)} placeholder="e.g. Elixir Foundation"/></label>
