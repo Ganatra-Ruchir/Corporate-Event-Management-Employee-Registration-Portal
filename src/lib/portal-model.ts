@@ -20,7 +20,6 @@ export function validateSpeakers(speakers:Speaker[]):string|null {
   if(!s.company.trim())return n+"enter a company.";
   if(!s.talkTitle.trim())return n+"enter the talk title.";
   if(!s.bio.trim())return n+"enter a short bio.";
-  if(s.photoDataUrl&&!s.photoAlt?.trim())return n+"add alt text for the photo.";
   for(const [label,url] of [["LinkedIn",s.linkedIn],["website",s.website]]){
    if(url&&(!/^https:\/\//i.test(url)||!isValidHttpsUrl(url)))return n+label+" must use a valid HTTPS link.";
   }
