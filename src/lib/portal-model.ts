@@ -8,7 +8,7 @@ export type Company = { id:string; name:string; domains:string[]; status:Company
 export type Person = { id:string; fullName:string; email:string; department:string; role:Role; companyId:string|null; status:CompanyStatus; verified:boolean; password:string; mustChangePassword?:boolean; showInAttendeeLists?:boolean; jobTitle?:string; phone?:string; avatarUrl?:string };
 export type Speaker = {
  id:string; name:string; jobTitle:string; company:string; talkTitle:string;
- bio:string; agendaSlot?:string; linkedIn?:string; website?:string;
+ bio:string; agendaSlot?:string; linkedIn?:string; github?:string; website?:string;
  photoDataUrl?:string; photoAlt?:string; photoStorageKey?:string;
 };
 export function validateSpeakers(speakers:Speaker[]):string|null {
@@ -20,7 +20,7 @@ export function validateSpeakers(speakers:Speaker[]):string|null {
   if(!s.company.trim())return n+"enter a company.";
   if(!s.talkTitle.trim())return n+"enter the talk title.";
   if(!s.bio.trim())return n+"enter a short bio.";
-  for(const [label,url] of [["LinkedIn",s.linkedIn],["website",s.website]]){
+  for(const [label,url] of [["LinkedIn",s.linkedIn],["GitHub",s.github],["website",s.website]]){
    if(url&&(!/^https:\/\//i.test(url)||!isValidHttpsUrl(url)))return n+label+" must use a valid HTTPS link.";
   }
  }
