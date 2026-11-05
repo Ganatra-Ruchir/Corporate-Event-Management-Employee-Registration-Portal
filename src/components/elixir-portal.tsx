@@ -105,6 +105,7 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
     const next={...form,
       summary:form.description.trim().replace(/\s+/g," ").slice(0,180),
       bannerAlt:form.title.trim()+" event banner",
+      speakers:(form.speakers||[]).map(s=>({...s,photoAlt:s.photoDataUrl?(s.name.trim()?s.name.trim()+" speaker photo":"Speaker photo"):""})),
       startsAt:new Date(form.startsAt).toISOString(),endsAt:new Date(form.endsAt).toISOString(),
       deadline:form.deadline?new Date(form.deadline).toISOString():""};
     const issue=validateEvent(next,data);
@@ -117,7 +118,7 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
     <form className="ep-panel ep-form" onSubmit={submit}>
       <h2>Event information</h2>
       <FormRow label="Event banner (optional, JPG/PNG/WebP up to 5 MB)"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>void uploadBanner(e.target.files?.[0])}/></FormRow>
-      {form.bannerDataUrl&&<div className="ep-banner-preview"><Image src={form.bannerDataUrl} width={600} height={338} unoptimized alt={form.bannerAlt||"Draft event banner"}/><Action kind="secondary" onClick={()=>update("bannerDataUrl",undefined)}>Remove banner</Action></div>}
+      {form.bannerDataUrl&&<div className="ep-banner-preview"><Image src={form.bannerDataUrl} width={600} height={338} unoptimized alt={form.title.trim()?form.title.trim()+" event banner":"Event banner preview"}/><Action kind="secondary" onClick={()=>update("bannerDataUrl",undefined)}>Remove banner</Action></div>}
       <FormRow label="Event title"><input required minLength={3} maxLength={160} value={form.title} onChange={e=>update("title",e.target.value)}/></FormRow>
       <FormRow label="Description"><textarea required rows={5} value={form.description} onChange={e=>update("description",e.target.value)}/></FormRow>
       <div className="ep-form-grid">
