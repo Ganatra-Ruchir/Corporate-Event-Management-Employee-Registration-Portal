@@ -75,7 +75,12 @@ export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now,on
   const learning=collect(e=>["Education","Workshop","Town Hall"].includes(e.category));
   const coming=collect(()=>true);
   return <div className="ed-discover">
-    <div className="ed-home-heading"><div><span className="ed-eyebrow">YOUR COMPANY</span><h1>Upcoming events</h1><p>See what&apos;s happening and join your colleagues.</p></div><div className="ed-home-actions"><button type="button" className="ed-search-toggle" onClick={onSearch}><Search size={20}/><span>Search</span></button><button type="button" className="ed-home-explore" onClick={onBrowse}>View all <ArrowRight size={17}/></button></div></div>
+    <section className="ed-meetup-hero">
+      <div className="ed-meetup-art" aria-hidden="true"><span className="ed-meetup-bubble bubble-a">🤝</span><span className="ed-meetup-bubble bubble-b">🌿</span></div>
+      <div className="ed-meetup-copy"><span className="ed-eyebrow">YOUR ORGANIZATION · YOUR COMMUNITY</span><h1>Meet. Connect. <span>Make an impact.</span></h1><p>Discover experiences worth sharing with your colleagues, from volunteering and learning to team celebrations.</p><button type="button" className="ed-meetup-cta" onClick={onBrowse}>Explore all events <ArrowRight size={17}/></button></div>
+      <div className="ed-meetup-art" aria-hidden="true"><span className="ed-meetup-bubble bubble-c">🎤</span><span className="ed-meetup-bubble bubble-d">🎊</span></div>
+    </section>
+    <div className="ed-home-heading ed-home-heading-refined"><div><h2>Events from your organization</h2><p>Find your next experience and see who&apos;s going.</p></div><div className="ed-home-actions"><button type="button" className="ed-search-toggle" onClick={onSearch}><Search size={20}/><span>Search events</span></button><button type="button" className="ed-home-explore" onClick={onBrowse}>See all events <ArrowRight size={17}/></button></div></div>
     {future.length>0?<div className="ed-tile-grid ed-home-grid">{future.slice(0,6).map(e=><EventTile key={e.id} event={e} data={data} onOpen={onOpen}/>)}</div>:<div className="ed-feature-empty"><h2>No upcoming events</h2><p>Published events from your organization will appear here.</p></div>}
     <div className="ed-home-more"><span>Explore more</span></div>
     {selected?<button type="button" className="ed-feature" onClick={()=>onOpen(selected)}>
