@@ -50,3 +50,17 @@
 @media(max-width:1180px){.ep-shell .ed-home-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.ep-shell .ed-home-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:500px){.ep-shell .ed-home-grid{grid-template-columns:1fr}}
+
+/* Signed-in employee hero */
+.ep-shell .ed-meetup-hero{display:grid;grid-template-columns:minmax(95px,.75fr) minmax(310px,1.65fr) minmax(95px,.75fr);align-items:center;gap:9px;min-height:330px;padding:18px 2px 28px;margin:0 0 18px}
+.ep-shell .ed-meetup-copy{text-align:center}.ep-shell .ed-meetup-copy h1{font-size:clamp(34px,4vw,57px);letter-spacing:-2.4px;line-height:1.1;margin:12px auto 15px;font-weight:900;max-width:600px;color:#1c2230}
+.ep-shell .ed-meetup-copy h1 span{color:#6356d4}.ep-shell .ed-meetup-copy p{font-size:14px;line-height:1.7;color:#667082;max-width:520px;margin:0 auto 20px}
+.ep-shell .ed-meetup-cta{background:#252b39;border:0;border-radius:100px;color:white;font-size:13px;font-weight:850;padding:14px 22px;display:inline-flex;align-items:center;gap:9px;min-height:44px;transition:transform .2s,box-shadow .2s}
+.ep-shell .ed-meetup-cta:hover{transform:translateY(-3px);box-shadow:0 8px 19px #2229482a}
+.ep-shell .ed-meetup-art{height:230px;position:relative;min-width:0}.ep-shell .ed-meetup-bubble{position:absolute;width:128px;height:115px;border-radius:35% 55% 40% 50%;display:grid;place-items:center;font-size:67px;box-shadow:0 12px 26px #1b2b5022;animation:landing-bob 6s ease-in-out infinite}
+.ep-shell .bubble-a{top:0;left:4%;background:#d9e6ff}.ep-shell .bubble-b{bottom:0;right:0;background:#d8efdb;animation-delay:-2s}
+.ep-shell .bubble-c{top:0;right:4%;background:#f8dbe9;animation-delay:-1s}.ep-shell .bubble-d{bottom:0;left:0;background:#fbe5ca;animation-delay:-3s}
+.ep-shell .ed-home-heading-refined{margin:2px 0 20px;align-items:end}.ep-shell .ed-home-heading-refined h2{font-size:clamp(24px,2.5vw,32px);font-weight:850;letter-spacing:-.7px;margin:0 0 7px}
+@media(max-width:1050px){.ep-shell .ed-meetup-bubble{width:95px;height:90px;font-size:51px}.ep-shell .ed-meetup-hero{grid-template-columns:95px minmax(260px,1fr) 95px}}
+@media(max-width:690px){.ep-shell .ed-meetup-hero{display:block;min-height:auto;padding:35px 0 24px}.ep-shell .ed-meetup-art{display:none}.ep-shell .ed-meetup-copy h1{font-size:39px;letter-spacing:-1.6px}.ep-shell .ed-meetup-copy p{font-size:13px}.ep-shell .ed-home-heading-refined{align-items:start;gap:14px;flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){.ep-shell .ed-meetup-bubble{animation:none}.ep-shell .ed-meetup-cta{transition:none}.ep-shell .ed-meetup-cta:hover{transform:none}}
