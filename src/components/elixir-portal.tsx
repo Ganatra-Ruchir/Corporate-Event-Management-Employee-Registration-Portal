@@ -678,8 +678,7 @@ export default function ElixirPortal(){
                 <div><dt>Available places</dt><dd>{remainingPlaces(selected,data)} of {selected.capacity}</dd></div>
                 {selected.deadline&&<div><dt>Registration closes</dt><dd>{dateText(selected.deadline)}</dd></div>}
               </dl>
-            </article>
-            <aside className="ep-detail-right"><section className="ep-panel ep-detail-side ed-linktree-registration"><div className="ed-rsvp-pill">JOIN THE EVENT</div><h2>Registration</h2><p className="ed-rsvp-invite">Be part of something meaningful.</p>
+<section className="ep-panel ep-detail-side ed-linktree-registration ed-rsvp-below-about"><div className="ed-rsvp-pill">JOIN THE EVENT</div><h2>Registration</h2><p className="ed-rsvp-invite">Be part of something meaningful.</p>
               <div className="ed-rsvp-count"><strong>{remainingPlaces(selected,data)}</strong><span>spots left of {selected.capacity}</span></div>
               <div className="ed-rsvp-progress" role="progressbar" aria-label="Reserved places" aria-valuenow={activeRegistrations(selected.id,data).length} aria-valuemax={selected.capacity} aria-valuemin={0}><span style={{width:(100*activeRegistrations(selected.id,data).length/selected.capacity)+"%"}}/></div>
               <p>{activeRegistrations(selected.id,data).length} going</p>
@@ -689,7 +688,9 @@ export default function ElixirPortal(){
                 <><Action disabled={!!canRegister(current,selected,data)} onClick={()=>modifyRegistration(selected,false)}>{remainingPlaces(selected,data)===0?"Join waitlist":"Attend"}</Action>{canRegister(current,selected,data)&&<p className="ep-hint">{canRegister(current,selected,data)}</p>}</>}
               {current.role==="company_admin"&&<div className="ep-admin-actions"><h3>Manage event</h3><Action kind="secondary" onClick={()=>{setEditingEvent(selected);goto("eventForm");}}>Edit event</Action>{selected.status!=="cancelled"&&<Action kind="danger" onClick={()=>cancelEvent(selected)}>Cancel event</Action>}</div>}
             </section>
-            {(selected.speakers||[]).length>0&&<div className="ed-detail-speakers"><SpeakerGallery speakers={selected.speakers||[]}/></div>}
+
+            </article>
+            <aside className="ep-detail-right">            {(selected.speakers||[]).length>0&&<div className="ed-detail-speakers"><SpeakerGallery speakers={selected.speakers||[]}/></div>}
             </aside>
           </div>
           <footer className="ed-event-bottom-info">
