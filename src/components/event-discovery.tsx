@@ -19,6 +19,7 @@ function EventCoverImpl({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
   const color=event.category.toLowerCase().replace(/[^a-z]+/g,"-");
   const photos=(event.speakers||[]).filter(person=>Boolean(person.photoDataUrl));
   const [slide,setSlide]=useState(0);
+  const [measuredRatio,setMeasuredRatio]=useState<{speakerId:string;ratio:number}|null>(null);
   const coverRef=useRef<HTMLDivElement>(null);
   const [visible,setVisible]=useState(false);
   // Only animate cards on screen. Off-screen cards must not run 2-second timers.
@@ -41,14 +42,22 @@ function EventCoverImpl({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
   const speaker=slide>0?photos[slide-1]:undefined;
   // Keep a stable frame when the banner alternates with a speaker photo.
   // New speaker uploads preserve their intrinsic dimensions; don't crop portraits.
-  const originalRatio=photos[0]?.photoAspectRatio;
+  const firstSpeaker=photos[0];
+  const originalRatio=firstSpeaker?.photoAspectRatio||(firstSpeaker?.id===measuredRatio?.speakerId?measuredRatio.ratio:undefined);
   const cardRatio=typeof originalRatio==="number"&&Number.isFinite(originalRatio)
     ?Math.min(2.4,Math.max(0.65,originalRatio)):1.91;
   return <div ref={coverRef} className={"ed-cover ed-cover-"+color+(wide?" ed-cover-wide":"")+(photos.length?" ed-cover-has-speaker":"")}
     style={!wide?{aspectRatio:String(cardRatio)}:undefined}>
     {speaker?.photoDataUrl?
       <div className="ed-speaker-slide" key={speaker.id}>
-        <Image alt={speaker.photoAlt||"Speaker "+speaker.name} src={speaker.photoDataUrl} width={1200} height={675} unoptimized loading="lazy"/>
+        <Image alt={speaker.photoAlt||"Speaker "+speaker.name} src={speaker.photoDataUrl} width={1200} height={675} unoptimized loading="lazy"
+          onLoad={event=>{
+            if(speaker.id!==firstSpeaker?.id||firstSpeaker.photoAspectRatio)return;
+            const width=event.currentTarget.naturalWidth,height=event.currentTarget.naturalHeight;
+            if(width>0&&height>0&&measuredRatio?.speakerId!==speaker.id){
+              setMeasuredRatio({speakerId:speaker.id,ratio:width/height});
+            }
+          }}/>
         <span className="ed-speaker-caption"><strong>{speaker.name}</strong><small>{speaker.jobTitle}</small></span>
       </div>:
       event.bannerDataUrl?
