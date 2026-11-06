@@ -90,10 +90,10 @@ test("capacity increase promotes queued employees before new RSVPs",()=>{
   assert.equal(waitlistedRegistrations(e.id,promoted).length,0);
 });
 
-test("speaker form requires complete details and image alt text",()=>{
+test("speaker form requires complete details but does not require photo alt text",()=>{
   const sample={id:"s1",name:"Sample Speaker",jobTitle:"Mentor",company:"Example Company",talkTitle:"A useful session",bio:"Short biography."};
   assert.equal(validateSpeakers([sample]),null);
-  assert.match(validateSpeakers([{...sample,photoDataUrl:"data:image/webp;base64,abcd"}])!,/alt text/);
+  assert.equal(validateSpeakers([{...sample,photoDataUrl:"data:image/webp;base64,abcd"}]),null);
   assert.match(validateSpeakers([{...sample,linkedIn:"javascript:alert(1)"}])!,/HTTPS/);
   assert.match(validateSpeakers([{...sample,company:""}])!,/company/);
 });

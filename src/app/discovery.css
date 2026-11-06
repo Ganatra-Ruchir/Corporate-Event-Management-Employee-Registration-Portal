@@ -453,3 +453,7 @@
 .ed-tile-speaker-card small{font-size:10px;line-height:1.25;max-width:72px;overflow:hidden;text-overflow:ellipsis}
 @media(hover:none){.ed-tile-hover{opacity:0;transform:none;visibility:hidden}}
 @media(prefers-reduced-motion:reduce){.ed-tile-hover,.ed-speaker-slide{animation:none;transition:none}}
+
+/* Preserve complete speaker portraits during banner-to-speaker rotation. */
+.ed-cover .ed-speaker-slide{background:#e9eef8}
+.ed-cover .ed-speaker-slide>img{object-fit:contain;background:#e9eef8}

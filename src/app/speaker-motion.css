@@ -133,3 +133,9 @@
  .ed-attendee-list,.ep-shell .ep-detail-layout,.ed-discover,.ed-browse,
  .ep-shell .ep-page-head,.ed-mobile-rsvp{animation:none!important}
 }
+
+/* Speaker portraits should never be cropped. Show the entire original image. */
+.sp-portrait{background:#edf2fa;height:62%}
+.sp-flip-trigger{height:525px}
+.se-photo-preview{background:#edf2fa}
+@media(max-width:650px){.sp-flip-trigger{height:500px}}
