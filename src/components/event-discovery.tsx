@@ -39,7 +39,13 @@ function EventCoverImpl({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
     return ()=>window.clearInterval(timer);
   },[visible,event.id,photos.length]);
   const speaker=slide>0?photos[slide-1]:undefined;
-  return <div ref={coverRef} className={"ed-cover ed-cover-"+color+(wide?" ed-cover-wide":"")}>
+  // Keep a stable frame when the banner alternates with a speaker photo.
+  // New speaker uploads preserve their intrinsic dimensions; don't crop portraits.
+  const originalRatio=photos[0]?.photoAspectRatio;
+  const cardRatio=typeof originalRatio==="number"&&Number.isFinite(originalRatio)
+    ?Math.min(2.4,Math.max(0.65,originalRatio)):1.91;
+  return <div ref={coverRef} className={"ed-cover ed-cover-"+color+(wide?" ed-cover-wide":"")+(photos.length?" ed-cover-has-speaker":"")}
+    style={!wide?{aspectRatio:String(cardRatio)}:undefined}>
     {speaker?.photoDataUrl?
       <div className="ed-speaker-slide" key={speaker.id}>
         <Image alt={speaker.photoAlt||"Speaker "+speaker.name} src={speaker.photoDataUrl} width={1200} height={675} unoptimized loading="lazy"/>
