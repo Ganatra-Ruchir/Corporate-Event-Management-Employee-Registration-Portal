@@ -13,29 +13,41 @@ const emptySpeaker=():Speaker=>({
  bio:"",agendaSlot:"",linkedIn:"",github:"",website:"",photoDataUrl:undefined,photoAlt:""
 });
 
-export async function prepareSpeakerPhoto(file:File):Promise<string>{
+export async function prepareSpeakerPhotoDetails(file:File):Promise<{dataUrl:string;aspectRatio:number}>{
  if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw Error("Choose a JPG, PNG or WebP photo.");
- if(file.size>MAX_BYTES)throw Error("The photo must be 5 MB or smaller.");
+ if(!file.size||file.size>MAX_BYTES)throw Error("The photo must be 5 MB or smaller.");
  const bitmap=await createImageBitmap(file);
  try{
+  if(bitmap.width<16||bitmap.height<16)throw Error("Speaker photo must be at least 16 pixels wide and tall.");
+  const aspectRatio=bitmap.width/bitmap.height;
   const canvas=document.createElement("canvas");
-  canvas.width=440;canvas.height=520;
-  const context=canvas.getContext("2d");
-  if(!context)throw Error("Your browser cannot process this image.");
-  // Fit the entire source photo; never crop faces, hair, shoulders or hands.
-  const scale=Math.min(canvas.width/bitmap.width,canvas.height/bitmap.height);
-  const width=bitmap.width*scale,height=bitmap.height*scale;
-  context.fillStyle="#edf2fa";
-  context.fillRect(0,0,canvas.width,canvas.height);
-  context.imageSmoothingEnabled=true;
-  context.imageSmoothingQuality="high";
-  context.drawImage(bitmap,(canvas.width-width)/2,(canvas.height-height)/2,width,height);
-  let result=canvas.toDataURL("image/webp",0.72);
-  if(result.length>380_000)result=canvas.toDataURL("image/webp",0.48);
-  if(result.length>380_000)throw Error("This image is too large for local browser storage. Try a smaller photo.");
-  canvas.width=0;canvas.height=0;
-  return result;
+  const ctx=canvas.getContext("2d");
+  if(!ctx)throw Error("Your browser cannot process this image.");
+  // Preserve the source's exact proportions, rather than forcing a fixed portrait frame.
+  // Downscale only to keep the browser payload manageable; never crop or add padding.
+  let longEdge=Math.min(1400,Math.max(bitmap.width,bitmap.height));
+  for(let attempt=0;attempt<12;attempt++){
+   const scale=longEdge/Math.max(bitmap.width,bitmap.height);
+   canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+   canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+   ctx.imageSmoothingEnabled=true;
+   ctx.imageSmoothingQuality="high";
+   ctx.clearRect(0,0,canvas.width,canvas.height);
+   ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+   for(const quality of [0.84,0.72,0.58,0.44]){
+    const dataUrl=canvas.toDataURL("image/webp",quality);
+    if(dataUrl.length<=380_000){
+     canvas.width=0;canvas.height=0;
+     return {dataUrl,aspectRatio};
+    }
+   }
+   longEdge*=0.78;
+  }
+  throw Error("This photo is too complex to process. Choose a smaller file.");
  }finally{bitmap.close();}
+}
+export async function prepareSpeakerPhoto(file:File):Promise<string>{
+ return (await prepareSpeakerPhotoDetails(file)).dataUrl;
 }
 
 export function SpeakerEditor({speakers,onChange}:{speakers:Speaker[];onChange:(speakers:Speaker[])=>void}){
@@ -58,7 +70,7 @@ export function SpeakerEditor({speakers,onChange}:{speakers:Speaker[];onChange:(
  async function upload(id:string,file?:File){
   if(!file)return;
   setUploading(id);setError("");
-  try{const photo=await prepareSpeakerPhoto(file);onChange(speakers.map(s=>s.id===id?{...s,photoDataUrl:photo,photoAlt:s.name.trim()?s.name.trim()+" speaker photo":"Speaker photo"}:s));}
+  try{const photo=await prepareSpeakerPhotoDetails(file);onChange(speakers.map(s=>s.id===id?{...s,photoDataUrl:photo.dataUrl,photoAspectRatio:photo.aspectRatio,photoAlt:s.name.trim()?s.name.trim()+" speaker photo":"Speaker photo"}:s));}
   catch(e){setError(e instanceof Error?e.message:"Unable to process speaker photo.");}
   finally{setUploading(null);}
  }
