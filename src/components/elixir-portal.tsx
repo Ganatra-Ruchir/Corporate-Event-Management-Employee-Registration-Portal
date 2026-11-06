@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import PublicLanding from "@/components/public-landing";
 import {DiscoverHome, DiscoverBrowse, EventTile, GoingFaces} from "@/components/event-discovery";
 import {SpeakerEditor} from "@/components/speaker-editor";
 import {SpeakerGallery} from "@/components/speaker-gallery";
@@ -210,6 +211,7 @@ export default function ElixirPortal(){
   const [data,setData]=useState<PortalData>(initialData);
   const [session,setSession]=useState<string|null>(null);
   const [ready,setReady]=useState(false);
+  const [showAuth,setShowAuth]=useState(false);
   const [now,setNow]=useState(0);
   const [view,setView]=useState<View>("home");
   const [selectedEvent,setSelectedEvent]=useState<string|null>(null);
@@ -397,7 +399,7 @@ export default function ElixirPortal(){
     setProfilePw("");setProfilePwConfirm("");setProfileSuccess("Profile saved in this browser.");
   }
   if(!ready)return <main className="ep-loading" role="status">Loading demonstration…</main>;
-  if(!current)return <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset}/>;
+  if(!current)return showAuth?<AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset}/>:<PublicLanding onEnter={()=>setShowAuth(true)}/>;
   if(blocked)return <main className="ep-auth-layout"><div className="ep-auth-card"><h1>Account unavailable</h1><p>Your account or company is suspended.</p><Action onClick={logout}>Sign out</Action></div></main>;
 
   const selected=selectedEvent?data.events.find(e=>e.id===selectedEvent):null;
