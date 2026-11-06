@@ -426,7 +426,7 @@ export default function ElixirPortal(){
   return <div className="ep-shell">
     <a className="ep-skip" href="#main-content">Skip to main content</a>
     <header className="ep-topbar">
-      <div className="ep-top-left"><button className="ep-menu" aria-label="Toggle navigation" onClick={()=>setMenu(!menu)}><Menu size={20}/></button><span className="ep-brand">Elixir Events Portal</span><span className="ep-divider-line"/><span className="ep-context">{current.role==="platform_admin"?"Platform management":company?.name||"Company events"}</span></div>
+      <div className="ep-top-left"><button className="ep-menu" aria-label="Toggle navigation" onClick={()=>setMenu(!menu)}><Menu size={20}/></button><span className="ep-brand">{current.role==="platform_admin"?"Elixir Events Portal":`${company?.name||"Organization"} Events Portal`}</span><span className="ep-divider-line"/><span className="ep-context">{current.role==="platform_admin"?"Platform management":company?.name||"Company events"}</span></div>
       <div className="ep-top-right"><span className="ep-draft-marker">LOCAL DRAFT · NO DATABASE</span><button className="ep-account" onClick={()=>goto("profile")}><span className="ep-initials">{current.fullName.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase()}</span><span>{current.fullName}</span></button></div>
     </header>
     <div className="ep-layout">
