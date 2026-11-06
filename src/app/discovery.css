@@ -457,3 +457,19 @@
 /* Preserve complete speaker portraits during banner-to-speaker rotation. */
 .ed-cover .ed-speaker-slide{background:#e9eef8}
 .ed-cover .ed-speaker-slide>img{object-fit:contain;background:#e9eef8}
+
+
+/* LinkedIn-style responsive event cards: the original speaker portrait remains visible. */
+.ed-tile-grid{align-items:start}
+.ed-tile{width:100%;border-radius:15px}
+.ed-tile-cover>.ed-cover{height:auto;min-height:0;max-height:none}
+.ed-tile-cover .ed-cover-has-speaker{background:#edf2f8}
+.ed-tile-cover .ed-cover-has-speaker>img,
+.ed-cover .ed-speaker-slide>img{width:100%;height:100%;object-fit:contain!important;object-position:center;background:#edf2f8}
+.ed-cover .ed-speaker-slide{display:flex;align-items:center;justify-content:center;background:#edf2f8}
+.ed-cover .ed-speaker-caption{left:auto;right:9px;bottom:9px;width:max-content;max-width:70%;border-radius:9px;padding:7px 10px;background:rgba(10,26,50,.8);backdrop-filter:blur(5px);pointer-events:none}
+.ed-cover .ed-speaker-caption strong{font-size:11px}
+.ed-cover .ed-speaker-caption small{font-size:10px}
+.ed-tile-cover .ed-cover-inner{width:100%;height:100%}
+.ed-feature .ed-cover-has-speaker>img{object-fit:contain!important}
+@media(max-width:720px){.ed-cover .ed-speaker-caption{padding:5px 8px;max-width:55%}}
