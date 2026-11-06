@@ -25,9 +25,9 @@ function EventCoverImpl({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
   useEffect(()=>{
     const element=coverRef.current;
     if(!element)return;
-    if(!("IntersectionObserver" in window)){
-      const fallback=window.setTimeout(()=>setVisible(true),0);
-      return ()=>window.clearTimeout(fallback);
+    if(typeof IntersectionObserver==="undefined"){
+      const fallback=setTimeout(()=>setVisible(true),0);
+      return ()=>clearTimeout(fallback);
     }
     const observer=new IntersectionObserver(entries=>setVisible(Boolean(entries[0]?.isIntersecting)),{rootMargin:"70px"});
     observer.observe(element);
