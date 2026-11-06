@@ -52,7 +52,7 @@ function EventCoverImpl({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
       <div className="ed-speaker-slide" key={speaker.id}>
         <Image alt={speaker.photoAlt||"Speaker "+speaker.name} src={speaker.photoDataUrl} width={1200} height={675} unoptimized loading="lazy"
           onLoad={event=>{
-            if(speaker.id!==firstSpeaker?.id||firstSpeaker.photoAspectRatio)return;
+            if(speaker.id!==firstSpeaker?.id||firstSpeaker?.photoAspectRatio)return;
             const width=event.currentTarget.naturalWidth,height=event.currentTarget.naturalHeight;
             if(width>0&&height>0&&measuredRatio?.speakerId!==speaker.id){
               setMeasuredRatio({speakerId:speaker.id,ratio:width/height});
