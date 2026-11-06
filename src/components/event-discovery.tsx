@@ -19,13 +19,27 @@ function EventCoverImpl({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
   const color=event.category.toLowerCase().replace(/[^a-z]+/g,"-");
   const photos=(event.speakers||[]).filter(person=>Boolean(person.photoDataUrl));
   const [slide,setSlide]=useState(0);
+  const coverRef=useRef<HTMLDivElement>(null);
+  const [visible,setVisible]=useState(false);
+  // Only animate cards on screen. Off-screen cards must not run 2-second timers.
   useEffect(()=>{
-    if(!photos.length||typeof window==="undefined"||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+    const element=coverRef.current;
+    if(!element)return;
+    if(!("IntersectionObserver" in window)){
+      const fallback=window.setTimeout(()=>setVisible(true),0);
+      return ()=>window.clearTimeout(fallback);
+    }
+    const observer=new IntersectionObserver(entries=>setVisible(Boolean(entries[0]?.isIntersecting)),{rootMargin:"70px"});
+    observer.observe(element);
+    return ()=>observer.disconnect();
+  },[]);
+  useEffect(()=>{
+    if(!visible||!photos.length||document.visibilityState!=="visible"||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
     const timer=window.setInterval(()=>setSlide(value=>(value+1)%(photos.length+1)),2000);
     return ()=>window.clearInterval(timer);
-  },[event.id,photos.length]);
+  },[visible,event.id,photos.length]);
   const speaker=slide>0?photos[slide-1]:undefined;
-  return <div className={"ed-cover ed-cover-"+color+(wide?" ed-cover-wide":"")}>
+  return <div ref={coverRef} className={"ed-cover ed-cover-"+color+(wide?" ed-cover-wide":"")}>
     {speaker?.photoDataUrl?
       <div className="ed-speaker-slide" key={speaker.id}>
         <Image alt={speaker.photoAlt||"Speaker "+speaker.name} src={speaker.photoDataUrl} width={1200} height={675} unoptimized loading="lazy"/>
