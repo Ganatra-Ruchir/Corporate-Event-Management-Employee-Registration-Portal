@@ -7,7 +7,7 @@ import {SpeakerGallery} from "@/components/speaker-gallery";
 import {makeId,validateSpeakers} from "@/lib/portal-model";
 import type {Speaker} from "@/lib/portal-model";
 
-const MAX_BYTES=5*1024*1024;
+const MAX_BYTES=20*1024*1024;
 const emptySpeaker=():Speaker=>({
  id:makeId("speaker"),name:"",jobTitle:"",company:"",talkTitle:"",
  bio:"",agendaSlot:"",linkedIn:"",website:"",photoDataUrl:undefined,photoAlt:""
@@ -15,16 +15,17 @@ const emptySpeaker=():Speaker=>({
 
 export async function prepareSpeakerPhoto(file:File):Promise<string>{
  if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw Error("Choose a JPG, PNG or WebP photo.");
- if(file.size>MAX_BYTES)throw Error("The photo must be 5 MB or smaller.");
+ if(file.size>MAX_BYTES)throw Error("The photo must be 20 MB or smaller.");
  const bitmap=await createImageBitmap(file);
  try{
   const canvas=document.createElement("canvas");
-  canvas.width=440;canvas.height=520;
+  // Preserve the uploaded image's aspect ratio: never center-crop portraits.
+  const scale=Math.min(1,900/Math.max(bitmap.width,bitmap.height));
+  canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+  canvas.height=Math.max(1,Math.round(bitmap.height*scale));
   const context=canvas.getContext("2d");
   if(!context)throw Error("Your browser cannot process this image.");
-  const scale=Math.max(canvas.width/bitmap.width,canvas.height/bitmap.height);
-  const width=bitmap.width*scale,height=bitmap.height*scale;
-  context.drawImage(bitmap,(canvas.width-width)/2,(canvas.height-height)/2,width,height);
+  context.drawImage(bitmap,0,0,canvas.width,canvas.height);
   let result=canvas.toDataURL("image/webp",0.72);
   if(result.length>380_000)result=canvas.toDataURL("image/webp",0.48);
   if(result.length>380_000)throw Error("This image is too large for local browser storage. Try a smaller photo.");
@@ -83,14 +84,11 @@ export function SpeakerEditor({speakers,onChange}:{speakers:Speaker[];onChange:(
            <Image src={speaker.photoDataUrl} width={320} height={380} unoptimized alt={speaker.photoAlt||"Speaker photo preview"}/>:
            <span>{speaker.name.trim().split(/\s+/).slice(0,2).map(p=>p.slice(0,1)).join("").toUpperCase()||"SP"}</span>}
        </div>
-       <label className="se-upload-label">Speaker photo (JPG, PNG or WebP, max 5 MB)
+       <label className="se-upload-label">Speaker photo (JPG, PNG or WebP, max 20 MB)
          <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading===speaker.id} onChange={e=>{void upload(speaker.id,e.target.files?.[0]);e.target.value="";}}/>
        </label>
        {uploading===speaker.id&&<span role="status" className="ep-hint">Processing photo…</span>}
        {speaker.photoDataUrl&&<button type="button" className="se-remove-photo" onClick={()=>{onChange(speakers.map(x=>x.id===speaker.id?{...x,photoDataUrl:undefined,photoAlt:""}:x));}}>Remove photo</button>}
-       <label className="ep-field">Photo alt text {speaker.photoDataUrl&&<span className="se-required">required</span>}
-         <input required={Boolean(speaker.photoDataUrl)} maxLength={180} value={speaker.photoAlt||""} onChange={e=>update(speaker.id,"photoAlt",e.target.value)} placeholder="Describe the speaker photo"/>
-       </label>
      </div>
      <div className="se-fields">
        <div className="se-fields-grid">
