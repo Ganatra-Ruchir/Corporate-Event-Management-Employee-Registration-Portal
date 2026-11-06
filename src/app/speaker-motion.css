@@ -21,8 +21,8 @@
 .se-item-actions button.se-remove:hover{background:#ffebeb;color:#8b252a}
 .se-item-body{display:grid;grid-template-columns:minmax(185px,.66fr) minmax(0,2fr);gap:20px;padding:17px}
 .se-photo-column{display:grid;gap:9px;align-content:start}
-.se-photo-preview{width:100%;max-width:220px;aspect-ratio:4/5;background:#e4eaf5;border:1px solid #d1daeb;border-radius:10px;overflow:hidden;display:grid;place-items:center;color:#4764a2;font-size:44px;font-weight:850}
-.se-photo-preview img{width:100%;height:100%;object-fit:cover}
+.se-photo-preview{width:100%;max-width:220px;min-height:150px;height:auto;background:#e4eaf5;border:1px solid #d1daeb;border-radius:10px;overflow:hidden;display:grid;place-items:center;color:#4764a2;font-size:44px;font-weight:850}
+.se-photo-preview img{width:100%;height:auto;object-fit:contain;display:block}
 .se-upload-label{display:grid;gap:7px;font-size:12px;font-weight:750;color:#43536b}
 .se-upload-label input{width:100%;font-size:11px;min-height:44px}
 .se-upload-label input::file-selector-button{border:1px solid #bfcbe0;border-radius:7px;background:#f3f6fc;color:#254da5;padding:7px 9px;margin-right:8px;font-weight:800;cursor:pointer}
@@ -48,19 +48,20 @@
 .sp-gallery-strip.sp-overflow{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(255px,calc((100% - 32px)/3));overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:thin;overscroll-behavior-inline:contain;padding:0 0 13px}
 .sp-gallery-strip.sp-overflow .sp-card{scroll-snap-align:start}
 .sp-card{min-width:0;position:relative;perspective:900px;display:flex;flex-direction:column;gap:9px}
-.sp-flip-trigger{display:block;width:100%;height:450px;position:relative;padding:0;text-align:left;border:1px solid #dce3ed;border-radius:14px;background:white;color:#20283a;box-shadow:0 4px 15px rgba(25,41,76,.09);
+.sp-flip-trigger{display:block;width:100%;height:auto;min-height:450px;position:relative;padding:0;text-align:left;border:1px solid #dce3ed;border-radius:14px;background:white;color:#20283a;box-shadow:0 4px 15px rgba(25,41,76,.09);
  transform:rotateX(var(--card-rx,0deg)) rotateY(var(--card-ry,0deg));
  transition:transform .21s ease-out,box-shadow .21s ease-out,border-color .21s;transform-style:preserve-3d;isolation:isolate;overflow:hidden}
 .sp-flip-trigger:hover{box-shadow:0 16px 37px rgba(18,34,73,.17);border-color:#afbfdb}
 .sp-flip-trigger:focus-visible{outline:3px solid #235bd4;outline-offset:3px}
 .sp-flip-trigger::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .2s;background:radial-gradient(circle at var(--sheen-x,50%) var(--sheen-y,30%),rgba(255,255,255,.24),transparent 48%)}
 .sp-flip-trigger:hover::after{opacity:1}
-.sp-flip-scene{position:relative;display:block;width:100%;height:100%;transition:transform .38s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}
+.sp-flip-scene{position:relative;display:block;width:100%;height:auto;min-height:450px;transition:transform .38s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}
 .sp-card.is-flipped .sp-flip-scene{transform:rotateY(180deg)}
 .sp-face{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:13px;background:white}
+.sp-face-front{position:relative;inset:auto;min-height:450px}
 .sp-face-back{transform:rotateY(180deg);background:#f4f6fd;padding:23px 21px}
-.sp-portrait{height:50%;flex:none;display:grid;place-items:center;background:#dbe5f7;overflow:hidden}
-.sp-portrait img{height:100%;width:100%;object-fit:cover;display:block}
+.sp-portrait{height:auto;min-height:180px;flex:none;display:grid;place-items:center;background:#dbe5f7;overflow:hidden}
+.sp-portrait img{height:auto;width:100%;max-height:none;object-fit:contain;display:block}
 .sp-initials{display:grid;place-items:center;width:95px;height:95px;background:#bccdeb;border:2px solid white;border-radius:50%;font-size:36px;font-weight:850;color:#284c91}
 .sp-front-copy{display:flex;flex-direction:column;gap:5px;padding:16px 17px 13px;min-height:0;flex:1}
 .sp-overline{font-weight:850;letter-spacing:1.15px;color:#2354ae;font-size:10px}
@@ -114,7 +115,7 @@
  .sp-gallery-heading{align-items:flex-start}
  .sp-gallery-strip{grid-template-columns:1fr}
  .sp-gallery-strip.sp-overflow{grid-auto-columns:minmax(245px,86%)}
- .sp-flip-trigger{height:435px}
+ .sp-flip-trigger{min-height:435px;height:auto}
  .sp-gallery-heading p{font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){
