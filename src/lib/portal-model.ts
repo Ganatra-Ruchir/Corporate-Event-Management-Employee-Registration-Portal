@@ -9,7 +9,7 @@ export type Person = { id:string; fullName:string; email:string; department:stri
 export type Speaker = {
  id:string; name:string; jobTitle:string; company:string; talkTitle:string;
  bio:string; agendaSlot?:string; linkedIn?:string; github?:string; website?:string;
- photoDataUrl?:string; photoAlt?:string; photoStorageKey?:string;
+ photoDataUrl?:string; photoAlt?:string; photoStorageKey?:string; photoAspectRatio?:number;
 };
 export function validateSpeakers(speakers:Speaker[]):string|null {
  if(speakers.length>12)return "Use no more than 12 speakers for one event.";
