@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { ArrowRight, CalendarDays, MapPin, Clock3, Search, X } from "lucide-react";
 import {activeRegistrations, remainingPlaces} from "@/lib/portal-model";
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState, memo} from "react";
 import type { PortalEvent, PortalData, Person } from "@/lib/portal-model";
 
 function dateParts(stamp:string) {
@@ -15,7 +15,7 @@ function dateParts(stamp:string) {
     clock:date.toLocaleTimeString("en-IN",{hour:"numeric",minute:"2-digit"})
   };
 }
-export function EventCover({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
+function EventCoverImpl({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
   const color=event.category.toLowerCase().replace(/[^a-z]+/g,"-");
   const photos=(event.speakers||[]).filter(person=>Boolean(person.photoDataUrl));
   const [slide,setSlide]=useState(0);
@@ -28,7 +28,7 @@ export function EventCover({event,wide=false}:{event:PortalEvent;wide?:boolean})
   return <div className={"ed-cover ed-cover-"+color+(wide?" ed-cover-wide":"")}>
     {speaker?.photoDataUrl?
       <div className="ed-speaker-slide" key={speaker.id}>
-        <Image alt={speaker.photoAlt||"Speaker "+speaker.name} src={speaker.photoDataUrl} width={1200} height={675} unoptimized/>
+        <Image alt={speaker.photoAlt||"Speaker "+speaker.name} src={speaker.photoDataUrl} width={1200} height={675} unoptimized loading="lazy"/>
         <span className="ed-speaker-caption"><strong>{speaker.name}</strong><small>{speaker.jobTitle}</small></span>
       </div>:
       event.bannerDataUrl?
@@ -42,6 +42,7 @@ export function EventCover({event,wide=false}:{event:PortalEvent;wide?:boolean})
     {wide&&<span className="ed-cover-label">{event.format==="online"?"Online event":event.format==="hybrid"?"Hybrid event":"In-person event"}</span>}
   </div>;
 }
+export const EventCover=memo(EventCoverImpl);
 function initials(name:string) {return name.split(" ").filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();}
 export function GoingFaces({event,data,limit=3}:{event:PortalEvent;data:PortalData;limit?:number}) {
   const regs=activeRegistrations(event.id,data);

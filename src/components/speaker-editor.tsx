@@ -22,12 +22,18 @@ export async function prepareSpeakerPhoto(file:File):Promise<string>{
   canvas.width=440;canvas.height=520;
   const context=canvas.getContext("2d");
   if(!context)throw Error("Your browser cannot process this image.");
-  const scale=Math.max(canvas.width/bitmap.width,canvas.height/bitmap.height);
+  // Fit the entire source photo; never crop faces, hair, shoulders or hands.
+  const scale=Math.min(canvas.width/bitmap.width,canvas.height/bitmap.height);
   const width=bitmap.width*scale,height=bitmap.height*scale;
+  context.fillStyle="#edf2fa";
+  context.fillRect(0,0,canvas.width,canvas.height);
+  context.imageSmoothingEnabled=true;
+  context.imageSmoothingQuality="high";
   context.drawImage(bitmap,(canvas.width-width)/2,(canvas.height-height)/2,width,height);
   let result=canvas.toDataURL("image/webp",0.72);
   if(result.length>380_000)result=canvas.toDataURL("image/webp",0.48);
   if(result.length>380_000)throw Error("This image is too large for local browser storage. Try a smaller photo.");
+  canvas.width=0;canvas.height=0;
   return result;
  }finally{bitmap.close();}
 }

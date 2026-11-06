@@ -39,7 +39,7 @@ function SpeakerCard({speaker}:{speaker:Speaker}){
       <span className="sp-face sp-face-front">
         <span className="sp-portrait">
           {speaker.photoDataUrl?
-           <Image src={speaker.photoDataUrl} alt={speaker.photoAlt||speaker.name} width={460} height={500} unoptimized/>:
+           <Image src={speaker.photoDataUrl} alt={speaker.photoAlt||speaker.name+" speaker portrait"} width={460} height={500} unoptimized loading="lazy"/>:
            <span className="sp-initials">{initials||"SP"}</span>}
         </span>
         <span className="sp-front-copy">

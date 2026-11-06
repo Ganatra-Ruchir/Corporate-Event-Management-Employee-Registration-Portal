@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import {DiscoverHome, DiscoverBrowse, EventTile, GoingFaces, EventCover} from "@/components/event-discovery";
-import {SpeakerEditor} from "@/components/speaker-editor";
-import {SpeakerGallery} from "@/components/speaker-gallery";
+import dynamic from "next/dynamic";
+const SpeakerEditor=dynamic(()=>import("@/components/speaker-editor").then(m=>m.SpeakerEditor),{loading:()=> <div className="ep-hint">Loading speaker editor…</div>});
+const SpeakerGallery=dynamic(()=>import("@/components/speaker-gallery").then(m=>m.SpeakerGallery),{loading:()=> <div className="ep-hint">Loading speaker cards…</div>});
 import {PlatformOverview,CompanyOverview,WorkspaceHeading,WorkspaceSection} from "@/components/admin-workspace";
 import {CompanyDirectory,PeopleDirectory,AccountDirectory,InvitationDirectory} from "@/components/admin-directory";
 import {EmployeeProvisioner} from "@/components/employee-provisioner";

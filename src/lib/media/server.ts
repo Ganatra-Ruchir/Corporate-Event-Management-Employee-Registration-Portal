@@ -5,6 +5,16 @@ import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import type {PortalEvent,Speaker} from "@/lib/portal-model";
 
 const BUCKET="event-media";
+const signedUrlCache=new Map<string,{url:string,validUntil:number}>();
+const SIGNED_URL_CACHE_MS=45*60*1000;
+async function signedObjectUrl(key:string){
+ const cached=signedUrlCache.get(key);
+ if(cached&&cached.validUntil>Date.now())return cached.url;
+ const url=await getSignedUrl(s3(),new GetObjectCommand({Bucket:BUCKET,Key:key}),{expiresIn:3600});
+ if(signedUrlCache.size>1200)signedUrlCache.clear();
+ signedUrlCache.set(key,{url,validUntil:Date.now()+SIGNED_URL_CACHE_MS});
+ return url;
+}
 let client:S3Client|undefined;
 const storageConfigured=()=>Boolean(process.env.AWS_ACCESS_KEY_ID&&process.env.AWS_SECRET_ACCESS_KEY&&process.env.AWS_ENDPOINT_URL_S3&&process.env.AWS_REGION);
 function s3(){
@@ -56,10 +66,10 @@ export async function storeEventImages(event:PortalEvent,previous?:PortalEvent):
 }
 export async function hydrateEventImages(event:PortalEvent):Promise<PortalEvent>{
  const next={...event};
- if(next.bannerStorageKey)next.bannerDataUrl=await getSignedUrl(s3(),new GetObjectCommand({Bucket:BUCKET,Key:next.bannerStorageKey}),{expiresIn:3600});
+ if(next.bannerStorageKey)next.bannerDataUrl=await signedObjectUrl(next.bannerStorageKey);
  next.speakers=await Promise.all((event.speakers||[]).map(async(s):Promise<Speaker>=>{
   const sp={...s};
-  if(sp.photoStorageKey)sp.photoDataUrl=await getSignedUrl(s3(),new GetObjectCommand({Bucket:BUCKET,Key:sp.photoStorageKey}),{expiresIn:3600});
+  if(sp.photoStorageKey)sp.photoDataUrl=await signedObjectUrl(sp.photoStorageKey);
   return sp;
  }));
  return next;
@@ -82,6 +92,7 @@ export async function uploadAvatarPng(userId:string,png:Buffer,oldKey?:string|nu
  const key="profiles/"+encodeURIComponent(userId)+"/"+randomUUID()+".png";
  await s3().send(new PutObjectCommand({Bucket:BUCKET,Key:key,Body:png,ContentType:"image/png",CacheControl:"private, max-age=3600"}));
  if(oldKey?.startsWith("profiles/"+encodeURIComponent(userId)+"/")){
+  signedUrlCache.delete(oldKey);
   await s3().send(new DeleteObjectCommand({Bucket:BUCKET,Key:oldKey})).catch(()=>{});
  }
  return key;
@@ -89,8 +100,11 @@ export async function uploadAvatarPng(userId:string,png:Buffer,oldKey?:string|nu
 export async function avatarSignedUrl(key:string|null|undefined){
  if(!key)return undefined;
  if(!/^profiles\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9-]+\.png$/.test(key))return undefined;
- return getSignedUrl(s3(),new GetObjectCommand({Bucket:BUCKET,Key:key}),{expiresIn:3600});
+ return signedObjectUrl(key);
 }
 export async function deleteAvatar(key:string|null|undefined){
- if(key?.startsWith("profiles/"))await s3().send(new DeleteObjectCommand({Bucket:BUCKET,Key:key}));
+ if(key?.startsWith("profiles/")){
+  signedUrlCache.delete(key);
+  await s3().send(new DeleteObjectCommand({Bucket:BUCKET,Key:key}));
+ }
 }
