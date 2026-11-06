@@ -604,7 +604,7 @@ export default function ElixirPortal(){
   return <div className="ep-shell">
     <a className="ep-skip" href="#main-content">Skip to main content</a>
     <header className="ep-topbar">
-      <div className="ep-top-left"><button className="ep-menu" aria-label="Toggle navigation" onClick={()=>setMenu(!menu)}><Menu size={20}/></button><span className="ep-brand">Elixir Events Portal</span><span className="ep-divider-line"/><span className="ep-context">{current.role==="platform_admin"?"Platform management":company?.name||"Company events"}</span></div>
+      <div className="ep-top-left"><button className="ep-menu" aria-label="Toggle navigation" onClick={()=>setMenu(!menu)}><Menu size={20}/></button><span className="ep-brand">{current.role==="platform_admin"?"Elixir Events Portal":`${company?.name||"Organization"} Events Portal`}</span><span className="ep-divider-line"/><span className="ep-context">{current.role==="platform_admin"?"Platform management":company?.name||"Company events"}</span></div>
       <div className="ep-top-right">{current.role==="employee"&&<EmployeeEventNotifications user={current} data={data} events={companyEvents} onOpen={openEvent}/>}<span className="ep-draft-marker">{remote?"POSTGRESQL · STAGING":"LOCAL DRAFT · NO DATABASE"}</span><button className="ep-account" onClick={()=>goto("profile")}><PersonAvatar person={current} size={27}/><span>{current.fullName}</span></button></div>
     </header>
     <div className="ep-layout">
