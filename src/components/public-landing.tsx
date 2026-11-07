@@ -1,39 +1,62 @@
 "use client";
-import {ArrowRight,CalendarDays,Search,Users,MapPin,Sparkles} from "lucide-react";
+import {ArrowRight,CalendarDays,Search,MapPin,Users,HeartHandshake,Sparkles,BookOpen,Leaf,HeartPulse,ArrowUpRight,ShieldCheck} from "lucide-react";
 import {useState} from "react";
 import {LandingArtwork} from "@/components/landing-artwork";
 
+const curations=[
+  {label:"Community impact",detail:"Volunteer and give back",scene:"impact" as const,icon:Leaf},
+  {label:"Learning & ideas",detail:"Build something together",scene:"learn" as const,icon:BookOpen},
+  {label:"People & culture",detail:"Celebrate shared moments",scene:"celebrate" as const,icon:Users},
+  {label:"Wellbeing",detail:"Make time for wellness",scene:"wellness" as const,icon:HeartPulse}
+];
 export default function PublicLanding({onEnter}:{onEnter:()=>void}){
  const [query,setQuery]=useState("");
- const go=(event?:React.FormEvent)=>{event?.preventDefault();onEnter();};
- return <div className="landing">
-   <header className="landing-header">
+ const go=(e?:React.FormEvent)=>{e?.preventDefault();onEnter();};
+ return <div className="landing landing-editorial">
+  <header className="landing-header" aria-label="Site navigation">
     <div className="landing-brand"><span className="landing-mark">e</span><span>elixir<span className="landing-brand-light">events</span></span></div>
-    <form onSubmit={go} className="landing-search"><Search size={19}/><input aria-label="Search events after signing in" placeholder="Search company events..." value={query} onChange={e=>setQuery(e.target.value)}/><span className="landing-search-divider"/><span className="landing-place"><MapPin size={15}/> Your organization</span><button aria-label="Sign in to search" type="submit"><Search size={19}/></button></form>
-    <nav className="landing-nav"><button onClick={onEnter} className="landing-login">Log in</button><a href="/signup" className="landing-signup">Join events <ArrowRight size={15}/></a></nav>
-   </header>
-   <main>
-    <section className="landing-hero" aria-labelledby="landing-hero-title">
-     <div className="landing-art landing-art-left" aria-hidden="true">
-       <div className="landing-float landing-float-one"><LandingArtwork scene="meet"/><span className="landing-art-tag">TEAM MEETUPS</span></div>
-       <div className="landing-float landing-float-two"><LandingArtwork scene="impact"/><span className="landing-art-tag">GIVE BACK</span></div>
-       <span className="landing-doodle landing-doodle-one">✳</span>
-     </div>
-     <div className="landing-hero-content"><span className="landing-kicker"><Sparkles size={15}/> EVENTS THAT BRING US TOGETHER</span><h1 id="landing-hero-title">Good things happen <span>when people meet.</span></h1><p>Find inspiring events, meet your colleagues and make a difference together. All your organization&apos;s experiences, in one place.</p><button className="landing-cta" onClick={onEnter}>Explore company events <ArrowRight size={19}/></button><span className="landing-hero-note">Sign in with your organization account to discover events.</span></div>
-     <div className="landing-art landing-art-right" aria-hidden="true">
-       <div className="landing-float landing-float-three"><LandingArtwork scene="ideas"/><span className="landing-art-tag">SHARE IDEAS</span></div>
-       <div className="landing-float landing-float-four"><LandingArtwork scene="celebrate"/><span className="landing-art-tag">CELEBRATE TOGETHER</span></div>
-       <span className="landing-doodle landing-doodle-two">✦</span>
-     </div>
+    <form onSubmit={go} className="landing-search"><Search size={17}/><input aria-label="Search events after signing in" placeholder="Search experiences..." value={query} onChange={e=>setQuery(e.target.value)}/><span className="landing-search-divider"/><span className="landing-place"><MapPin size={14}/> For your team</span><button aria-label="Sign in to search" type="submit"><ArrowRight size={17}/></button></form>
+    <nav className="landing-nav"><button onClick={()=>document.getElementById("experiences")?.scrollIntoView({behavior:"smooth"})} className="landing-login">Explore</button><button onClick={onEnter} className="landing-login">Log in</button><a href="/signup" className="landing-signup">Join your team <ArrowRight size={15}/></a></nav>
+  </header>
+  <main>
+    <section className="landing-photo-hero" aria-labelledby="landing-hero-title">
+      <div className="landing-hero-image" aria-hidden="true"/>
+      <div className="landing-hero-sheen" aria-hidden="true"/>
+      <div className="landing-hero-wrap">
+        <div className="landing-hero-main">
+          <span className="landing-overline"><span className="landing-overline-dot"/> CREATED FOR CONNECTION</span>
+          <h1 id="landing-hero-title">More than events.<span>Moments that matter.</span></h1>
+          <p>Discover the people, purpose and experiences that make your workplace a community.</p>
+          <div className="landing-hero-buttons"><button className="landing-cta" onClick={onEnter}>Discover your events <ArrowRight size={18}/></button><a className="landing-hero-secondary" href="/signup">Join your organization <ArrowUpRight size={17}/></a></div>
+        </div>
+        <div className="landing-glass-stamp"><span className="landing-glass-icon"><HeartHandshake size={25}/></span><div><strong>Come together.</strong><span>Connect · Learn · Make an impact</span></div></div>
+      </div>
+      <span className="landing-hero-index">ELIXIR FOUNDATION <span>—</span> EVENTS & EXPERIENCES</span>
     </section>
-    <section className="landing-below"><div className="landing-section-heading"><div><span className="landing-kicker">MADE FOR YOUR ORGANIZATION</span><h2>Find your next experience</h2><p>From community projects to learning sessions, there&apos;s something for every team.</p></div><button onClick={onEnter}>See all events <ArrowRight size={17}/></button></div>
-    <div className="landing-category-grid">
-     <button onClick={onEnter}><span className="landing-category-art art-volunteer"><LandingArtwork scene="impact"/></span><strong>Volunteering & impact</strong><span>Make a difference together</span></button>
-     <button onClick={onEnter}><span className="landing-category-art art-learning"><LandingArtwork scene="learn"/></span><strong>Workshops & learning</strong><span>Learn something new</span></button>
-     <button onClick={onEnter}><span className="landing-category-art art-community"><LandingArtwork scene="celebrate"/></span><strong>Team & community</strong><span>Connect beyond work</span></button>
-     <button onClick={onEnter}><span className="landing-category-art art-wellness"><LandingArtwork scene="wellness"/></span><strong>Health & wellness</strong><span>Look after each other</span></button>
-    </div><div className="landing-private-note"><CalendarDays size={20}/><div><strong>Your organization&apos;s upcoming events are private.</strong><span>Sign in to see real event schedules, hosts and attendees.</span></div><button onClick={onEnter}>Sign in <ArrowRight size={16}/></button></div></section>
-   </main>
-   <footer className="landing-footer"><span>Elixir Foundation · Events Portal</span><span>Connect. Participate. Create impact.</span></footer>
+    <section className="landing-curations" id="experiences">
+      <div className="landing-inner">
+       <div className="landing-section-intro"><div><span className="landing-eyebrow">CURATED FOR EVERY TEAM</span><h2>Find your kind of experience.</h2><p>Meaningful ways to connect, grow and create lasting impact.</p></div><button onClick={onEnter}>View your events <ArrowRight size={18}/></button></div>
+       <div className="landing-curation-grid">
+       {curations.map((item,i)=><button type="button" className="landing-curation" key={item.label} onClick={onEnter} style={{animationDelay:`${i*85}ms`}}>
+        <span className="landing-curation-visual"><LandingArtwork scene={item.scene}/><span className="landing-curation-icon"><item.icon size={19}/></span></span>
+        <span className="landing-curation-number">0{i+1} / EXPERIENCE</span><strong>{item.label}</strong><span className="landing-curation-bottom">{item.detail}<ArrowUpRight size={18}/></span>
+       </button>)}
+       </div>
+      </div>
+    </section>
+    <section className="landing-featured" aria-label="How experiences work">
+      <div className="landing-inner">
+        <div className="landing-section-intro"><div><span className="landing-eyebrow">THE EXPERIENCE EDIT</span><h2>Make more of your moments.</h2></div><span className="landing-featured-sub">Your organization's real event schedule is visible after sign-in.</span></div>
+        <div className="landing-feature-grid">
+          <button className="landing-feature-tile tile-one" onClick={onEnter}><div className="landing-feature-art"><LandingArtwork scene="meet"/></div><span className="landing-feature-details"><span><Sparkles size={15}/> TEAM CONNECTION</span><strong>Better together.</strong><small>Meet new people. Build a stronger team.</small><ArrowUpRight size={20}/></span></button>
+          <button className="landing-feature-tile tile-two" onClick={onEnter}><div className="landing-feature-art"><LandingArtwork scene="ideas"/></div><span className="landing-feature-details"><span><BookOpen size={15}/> NEW PERSPECTIVES</span><strong>Ideas worth sharing.</strong><small>Inspire curiosity through talks and workshops.</small><ArrowUpRight size={20}/></span></button>
+          <button className="landing-feature-tile tile-three" onClick={onEnter}><div className="landing-feature-art"><LandingArtwork scene="impact"/></div><span className="landing-feature-details"><span><Leaf size={15}/> PURPOSE IN ACTION</span><strong>Give something back.</strong><small>Turn a shared day into lasting change.</small><ArrowUpRight size={20}/></span></button>
+        </div>
+      </div>
+    </section>
+    <section className="landing-story"><div className="landing-story-image"/><div className="landing-story-shade"/><div className="landing-story-content"><span className="landing-eyebrow">PEOPLE MAKE THE DIFFERENCE</span><h2>Every great event starts with a reason to come together.</h2><p>From the first hello to the last shared memory, your next experience is closer than you think.</p><button onClick={onEnter}>Explore company experiences <ArrowRight size={18}/></button></div></section>
+    <section className="landing-private-wrap"><div className="landing-private-note"><span className="landing-private-symbol"><ShieldCheck size={23}/></span><div><strong>Built for your organization, not the public internet.</strong><span>Event dates, registration and attendees are available only after secure sign-in.</span></div><button onClick={onEnter}>Sign in <ArrowRight size={16}/></button></div></section>
+  </main>
+  <footer className="landing-footer-new"><div className="landing-footer-grid"><div><div className="landing-footer-logo"><span className="landing-mark">e</span><strong>elixir events</strong></div><p>Bringing people together through purpose, participation and shared experiences.</p></div><div><h3>Explore</h3><button onClick={()=>document.getElementById("experiences")?.scrollIntoView({behavior:"smooth"})}>Experiences</button><button onClick={onEnter}>Event discovery</button><a href="/signup">Join your team</a></div><div><h3>Your account</h3><button onClick={onEnter}>Employee sign in</button><button onClick={onEnter}>Admin sign in</button><a href="/signup">Create account</a></div><div><h3>Our purpose</h3><p>People first. Community always. Every event an opportunity to do good.</p></div></div><div className="landing-footer-bottom"><span>© {new Date().getFullYear()} Elixir Foundation. All rights reserved.</span><span>Made for meaningful connections</span></div></footer>
  </div>;
 }
