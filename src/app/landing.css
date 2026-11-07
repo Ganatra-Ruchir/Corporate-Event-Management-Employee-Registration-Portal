@@ -64,3 +64,17 @@
 @media(max-width:1050px){.ep-shell .ed-meetup-bubble{width:95px;height:90px;font-size:51px}.ep-shell .ed-meetup-hero{grid-template-columns:95px minmax(260px,1fr) 95px}}
 @media(max-width:690px){.ep-shell .ed-meetup-hero{display:block;min-height:auto;padding:35px 0 24px}.ep-shell .ed-meetup-art{display:none}.ep-shell .ed-meetup-copy h1{font-size:39px;letter-spacing:-1.6px}.ep-shell .ed-meetup-copy p{font-size:13px}.ep-shell .ed-home-heading-refined{align-items:start;gap:14px;flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){.ep-shell .ed-meetup-bubble{animation:none}.ep-shell .ed-meetup-cta{transition:none}.ep-shell .ed-meetup-cta:hover{transform:none}}
+
+/* Original illustrated scene system replaces platform-dependent emoji glyphs. */
+.landing-illustration{width:100%;height:100%;display:block;overflow:visible}
+.landing-float{background:transparent!important;box-shadow:none!important;overflow:visible;isolation:isolate;border-radius:0}
+.landing-float::before{display:none}
+.landing-float-one,.landing-float-two,.landing-float-three,.landing-float-four{width:207px;height:170px;transform:none!important}
+.landing-float .landing-illustration{filter:drop-shadow(0 13px 13px rgba(31,46,78,.12))}
+.landing-art-tag{bottom:-10px;z-index:1;background:#fff;color:#354263;font-size:10px;border:1px solid #e7e9f2;letter-spacing:.65px;box-shadow:0 5px 14px #2a385121}
+.landing-category-art{padding:0;overflow:hidden;background:transparent!important;border-radius:18px}
+.landing-category-art .landing-illustration{height:100%;width:100%;transition:transform .28s ease;transform:scale(1.055)}
+.landing-category-grid button:hover .landing-illustration{transform:scale(1.11)}
+@media(max-width:1000px){.landing-float-one,.landing-float-two,.landing-float-three,.landing-float-four{scale:.76}}
+@media(max-width:700px){.landing-float{width:145px!important;height:120px!important;scale:1!important}.landing-category-art .landing-illustration{transform:scale(1.12)}}
+@media(prefers-reduced-motion:reduce){.landing-category-art .landing-illustration{transition:none!important}}
