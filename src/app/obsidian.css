@@ -29,7 +29,7 @@ body{background:#101011!important;color:var(--paper)!important}
  --ep-white:var(--charcoal)!important;
  background:#171718!important;color:var(--paper)!important;
 }
-.landing-editorial{font-family:Inter,"Segoe UI",Arial,sans-serif}
+.landing-editorial{font-family:var(--font-sans),Inter,"Segoe UI",Arial,sans-serif}
 .landing-editorial h1,.landing-editorial h2,.landing-editorial .landing-curation strong,
 .landing-editorial .landing-feature-details strong,
 .ep-shell h1,.ep-shell h2,.ep-shell .aw-heading h1,

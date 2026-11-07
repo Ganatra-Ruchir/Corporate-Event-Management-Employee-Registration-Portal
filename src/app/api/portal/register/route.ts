@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {randomUUID} from "node:crypto";
 import {getEmailAuth} from "@/lib/auth/email-server";
 import {databaseEnabled,passwordHash,sqlPool} from "@/lib/db/server";
+import {sameOrigin} from "@/lib/http";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -25,8 +26,7 @@ export async function GET(req:NextRequest){
 }
 export async function POST(req:NextRequest){
  if(!databaseEnabled())return fail("Database registration not enabled",503);
- const origin=req.headers.get("origin");
- if(origin&&new URL(origin).host!==req.headers.get("host"))return fail("Invalid origin",403);
+ if(!sameOrigin(req))return fail("Invalid origin",403);
  if(Number(req.headers.get("content-length")||0)>4000)return fail("Request too large",413);
  let body:{email?:unknown;name?:unknown;department?:unknown;password?:unknown};
  try{body=await req.json();}catch{return fail("Invalid submission");}

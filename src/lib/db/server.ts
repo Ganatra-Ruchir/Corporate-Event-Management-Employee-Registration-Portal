@@ -34,15 +34,12 @@ export function toPerson(u:Record<string,unknown>):Person{
 }
 export async function getSession(token?:string){
  if(!token)return null;
- const p=sqlPool();
- const r=await p.query("SELECT u.* FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.status='active'",[hashToken(token)]);
- if(!r.rowCount)return null;
- const person=toPerson(r.rows[0]);
- if(person.companyId){
-  const company=await p.query("SELECT status FROM organizations WHERE id=$1",[person.companyId]);
-  if(company.rows[0]?.status!=="active")return null;
- }
- return person;
+ // One query instead of two: this runs on every API request, so each round trip counts.
+ const r=await sqlPool().query(
+  "SELECT u.* FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN organizations o ON o.id=u.organization_id "+
+  "WHERE s.token_hash=$1 AND s.expires_at>now() AND u.status='active' AND (u.organization_id IS NULL OR o.status='active')",
+  [hashToken(token)]);
+ return r.rowCount?toPerson(r.rows[0]):null;
 }
 export async function snapshot(current:Person):Promise<PortalData>{
  const p=sqlPool(),admin=current.role==="platform_admin";

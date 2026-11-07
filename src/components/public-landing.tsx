@@ -1,5 +1,5 @@
 "use client";
-import {ArrowRight,CalendarDays,Search,MapPin,Users,HeartHandshake,Sparkles,BookOpen,Leaf,HeartPulse,ArrowUpRight,ShieldCheck} from "lucide-react";
+import {ArrowRight,Search,MapPin,Users,HeartHandshake,Sparkles,BookOpen,Leaf,HeartPulse,ArrowUpRight,ShieldCheck} from "lucide-react";
 import {useState} from "react";
 import {LandingArtwork} from "@/components/landing-artwork";
 
@@ -46,7 +46,7 @@ export default function PublicLanding({onEnter}:{onEnter:()=>void}){
     </section>
     <section className="landing-featured" aria-label="How experiences work">
       <div className="landing-inner">
-        <div className="landing-section-intro"><div><span className="landing-eyebrow">THE EXPERIENCE EDIT</span><h2>Make more of your moments.</h2></div><span className="landing-featured-sub">Your organization's real event schedule is visible after sign-in.</span></div>
+        <div className="landing-section-intro"><div><span className="landing-eyebrow">THE EXPERIENCE EDIT</span><h2>Make more of your moments.</h2></div><span className="landing-featured-sub">Your organization&apos;s real event schedule is visible after sign-in.</span></div>
         <div className="landing-feature-grid">
           <button className="landing-feature-tile tile-one" onClick={onEnter}><div className="landing-feature-art"><LandingArtwork scene="meet"/></div><span className="landing-feature-details"><span><Sparkles size={15}/> TEAM CONNECTION</span><strong>Better together.</strong><small>Meet new people. Build a stronger team.</small><ArrowUpRight size={20}/></span></button>
           <button className="landing-feature-tile tile-two" onClick={onEnter}><div className="landing-feature-art"><LandingArtwork scene="ideas"/></div><span className="landing-feature-details"><span><BookOpen size={15}/> NEW PERSPECTIVES</span><strong>Ideas worth sharing.</strong><small>Inspire curiosity through talks and workshops.</small><ArrowUpRight size={20}/></span></button>

@@ -1,8 +1,9 @@
 import {NextRequest,NextResponse} from "next/server";
 import {randomUUID} from "node:crypto";
-import {databaseEnabled,sqlPool,passwordHash,passwordValid,makeToken,hashToken,getSession,snapshot,logAudit} from "@/lib/db/server";
+import {databaseEnabled,sqlPool,passwordHash,passwordValid,makeToken,hashToken,getSession,snapshot,logAudit,toPerson} from "@/lib/db/server";
 import {validateEvent} from "@/lib/portal-model";
 import {storeEventImages} from "@/lib/media/server";
+import {sameOrigin} from "@/lib/http";
 import type {Person,PortalEvent,Company} from "@/lib/portal-model";
 
 export const runtime="nodejs";
@@ -16,10 +17,6 @@ function denied(){return error("Not authorized for this operation",403);}
 function requireAdmin(user:Person){return user.role==="platform_admin";}
 function requireCompanyAdmin(user:Person,companyId:string){return user.role==="company_admin"&&user.companyId===companyId;}
 function requireOrg(user:Person,companyId:string){return requireAdmin(user)||user.companyId===companyId;}
-function hostOriginMatch(req:NextRequest){
- const origin=req.headers.get("origin");
- return !origin||new URL(origin).host===req.headers.get("host");
-}
 function jsonPayload(value:unknown){
  const raw=JSON.stringify(value);
  if(!raw||raw.length>3_500_000)throw new Error("Event payload is too large");
@@ -40,7 +37,7 @@ export async function GET(req:NextRequest){
 }
 export async function POST(req:NextRequest){
  if(!databaseEnabled())return error("Database mode is not enabled",503);
- if(!hostOriginMatch(req))return error("Invalid request origin",403);
+ if(!sameOrigin(req))return error("Invalid request origin",403);
  if(Number(req.headers.get("content-length")||0)>4_000_000)return error("Request too large",413);
  let body:{action?:string;args?:Args};
  try{body=await req.json();}catch{return error("Invalid JSON");}
@@ -56,10 +53,10 @@ export async function POST(req:NextRequest){
     if(u)await pool.query("UPDATE users SET failed_attempts=failed_attempts+1,locked_until=CASE WHEN failed_attempts>=7 THEN now()+interval '15 minutes' ELSE locked_until END WHERE id=$1",[u.id]);
     return error("Invalid credentials, unverified account or account temporarily locked",401);
    }
-   await pool.query("UPDATE users SET failed_attempts=0,locked_until=null WHERE id=$1",[u.id]);
    const token=makeToken();
-   await pool.query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '7 days')",[hashToken(token),u.id]);
-   const res=ok({success:true});
+   await pool.query("WITH reset AS (UPDATE users SET failed_attempts=0,locked_until=null WHERE id=$2) INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '7 days')",[hashToken(token),u.id]);
+   // Return the portal data with the login response so the browser doesn't need a second request.
+   const res=await getSnapshot(toPerson(u));
    res.cookies.set(COOKIE,token,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge:604800});
    return res;
   }
@@ -196,6 +193,7 @@ export async function POST(req:NextRequest){
    const org=await pool.query("SELECT 1 FROM organization_domains d JOIN organizations o ON o.id=d.organization_id WHERE d.domain=$1 AND d.organization_id=$2 AND o.status='active'",[domain,companyId]);
    if(!org.rowCount)return error("Email domain does not belong to the active organization");
    if((await pool.query("SELECT 1 FROM users WHERE email=$1",[email])).rowCount)return error("Account already exists");
+   if((await pool.query("SELECT 1 FROM invitations WHERE email=$1 AND accepted=false",[email])).rowCount)return error("A pending invitation already exists for this email",409);
    await pool.query("INSERT INTO invitations(id,email,organization_id) VALUES($1,$2,$3)",[randomUUID(),email,companyId]);
    await logAudit(pool,user,"invitation.create",email,companyId);
    return getSnapshot(user);
@@ -240,13 +238,12 @@ export async function POST(req:NextRequest){
   if(action==="saveEvent"){
    const e=args.event as PortalEvent;
    if(!e||typeof e!=="object"||!requireCompanyAdmin(user,text(e.companyId,120)))return denied();
-   const existing=await pool.query("SELECT id,created_by,payload FROM events WHERE id=$1",[text(e.id,120)]);
-   if(existing.rowCount){
-     const ownEvent=await pool.query("SELECT organization_id FROM events WHERE id=$1",[e.id]);
-     if(ownEvent.rows[0]?.organization_id!==user.companyId)return denied();
-   }
+   const existing=await pool.query("SELECT id,organization_id,created_by,payload FROM events WHERE id=$1",[text(e.id,120)]);
+   if(existing.rowCount&&existing.rows[0].organization_id!==user.companyId)return denied();
    const event:PortalEvent={...e,createdBy:existing.rows[0]?.created_by||user.id};
-   const issue=validateEvent(event,await snapshot(user));
+   // Field validation only. Capacity vs. existing registrations is checked inside the transaction below,
+   // so there is no need to load a full snapshot of the database here.
+   const issue=validateEvent(event,{companies:[],users:[],events:[],registrations:[],invitations:[]});
    if(issue)return error(issue);
    const sanitized=await storeEventImages(event,existing.rows[0]?.payload as PortalEvent|undefined);
    const payload=jsonPayload(sanitized),cap=Number(event.capacity),starts=new Date(event.startsAt),ends=new Date(event.endsAt);
