@@ -1,0 +1,104 @@
+/* Light workspace theme. Keeps the public marketing landing dark/editorial.
+   Scope all changes to authenticated portal so the photography and public branding
+   retain the established Obsidian & Amber identity. */
+.ep-shell{
+ --ep-ink:#2b2520!important;--ep-muted:#736a60!important;
+ --ep-bg:#f7f4ee!important;--ep-white:#fffdfa!important;
+ --ep-border:#e5ded4!important;
+ --ep-blue:#a66728!important;--ep-blue-strong:#87501d!important;
+ color:#2b2520!important;background:#f7f4ee!important;
+}
+.ep-shell .ep-layout,.ep-shell .ep-main,.ep-shell .ed-discover,
+.ep-shell .aw-root,.ep-shell .md-root{
+ color:#2b2520!important;background:#f7f4ee!important
+}
+.ep-shell .ep-topbar,.ep-shell .ep-sidebar{
+ color:#302923!important;background:#fffdfa!important;
+ border-color:#e3dbd0!important;box-shadow:0 2px 10px #4e321309!important
+}
+.ep-shell .ep-brand{color:#2e2721!important}
+.ep-shell .ep-context{color:#756a60!important}
+.ep-shell .ep-nav-link{color:#64574c!important}
+.ep-shell .ep-nav-link.active{color:#9b571a!important;border-bottom-color:#d88c3d!important;background:#f5e8d5!important}
+.ep-shell .ep-nav-link:hover{color:#995917!important;background:#faf0e3!important}
+.ep-shell .ep-account{background:#fff9f1!important;color:#2b2520!important;border-color:#e2d2c0!important}
+.ep-shell .ep-draft-marker{background:#fff2df!important;color:#8d521b!important;border-color:#e8ceaa!important}
+.ep-shell .ep-initials,.ep-shell .aw-company-logo,.ep-shell .aw-metric-icon{
+ color:#975b24!important;background:#f9ead6!important;border-color:#ecd2b3!important
+}
+.ep-shell h1,.ep-shell h2,.ep-shell h3,
+.ep-shell .ep-page-head h1,.ep-shell .aw-heading h1,.ep-shell .ed-browse-title h1,
+.ep-shell .ed-home-heading h2,.ep-shell .ed-meetup-copy h1,
+.ep-shell .aw-metric strong,.ep-shell .ep-stats b,.ep-shell .ed-tile-title-wrap h3{
+ color:#2a241f!important
+}
+.ep-shell .ep-context,.ep-shell .ep-page-head p,.ep-shell .aw-heading p,
+.ep-shell .ed-home-heading p,.ep-shell .ep-subtle,
+.ep-shell .aw-metric small,.ep-shell .aw-section-heading p,
+.ep-shell .ed-section-head p,.ep-shell .ed-tile-host,
+.ep-shell .ed-tile-content p,.ep-shell .ep-hint,.ep-shell .ep-footer{
+ color:#756b61!important
+}
+.ep-shell .ep-panel,.ep-shell .aw-metric,.ep-shell .aw-company-card,
+.ep-shell .aw-action-card,.ep-shell .aw-action-grid>button,
+.ep-shell .ed-tile,.ep-shell .ed-browse-controls,.ep-shell .ed-detail-keyfacts,
+.ep-shell .se-root,.ep-shell .sp-card,.ep-shell .ep-stats>div,
+.ep-shell .md-company,.ep-shell .md-person,.ep-shell .md-details,
+.ep-shell .md-account,.ep-shell .md-detail-metrics>div,
+.ep-shell .ep-detail-copy,.ep-shell .ep-detail-side{
+ color:#2b2520!important;background:#fffdfa!important;
+ border-color:#e5dcd0!important;box-shadow:0 5px 18px #4f37200b!important
+}
+.ep-shell .ep-panel:hover,.ep-shell .aw-company-card:hover,
+.ep-shell .ed-tile:hover,.ep-shell .aw-action-grid>button:hover{
+ border-color:#d4a36c!important;box-shadow:0 10px 25px #5d3e1e18!important
+}
+.ep-shell .aw-company-card strong,.ep-shell .aw-action-grid strong,
+.ep-shell .md-company strong,.ep-shell .md-person strong,
+.ep-shell .md-account strong,.ep-shell .ed-tile strong{
+ color:#2d2823!important
+}
+.ep-shell .aw-action-grid span,.ep-shell .aw-company-body small,
+.ep-shell .md-person small,.ep-shell .md-company small,
+.ep-shell .ed-tile small{color:#786e64!important}
+.ep-shell .aw-action-grid>button>svg:first-child,.ep-shell .aw-action-grid>button>svg:last-child,
+.ep-shell .aw-company-card>svg,.ep-shell .aw-text-action,.ep-shell .ed-home-explore,
+.ep-shell .ed-feature-cta,.ep-shell a{color:#aa6322!important}
+.ep-shell .aw-metric-label,.ep-shell .ep-stats span{color:#89501d!important}
+.ep-shell .aw-metric,.ep-shell .ep-stats>div{background:#fffdfa!important}
+.ep-shell .ep-button.primary,.ep-shell .aw-primary,
+.ep-shell .ed-search-toggle,.ep-shell .ed-meetup-cta{
+ background:#d89347!important;color:#231a10!important;border-color:#d89347!important
+}
+.ep-shell .ep-button.primary:hover,.ep-shell .aw-primary:hover,
+.ep-shell .ed-search-toggle:hover,.ep-shell .ed-meetup-cta:hover{
+ background:#e6a55c!important;border-color:#e6a55c!important
+}
+.ep-shell .ep-button:not(.primary){color:#8a511c!important}
+.ep-shell .ed-meetup-copy h1 span{color:#a15b22!important}
+.ep-shell .ed-meetup-bubble{background:#faf1e6!important;border-color:#ecdbc6!important}
+.ep-shell .ed-feature{background:#f4e7d8!important;border-color:#e5d0b7!important}
+.ep-shell .ed-feature-content{background:#f4e7d8!important;color:#30261e!important}
+.ep-shell .ed-feature h2,.ep-shell .ed-feature p{color:#30261e!important}
+.ep-shell .ed-category-nav button{
+ background:#fff8ef!important;border-color:#e4d4bf!important;color:#765a3c!important
+}
+.ep-shell .ed-category-nav button:hover{background:#f7e3c9!important;color:#774315!important}
+.ep-shell input,.ep-shell select,.ep-shell textarea{
+ color:#2b2520!important;background:#fffefa!important;
+ border:1px solid #d7c7b5!important;color-scheme:light
+}
+.ep-shell input::placeholder,.ep-shell textarea::placeholder{color:#93877c!important}
+.ep-shell input:focus,.ep-shell select:focus,.ep-shell textarea:focus{
+ border-color:#c9833b!important;box-shadow:0 0 0 3px #d8934725!important
+}
+.ep-shell label,.ep-shell th,.ep-shell td{color:#302923!important}
+.ep-shell th{background:#f4e9dc!important;color:#70431e!important}
+.ep-shell th,.ep-shell td,.ep-shell table{border-color:#e2d7c9!important}
+.ep-shell .ep-footer{border-color:#ded4c7!important}
+.ep-shell .ep-chip,.ep-shell .aw-company-card .ep-chip{border-color:#bfd9c5}
+.ep-shell .ep-page-head,.ep-shell .aw-heading,.ep-shell .aw-section-head{color:#302923!important}
+.ep-shell .ep-menu,.ep-shell .ep-top-right button:not(.ep-button){color:#3c3026}
+/* Avoid theme conflicts inside photo-covered event areas. */
+.ep-shell .ed-cover,.ep-shell .ed-cover *,.ep-shell .ed-tile-hover,
+.ep-shell .ed-tile-hover *{color:inherit}
