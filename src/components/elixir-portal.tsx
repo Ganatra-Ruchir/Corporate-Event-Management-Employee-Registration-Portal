@@ -287,32 +287,6 @@ export default function ElixirPortal(){
         setRemote(true);setRemoteError("Unable to connect to the PostgreSQL portal. Refresh to retry.");
         setReady(true);return;
       }
-      try{
-        const s=localStorage.getItem(STORE);
-        if(s){const d=JSON.parse(s) as PortalData;if(d&&Array.isArray(d.companies)&&Array.isArray(d.users)&&Array.isArray(d.events)&&Array.isArray(d.registrations)&&Array.isArray(d.invitations)) {
-          // Import previous browser-only demo state into the shared V2 status model.
-          const updated={...d,registrations:d.registrations.map(r=>({
-            ...r,status:(r.status as string)==="registered"?"going":(r.status as string)==="removed"?"cancelled":r.status
-          })) as PortalData["registrations"]};
-          if(!localStorage.getItem("elixir-v2-speakers-onboarded")){
-            updated.events=updated.events.map(e=>{
-              const example=initialData.events.find(x=>x.id===e.id);
-              return !e.speakers?.length&&example?.speakers?.length?{...e,speakers:example.speakers}:e;
-            });
-            localStorage.setItem("elixir-v2-speakers-onboarded","1");
-            try{localStorage.setItem(STORE,JSON.stringify(updated));}catch{}
-          }
-          setData(updated);
-        }}
-        const u=localStorage.getItem(SESSION);
-        if(u){
-          setSession(u);
-          const eventId=new URLSearchParams(window.location.search).get("event");
-          if(eventId){setSelectedEvent(eventId);setView("event");}
-        }
-      }catch{}
-      setNow(Date.now());
-      setReady(true);
     });
   },[]);
   // Refresh the database feed while employees are signed in so newly
