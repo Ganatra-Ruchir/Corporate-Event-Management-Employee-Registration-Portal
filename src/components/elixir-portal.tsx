@@ -353,7 +353,8 @@ export default function ElixirPortal(){
     if(remote){
       const result=await remoteRequest("login",{email,password});
       if(result.error)return result.error;
-      if(!await remoteRefresh())return "Signed in, but could not load your account. Refresh the page.";
+      if(result.data&&result.currentId){setData(result.data);setSession(result.currentId);setNow(Date.now());}
+      else if(!await remoteRefresh())return "Signed in, but could not load your account. Refresh the page.";
       setShowAuth(false);
       const requested=requestedEventId();
       if(requested){setSelectedEvent(requested);setView("event");}else setView("home");

@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from "next/server";
 import {randomUUID} from "node:crypto";
-import {databaseEnabled,sqlPool,passwordHash,passwordValid,makeToken,hashToken,getSession,snapshot,logAudit} from "@/lib/db/server";
+import {databaseEnabled,sqlPool,passwordHash,passwordValid,makeToken,hashToken,getSession,snapshot,logAudit,toPerson} from "@/lib/db/server";
 import {validateEvent} from "@/lib/portal-model";
 import {storeEventImages} from "@/lib/media/server";
 import {sameOrigin} from "@/lib/http";
@@ -53,10 +53,10 @@ export async function POST(req:NextRequest){
     if(u)await pool.query("UPDATE users SET failed_attempts=failed_attempts+1,locked_until=CASE WHEN failed_attempts>=7 THEN now()+interval '15 minutes' ELSE locked_until END WHERE id=$1",[u.id]);
     return error("Invalid credentials, unverified account or account temporarily locked",401);
    }
-   await pool.query("UPDATE users SET failed_attempts=0,locked_until=null WHERE id=$1",[u.id]);
    const token=makeToken();
-   await pool.query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '7 days')",[hashToken(token),u.id]);
-   const res=ok({success:true});
+   await pool.query("WITH reset AS (UPDATE users SET failed_attempts=0,locked_until=null WHERE id=$2) INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '7 days')",[hashToken(token),u.id]);
+   // Return the portal data with the login response so the browser doesn't need a second request.
+   const res=await getSnapshot(toPerson(u));
    res.cookies.set(COOKIE,token,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge:604800});
    return res;
   }
@@ -241,7 +241,9 @@ export async function POST(req:NextRequest){
    const existing=await pool.query("SELECT id,organization_id,created_by,payload FROM events WHERE id=$1",[text(e.id,120)]);
    if(existing.rowCount&&existing.rows[0].organization_id!==user.companyId)return denied();
    const event:PortalEvent={...e,createdBy:existing.rows[0]?.created_by||user.id};
-   const issue=validateEvent(event,await snapshot(user));
+   // Field validation only. Capacity vs. existing registrations is checked inside the transaction below,
+   // so there is no need to load a full snapshot of the database here.
+   const issue=validateEvent(event,{companies:[],users:[],events:[],registrations:[],invitations:[]});
    if(issue)return error(issue);
    const sanitized=await storeEventImages(event,existing.rows[0]?.payload as PortalEvent|undefined);
    const payload=jsonPayload(sanitized),cap=Number(event.capacity),starts=new Date(event.startsAt),ends=new Date(event.endsAt);
