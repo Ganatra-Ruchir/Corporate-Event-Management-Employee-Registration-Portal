@@ -10,7 +10,7 @@ export default function PublicLanding({onEnter}:{onEnter:()=>void}){
    <header className="landing-header">
     <div className="landing-brand"><span className="landing-mark">e</span><span>elixir<span className="landing-brand-light">events</span></span></div>
     <form onSubmit={go} className="landing-search"><Search size={19}/><input aria-label="Search events after signing in" placeholder="Search company events..." value={query} onChange={e=>setQuery(e.target.value)}/><span className="landing-search-divider"/><span className="landing-place"><MapPin size={15}/> Your organization</span><button aria-label="Sign in to search" type="submit"><Search size={19}/></button></form>
-    <nav className="landing-nav"><button onClick={onEnter} className="landing-login">Log in</button><button onClick={onEnter} className="landing-signup">Join events <ArrowRight size={15}/></button></nav>
+    <nav className="landing-nav"><button onClick={onEnter} className="landing-login">Log in</button><a href="/signup" className="landing-signup">Join events <ArrowRight size={15}/></a></nav>
    </header>
    <main>
     <section className="landing-hero" aria-labelledby="landing-hero-title">
