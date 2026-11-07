@@ -31,10 +31,17 @@ import type { Company, EventFormat, EventStatus, Invitation, Person, PortalData,
 type View="home"|"events"|"registrations"|"people"|"companies"|"invitations"|"users"|"profile"|"event"|"eventForm"|"companyForm";
 type AuthView="login"|"signup"|"verify"|"forgot";
 const STORE="elixir-events-data-v3",SESSION="elixir-events-session-v2";
+/** Event id from a shared "/?event=<id>" link, if any. */
+const requestedEventId=()=>typeof window==="undefined"?null:new URLSearchParams(window.location.search).get("event");
+/** New events default to 09:00–12:00 local time, one week from today (never a hard-coded date that goes stale). */
+function defaultEventWindow(){
+  const start=new Date();start.setDate(start.getDate()+7);start.setHours(9,0,0,0);
+  const end=new Date(start);end.setHours(12);
+  return {startsAt:start.toISOString(),endsAt:end.toISOString()};
+}
 const initialEvent=(companyId:string,userId:string):PortalEvent=>({
   id:makeId("event"),companyId,title:"",summary:"",description:"",category:"Volunteering",
-  format:"in_person",location:"",onlineLink:"",startsAt:"2026-12-04T09:00:00+05:30",
-  endsAt:"2026-12-04T12:00:00+05:30",capacity:25,deadline:"",
+  format:"in_person",location:"",onlineLink:"",...defaultEventWindow(),capacity:25,deadline:"",
   contactEmail:"",status:"draft",cancellationReason:"",createdBy:userId
 });
 const roleName=(role:Role)=>role==="platform_admin"?"Platform admin":role==="company_admin"?"Company admin":"Employee";
@@ -61,24 +68,6 @@ function Action({children,onClick,kind="primary",disabled=false,type="button"}:{
   return <button className={"ep-button "+kind} type={type} onClick={onClick} disabled={disabled}>{children}</button>;
 }
 
-function calendarStamp(iso:string){return new Date(iso).toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");}
-function calendarText(s:string){return s.replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;");}
-function saveCalendarEvent(event:PortalEvent){
-  const contents=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Elixir Foundation//Events Portal//EN",
-    "BEGIN:VEVENT","UID:"+event.id+"@elixir-events.example",
-    "DTSTAMP:"+calendarStamp(new Date().toISOString()),
-    "DTSTART:"+calendarStamp(event.startsAt),"DTEND:"+calendarStamp(event.endsAt),
-    "SUMMARY:"+calendarText(event.title),"DESCRIPTION:"+calendarText(event.summary),
-    "LOCATION:"+calendarText(event.format==="online"?"Online":event.location),"END:VEVENT","END:VCALENDAR"].join("\r\n");
-  const url=URL.createObjectURL(new Blob([contents],{type:"text/calendar;charset=utf-8"}));
-  const anchor=document.createElement("a");anchor.href=url;anchor.download="elixir-event-"+event.id+".ics";anchor.click();URL.revokeObjectURL(url);
-}
-function googleCalendarUrl(event:PortalEvent){
-  const params=new URLSearchParams({action:"TEMPLATE",text:event.title,
-    dates:calendarStamp(event.startsAt)+"/"+calendarStamp(event.endsAt),
-    details:event.summary,location:event.format==="online"?"Online":event.location});
-  return "https://calendar.google.com/calendar/render?"+params.toString();
-}
 function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalData;onSave:(event:PortalEvent)=>void;onBack:()=>void}){
   const [form,setForm]=useState<PortalEvent>({...event});
   const [error,setError]=useState("");
@@ -215,7 +204,7 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false,onB
       </form>}
       <div className="ep-auth-links">
         {mode!=="login"&&<button type="button" onClick={()=>{setMode("login");setError("");setMessage("");}}>Back to sign in</button>}
-        {mode==="login"&&<><button type="button" onClick={()=>{if(remoteMode){window.location.href="/signup";return;}setMode("signup");setError("");setMessage("");}}>Create an account</button>{!remoteMode&&<><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button><button type="button" onClick={()=>{const u=data.users.find(p=>p.email===email.toLowerCase().trim()&&!p.verified);if(!u){setError("Enter the email of an unverified demonstration account.");return;}setVerifyId(u.id);setMode("verify");setError("");}}>Verify demo email</button></>}</>}
+        {mode==="login"&&<><button type="button" onClick={()=>{if(remoteMode){window.location.assign("/signup");return;}setMode("signup");setError("");setMessage("");}}>Create an account</button>{!remoteMode&&<><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button><button type="button" onClick={()=>{const u=data.users.find(p=>p.email===email.toLowerCase().trim()&&!p.verified);if(!u){setError("Enter the email of an unverified demonstration account.");return;}setVerifyId(u.id);setMode("verify");setError("");}}>Verify demo email</button></>}</>}
       </div>
       <p className="ep-auth-footnote">{remoteMode?"Secure PostgreSQL · Server-side session":"Browser-only demonstration · No secure shared accounts or database"}</p>
     </main>
@@ -247,7 +236,6 @@ export default function ElixirPortal(){
   const [search,setSearch]=useState("");
   const [searchOpen,setSearchOpen]=useState(false);
   const [directorySearch,setDirectorySearch]=useState("");
-  const [signedOut,setSignedOut]=useState(false);
   const [showAuth,setShowAuth]=useState(false);
   const [participantSearch,setParticipantSearch]=useState("");
   const [showAttendees,setShowAttendees]=useState(false);
@@ -282,6 +270,8 @@ export default function ElixirPortal(){
         }
         if(payload.data)setData(payload.data);
         setSession(payload.currentId||null);
+        const requested=requestedEventId();
+        if(payload.currentId&&requested){setSelectedEvent(requested);setView("event");}
         setNow(Date.now());setReady(true);return;
       }catch{
         setRemote(true);setRemoteError("Unable to connect to the PostgreSQL portal. Refresh to retry.");
@@ -364,14 +354,17 @@ export default function ElixirPortal(){
       const result=await remoteRequest("login",{email,password});
       if(result.error)return result.error;
       if(!await remoteRefresh())return "Signed in, but could not load your account. Refresh the page.";
-      setSignedOut(false);setShowAuth(false);setView("home");return null;
+      setShowAuth(false);
+      const requested=requestedEventId();
+      if(requested){setSelectedEvent(requested);setView("event");}else setView("home");
+      return null;
     }
     const u=data.users.find(x=>x.email.toLowerCase()===email.toLowerCase().trim());
     if(!u||!(await passwordMatches(u.password,password)))return "Invalid email or password.";
     if(!u.verified)return "Verify the sample email before signing in.";
     const org=u.companyId?data.companies.find(c=>c.id===u.companyId):null;
     if(u.status==="suspended"||org?.status==="suspended")return "This account or company is suspended. Contact the platform administrator.";
-    setSession(u.id);setSignedOut(false);try{localStorage.setItem(SESSION,u.id);}catch{}
+    setSession(u.id);try{localStorage.setItem(SESSION,u.id);}catch{}
     const requested=new URLSearchParams(window.location.search).get("event");
     const target=data.events.find(e=>e.id===requested);
     if(target&&eventAccess(u,target,data)){setSelectedEvent(target.id);setView("event");}
@@ -404,9 +397,10 @@ export default function ElixirPortal(){
     save({...data,users:data.users.map(p=>p.id===u.id?{...p,password:DEMO_PASSWORD}:p)});
     return "Local demo password reset to "+DEMO_PASSWORD+". No email was sent.";
   }
-  function logout(){
-    if(remote){void remoteRequest("logout");}
-    setSession(null);setSignedOut(false);setShowAuth(false);try{localStorage.removeItem(SESSION);}catch{}goto("home");
+  async function logout(){
+    // Wait for the server to revoke the session cookie; otherwise a quick refresh signs the user straight back in.
+    if(remote)await remoteRequest("logout");
+    setSession(null);setShowAuth(false);try{localStorage.removeItem(SESSION);}catch{}goto("home");
   }
 
   function saveEvent(e:PortalEvent){
@@ -659,7 +653,7 @@ export default function ElixirPortal(){
               </dl>
 <section className="ep-panel ep-detail-side ed-linktree-registration ed-rsvp-below-about"><div className="ed-rsvp-pill">JOIN THE EVENT</div><h2>Registration</h2><p className="ed-rsvp-invite">Be part of something meaningful.</p>
               <div className="ed-rsvp-count"><strong>{remainingPlaces(selected,data)}</strong><span>spots left of {selected.capacity}</span></div>
-              <div className="ed-rsvp-progress" role="progressbar" aria-label="Reserved places" aria-valuenow={activeRegistrations(selected.id,data).length} aria-valuemax={selected.capacity} aria-valuemin={0}><span style={{width:(100*activeRegistrations(selected.id,data).length/selected.capacity)+"%"}}/></div>
+              <div className="ed-rsvp-progress" role="progressbar" aria-label="Reserved places" aria-valuenow={activeRegistrations(selected.id,data).length} aria-valuemax={selected.capacity} aria-valuemin={0}><span style={{width:Math.min(100,100*activeRegistrations(selected.id,data).length/Math.max(1,selected.capacity))+"%"}}/></div>
               <p>{activeRegistrations(selected.id,data).length} going</p>
               {waitlistedRegistrations(selected.id,data).length>0&&<p>{waitlistedRegistrations(selected.id,data).length} on the waitlist</p>}
               {data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?
@@ -803,8 +797,8 @@ export default function ElixirPortal(){
               <h2>{remote?"Change password":"Change demonstration password"}</h2>
               <p className="ep-hint">{remote?"Optional: choose a new unique password of at least 12 characters.":"Optional. Use a disposable demo password, not your real work password."}</p>
               <div className="ep-form-grid">
-                <FormRow label="New password"><input type="password" minLength={6} autoComplete="new-password" value={profilePw} onChange={e=>setProfilePw(e.target.value)}/></FormRow>
-                <FormRow label="Confirm password"><input type="password" minLength={6} autoComplete="new-password" value={profilePwConfirm} onChange={e=>setProfilePwConfirm(e.target.value)}/></FormRow>
+                <FormRow label="New password"><input type="password" minLength={remote?12:6} autoComplete="new-password" value={profilePw} onChange={e=>setProfilePw(e.target.value)}/></FormRow>
+                <FormRow label="Confirm password"><input type="password" minLength={remote?12:6} autoComplete="new-password" value={profilePwConfirm} onChange={e=>setProfilePwConfirm(e.target.value)}/></FormRow>
               </div>
               {profileError&&<div className="ep-error" role="alert">{profileError}</div>}
               {profileSuccess&&<div className="ep-success" role="status">{profileSuccess}</div>}
@@ -816,9 +810,4 @@ export default function ElixirPortal(){
       </main>
     </div>
   </div>;
-}
-function CompanyTable({companies,data,onView}:{companies:Company[];data:PortalData;onView:(id:string)=>void}){
-  return <div className="ep-table-scroll"><table><thead><tr><th>Company</th><th>Domains</th><th>Events</th><th>Registrations</th><th>Status</th><th>Action</th></tr></thead><tbody>
-    {companies.map(c=><tr key={c.id}><td><b>{c.name}</b></td><td>{c.domains.join(", ")}</td><td>{data.events.filter(e=>e.companyId===c.id).length}</td><td>{data.events.filter(e=>e.companyId===c.id).reduce((n,e)=>n+activeRegistrations(e.id,data).length,0)}</td><td><Chip tone={c.status==="active"?"green":"red"}>{c.status}</Chip></td><td><button onClick={()=>onView(c.id)}>Manage</button></td></tr>)}
-  </tbody></table></div>;
 }

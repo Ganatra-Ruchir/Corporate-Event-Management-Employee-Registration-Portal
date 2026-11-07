@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {databaseEnabled,getSession,sqlPool,snapshot} from "@/lib/db/server";
 import {avatarSignedUrl,deleteAvatar,uploadAvatarPng} from "@/lib/media/server";
+import {sameOrigin} from "@/lib/http";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const fail=(error:string,status:number)=>NextResponse.json({error},{status,headers:{"Cache-Control":"no-store"}});
@@ -9,8 +10,7 @@ async function currentUser(req:NextRequest){
  return getSession(req.cookies.get("elixir_session")?.value);
 }
 export async function POST(req:NextRequest){
- const origin=req.headers.get("origin");
- if(origin&&new URL(origin).host!==req.headers.get("host"))return fail("Invalid request origin",403);
+ if(!sameOrigin(req))return fail("Invalid request origin",403);
  const user=await currentUser(req);
  if(!user)return fail("Sign in required",401);
  if(user.mustChangePassword)return fail("Change your temporary password first",403);
@@ -33,13 +33,18 @@ export async function POST(req:NextRequest){
  }
 }
 export async function DELETE(req:NextRequest){
- const origin=req.headers.get("origin");
- if(origin&&new URL(origin).host!==req.headers.get("host"))return fail("Invalid request origin",403);
+ if(!sameOrigin(req))return fail("Invalid request origin",403);
  const user=await currentUser(req);
  if(!user)return fail("Sign in required",401);
- const db=sqlPool();
- const current=await db.query("SELECT avatar_storage_key FROM users WHERE id=$1",[user.id]);
- await db.query("UPDATE users SET avatar_storage_key=NULL WHERE id=$1",[user.id]);
- if(current.rows[0]?.avatar_storage_key)await deleteAvatar(current.rows[0].avatar_storage_key).catch(()=>{});
- return NextResponse.json({success:true,data:await snapshot(user)},{headers:{"Cache-Control":"no-store"}});
+ if(user.mustChangePassword)return fail("Change your temporary password first",403);
+ try{
+  const db=sqlPool();
+  const current=await db.query("SELECT avatar_storage_key FROM users WHERE id=$1",[user.id]);
+  await db.query("UPDATE users SET avatar_storage_key=NULL WHERE id=$1",[user.id]);
+  if(current.rows[0]?.avatar_storage_key)await deleteAvatar(current.rows[0].avatar_storage_key).catch(()=>{});
+  return NextResponse.json({success:true,data:await snapshot(user)},{headers:{"Cache-Control":"no-store"}});
+ }catch(error){
+  console.error("Avatar removal failed",error instanceof Error?error.name:"unknown");
+  return fail("Unable to remove profile photo",503);
+ }
 }

@@ -175,8 +175,15 @@ export const initialData:PortalData={
   invitations:[]
 };
 export const makeId=(prefix:string)=>prefix+"-"+Math.random().toString(36).slice(2,12);
+/** Trigger a file download. The object URL is revoked on the next tick: revoking it
+ * synchronously after click() cancels the download in Firefox and some Safari builds. */
+export function downloadBlob(fileName:string,blob:Blob){
+  const uri=URL.createObjectURL(blob);const a=document.createElement("a");a.href=uri;a.download=fileName;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(uri),1000);
+}
 export function exportCsv(fileName:string,headings:string[],rows:(string|number)[][]){
   const esc=(value:string|number)=>{let s=String(value);if(/^[\s]*[=+\-@]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"';};
   const blob=new Blob(["\uFEFF",[headings,...rows].map(row=>row.map(esc).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"});
-  const uri=URL.createObjectURL(blob);const a=document.createElement("a");a.href=uri;a.download=fileName;a.click();URL.revokeObjectURL(uri);
+  downloadBlob(fileName,blob);
 }

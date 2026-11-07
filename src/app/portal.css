@@ -1,5 +1,5 @@
 /* Elixir Events Portal — clean internal tool, responsive, no decoration or backend. */
-.ep-shell,.ep-auth-layout{--ep-blue:#164c84;--ep-blue-strong:#0d3b6c;--ep-border:#d4dae3;--ep-ink:#1d2938;--ep-muted:#566579;--ep-bg:#f7f8fa;--ep-white:#fff;--ep-danger:#a12c2c;--ep-success:#126044;color:var(--ep-ink);background:var(--ep-bg);font:400 16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
+.ep-shell,.ep-auth-layout{--ep-blue:#164c84;--ep-blue-strong:#0d3b6c;--ep-border:#d4dae3;--ep-ink:#1d2938;--ep-muted:#566579;--ep-bg:#f7f8fa;--ep-white:#fff;--ep-danger:#a12c2c;--ep-success:#126044;color:var(--ep-ink);background:var(--ep-bg);font:400 16px/1.55 var(--font-sans),-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
 .ep-shell *,.ep-auth-layout *{box-sizing:border-box}
 .ep-shell h1,.ep-auth-layout h1{font-size:30px;line-height:1.25;font-weight:700;letter-spacing:-.015em;color:var(--ep-ink)}
 .ep-shell h2,.ep-auth-layout h2{font-size:20px;font-weight:700;line-height:1.35;color:var(--ep-ink);letter-spacing:0}
