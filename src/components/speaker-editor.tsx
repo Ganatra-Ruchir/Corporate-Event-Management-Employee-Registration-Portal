@@ -7,7 +7,7 @@ import {SpeakerGallery} from "@/components/speaker-gallery";
 import {makeId,validateSpeakers} from "@/lib/portal-model";
 import type {Speaker} from "@/lib/portal-model";
 
-const MAX_BYTES=5*1024*1024;
+const MAX_BYTES=20*1024*1024;
 const emptySpeaker=():Speaker=>({
  id:makeId("speaker"),name:"",jobTitle:"",company:"",talkTitle:"",
  bio:"",agendaSlot:"",linkedIn:"",github:"",website:"",photoDataUrl:undefined,photoAlt:""
@@ -15,7 +15,7 @@ const emptySpeaker=():Speaker=>({
 
 export async function prepareSpeakerPhotoDetails(file:File):Promise<{dataUrl:string;aspectRatio:number}>{
  if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw Error("Choose a JPG, PNG or WebP photo.");
- if(!file.size||file.size>MAX_BYTES)throw Error("The photo must be 5 MB or smaller.");
+ if(!file.size||file.size>MAX_BYTES)throw Error("The photo must be 20 MB or smaller.");
  const bitmap=await createImageBitmap(file);
  try{
   if(bitmap.width<16||bitmap.height<16)throw Error("Speaker photo must be at least 16 pixels wide and tall.");
@@ -101,7 +101,7 @@ export function SpeakerEditor({speakers,onChange}:{speakers:Speaker[];onChange:(
            <Image src={speaker.photoDataUrl} width={320} height={380} unoptimized alt={speaker.name.trim()?speaker.name.trim()+" speaker photo":"Speaker photo preview"}/>:
            <span>{speaker.name.trim().split(/\s+/).slice(0,2).map(p=>p.slice(0,1)).join("").toUpperCase()||"SP"}</span>}
        </div>
-       <label className="se-upload-label">Speaker photo (JPG, PNG or WebP, max 5 MB)
+       <label className="se-upload-label">Speaker photo (JPG, PNG or WebP, max 20 MB)
          <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading===speaker.id} onChange={e=>{void upload(speaker.id,e.target.files?.[0]);e.target.value="";}}/>
        </label>
        {uploading===speaker.id&&<span role="status" className="ep-hint">Processing photo…</span>}
