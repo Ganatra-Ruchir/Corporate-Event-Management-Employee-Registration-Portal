@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import PublicLanding from "@/components/public-landing";
 import {DiscoverHome, DiscoverBrowse, EventTile, GoingFaces, EventCover} from "@/components/event-discovery";
 import dynamic from "next/dynamic";
 const SpeakerEditor=dynamic(()=>import("@/components/speaker-editor").then(m=>m.SpeakerEditor),{loading:()=> <div className="ep-hint">Loading speaker editor…</div>});
@@ -169,7 +170,7 @@ function CompanyEditor({company,data,onSave,onBack}:{company?:Company;data:Porta
     </form>
   </>;
 }
-function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false}:{data:PortalData;onLogin:(email:string,password:string)=>Promise<string|null>;onSignup:(fullName:string,email:string,department:string,password:string)=>Promise<string|null>;onVerified:(id:string)=>void;onReset:(email:string)=>string;remoteMode?:boolean}){
+function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false,onBack}:{data:PortalData;onLogin:(email:string,password:string)=>Promise<string|null>;onSignup:(fullName:string,email:string,department:string,password:string)=>Promise<string|null>;onVerified:(id:string)=>void;onReset:(email:string)=>string;remoteMode?:boolean;onBack?:()=>void}){
   const [mode,setMode]=useState<AuthView>("login");
   const [email,setEmail]=useState("");
   const [pass,setPass]=useState("");
@@ -193,6 +194,7 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false}:{d
   }
   return <div className="ep-auth-layout ep-auth-v2">
     <main className="ep-auth-card" id="sign-in">
+      {onBack&&<button type="button" className="ep-back" onClick={onBack}><ArrowLeft size={16}/> Back to events home</button>}
       <div className="ep-auth-heading"><span className="ep-login-mark" aria-hidden="true">E</span><span className="ep-product-name">Elixir Events Portal</span></div>
       <div className="ep-auth-intro">
         <span className="ed-eyebrow">{mode==="login"?"WELCOME BACK":mode==="signup"?"JOIN YOUR COMPANY":mode==="forgot"?"ACCOUNT RECOVERY":"EMAIL VERIFICATION"}</span>
@@ -246,6 +248,7 @@ export default function ElixirPortal(){
   const [searchOpen,setSearchOpen]=useState(false);
   const [directorySearch,setDirectorySearch]=useState("");
   const [signedOut,setSignedOut]=useState(false);
+  const [showAuth,setShowAuth]=useState(false);
   const [participantSearch,setParticipantSearch]=useState("");
   const [showAttendees,setShowAttendees]=useState(false);
   const [historyFilter,setHistoryFilter]=useState("All");
@@ -272,14 +275,18 @@ export default function ElixirPortal(){
       try{
         const response=await fetch("/api/portal",{cache:"no-store"});
         const payload=await response.json();
-        if(payload.enabled===true || !response.ok){
-          setRemote(true);
-          if(!response.ok){setRemoteError(payload.error||"Database unavailable");setReady(true);return;}
-          if(payload.data)setData(payload.data);
-          setSession(payload.currentId||null);
-          setNow(Date.now());setReady(true);return;
+        setRemote(true);
+        if(!response.ok || payload.enabled!==true){
+          setRemoteError(payload.error||"The PostgreSQL portal is not configured. Contact the platform administrator.");
+          setReady(true);return;
         }
-      }catch{setRemoteError("Unable to check backend");}
+        if(payload.data)setData(payload.data);
+        setSession(payload.currentId||null);
+        setNow(Date.now());setReady(true);return;
+      }catch{
+        setRemote(true);setRemoteError("Unable to connect to the PostgreSQL portal. Refresh to retry.");
+        setReady(true);return;
+      }
       try{
         const s=localStorage.getItem(STORE);
         if(s){const d=JSON.parse(s) as PortalData;if(d&&Array.isArray(d.companies)&&Array.isArray(d.users)&&Array.isArray(d.events)&&Array.isArray(d.registrations)&&Array.isArray(d.invitations)) {
@@ -383,7 +390,7 @@ export default function ElixirPortal(){
       const result=await remoteRequest("login",{email,password});
       if(result.error)return result.error;
       if(!await remoteRefresh())return "Signed in, but could not load your account. Refresh the page.";
-      setSignedOut(false);setView("home");return null;
+      setSignedOut(false);setShowAuth(false);setView("home");return null;
     }
     const u=data.users.find(x=>x.email.toLowerCase()===email.toLowerCase().trim());
     if(!u||!(await passwordMatches(u.password,password)))return "Invalid email or password.";
@@ -425,7 +432,7 @@ export default function ElixirPortal(){
   }
   function logout(){
     if(remote){void remoteRequest("logout");}
-    setSession(null);setSignedOut(true);try{localStorage.removeItem(SESSION);}catch{}goto("home");
+    setSession(null);setSignedOut(false);setShowAuth(false);try{localStorage.removeItem(SESSION);}catch{}goto("home");
   }
 
   function saveEvent(e:PortalEvent){
@@ -568,16 +575,9 @@ export default function ElixirPortal(){
   }
   if(!ready)return <main className="ep-loading" role="status">Loading portal…</main>;
   if(remoteError&&remote)return <main className="ep-loading" role="alert">Database connection error: {remoteError}. Refresh to retry.</main>;
-  if(!current)return signedOut?
-    <div className="ep-signedout-screen"><div className="ep-signedout-panel">
-      <div className="ep-login-mark">E</div>
-      <span className="ed-eyebrow">ELIXIR EVENTS PORTAL</span>
-      <span className="ep-signedout-icon"><LogOut size={30}/></span>
-      <h1>You&apos;re signed out</h1><p>Your demo session has ended. Event data remains saved in this browser.</p>
-      <Action onClick={()=>setSignedOut(false)}>Sign in again <ArrowRight size={17}/></Action>
-      <span className="ep-signedout-note">Account access is simulated in this database-free version.</span>
-    </div></div>:
-    <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset} remoteMode={remote}/>
+  if(!current)return showAuth?
+    <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset} remoteMode={true} onBack={()=>setShowAuth(false)}/>:
+    <PublicLanding onEnter={()=>setShowAuth(true)}/>;
   if(remote&&current.mustChangePassword)return <FirstLoginPasswordChange person={current} onLogout={logout} onSave={async password=>{
     const result=await remoteRequest("profile",{fullName:current.fullName,department:current.department,password});
     if(result.error)return result.error;
