@@ -10,4 +10,5 @@ import "./compact-layout.css";
 import "./landing.css";
 import "./theme.css";
 import "./obsidian.css";
+import "./workspace-light.css";
 export default function Home(){return <ElixirPortal/>;}
