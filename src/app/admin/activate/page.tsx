@@ -27,7 +27,7 @@ function AdminActivation(){
  return <main className="admin-activation">
   <section className="admin-activation-panel">
    <span className="admin-activation-icon"><ShieldCheck size={24}/></span>
-   <span className="admin-activation-eyebrow">ELIXIR EVENTS PORTAL · STAGING</span>
+   <span className="admin-activation-eyebrow">ELIXIR EVENTS PORTAL · FIRST ADMIN SETUP</span>
    <h1>Set up Platform Admin</h1>
    <p>Use this one-time invitation to activate the first administrator account. Choose a unique password that you don&apos;t use elsewhere.</p>
    {!token?<div className="admin-activation-error" role="alert">This page requires a valid activation link sent to your work email.</div>:
