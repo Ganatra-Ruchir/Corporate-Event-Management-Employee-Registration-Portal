@@ -1,0 +1,2 @@
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS must_change_password boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.users.must_change_password IS 'Company-admin provisioned accounts must rotate their initial password before using the portal';

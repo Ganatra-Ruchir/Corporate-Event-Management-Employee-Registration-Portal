@@ -23,7 +23,7 @@ function SpeakerCard({speaker}:{speaker:Speaker}){
   card.current?.style.setProperty("--card-ry","0deg");
   card.current?.style.setProperty("--card-rx","0deg");
  }
- const links=[speaker.linkedIn?{label:"LinkedIn",url:speaker.linkedIn}:null,speaker.website?{label:"Website",url:speaker.website}:null].filter((x):x is {label:string,url:string}=>Boolean(x));
+ const links=[speaker.linkedIn?{label:"LinkedIn",url:speaker.linkedIn}:null,speaker.github?{label:"GitHub",url:speaker.github}:null,speaker.website?{label:"Website",url:speaker.website}:null].filter((x):x is {label:string,url:string}=>Boolean(x));
  return <article className={"sp-card"+(flipped?" is-flipped":"")} aria-label={"Speaker: "+speaker.name}>
    <button
      type="button"
@@ -39,7 +39,7 @@ function SpeakerCard({speaker}:{speaker:Speaker}){
       <span className="sp-face sp-face-front">
         <span className="sp-portrait">
           {speaker.photoDataUrl?
-           <Image src={speaker.photoDataUrl} alt={speaker.photoAlt||speaker.name} width={460} height={500} unoptimized/>:
+           <Image src={speaker.photoDataUrl} alt={speaker.photoAlt||speaker.name+" speaker portrait"} width={460} height={500} unoptimized loading="lazy"/>:
            <span className="sp-initials">{initials||"SP"}</span>}
         </span>
         <span className="sp-front-copy">

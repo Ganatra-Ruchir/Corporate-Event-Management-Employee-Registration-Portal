@@ -175,3 +175,64 @@
 .ep-banner-preview{max-width:600px;display:grid;gap:8px;justify-items:start;}
 .ep-banner-preview img{max-width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:8px;border:1px solid var(--ep-border);}
 .ep-form .ep-check{font-size:14px;display:flex;align-items:center;gap:10px;}
+
+
+/* Event detail refresh: Linktree-inspired registration, speakers in right rail, understated attribution. */
+.ep-detail-layout{align-items:start;grid-template-columns:minmax(0,1.75fr) minmax(270px,.95fr)}
+.ep-detail-right{min-width:0;display:flex;flex-direction:column;gap:16px}
+.ed-linktree-registration{background:linear-gradient(145deg,#f6f9ff 0%,#fff 75%);border:1px solid #dce6fa;border-radius:21px;box-shadow:0 14px 36px #24477a13;padding:clamp(18px,3vw,27px);text-align:center}
+.ed-linktree-registration .ed-rsvp-pill{display:inline-flex;padding:7px 13px;border:1px solid #bed2f5;background:#e6efff;color:#2754ad;border-radius:99px;font-size:10px;font-weight:900;letter-spacing:1px;margin-bottom:11px}
+.ed-linktree-registration>h2{font-size:clamp(23px,2.1vw,28px);letter-spacing:-.8px;margin:3px 0 4px}
+.ed-linktree-registration>.ed-rsvp-invite{color:#647692;font-size:12px;line-height:1.5;margin:0 0 16px}
+.ed-linktree-registration .ed-rsvp-count{display:grid;justify-items:center;gap:2px;margin:10px 0}
+.ed-linktree-registration .ed-rsvp-count strong{font-size:clamp(35px,4vw,46px);line-height:1;color:#1f4fb0}
+.ed-linktree-registration .ed-rsvp-count span{font-size:12px;font-weight:650;color:#60748e}
+.ed-linktree-registration .ed-rsvp-progress{border-radius:999px;overflow:hidden;max-height:8px}
+.ed-linktree-registration>.ep-button,.ed-linktree-registration>.ep-success+.ep-button{width:100%;border-radius:999px;min-height:46px;font-weight:850;box-shadow:0 7px 15px #2558b125;margin:10px 0}
+.ed-linktree-registration .ep-success{border-radius:12px;font-size:12px;margin:13px 0}
+.ed-linktree-registration .ep-admin-actions{margin-top:19px}
+.ed-detail-speakers{border:1px solid #e4eaf5;background:white;border-radius:17px;padding:15px;min-width:0}
+.ed-detail-speakers .sp-gallery{margin:0}
+.ed-detail-speakers .sp-gallery-heading{margin-bottom:12px}
+.ed-detail-speakers .sp-gallery-heading h2{font-size:19px;letter-spacing:-.3px}
+.ed-detail-speakers .sp-gallery-heading p{font-size:11px}
+.ed-detail-speakers .sp-gallery-strip{grid-template-columns:minmax(0,1fr);gap:12px}
+.ed-detail-speakers .sp-gallery-strip.sp-overflow{display:flex;overflow-x:auto;gap:10px;scroll-snap-type:x mandatory}
+.ed-detail-speakers .sp-card{flex:none;min-width:0;width:100%;max-width:100%}
+.ed-detail-speakers .sp-gallery-strip.sp-overflow .sp-card{min-width:100%;flex-basis:100%}
+.ed-detail-speakers .sp-flip-trigger{height:390px}
+.ed-detail-speakers .sp-gallery-controls button{width:31px;height:31px}
+.ed-event-bottom-info{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin:24px 0 12px;padding:13px 17px;background:#f7f9fc;border:1px solid #e7edf6;border-radius:12px;color:#718198;font-size:11px}
+.ed-bottom-host,.ed-bottom-going{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:0}
+.ed-event-bottom-info strong{color:#38567f;font-size:11px;font-weight:800}
+.ed-bottom-going .ed-going-faces{display:flex;align-items:center}
+.ed-bottom-going button{border:0;background:transparent;color:#2a5bb7;font-weight:750;font-size:11px;cursor:pointer}
+.ed-bottom-attendee-list{flex-basis:100%;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid #dfe5ef;padding-top:10px}
+.ed-bottom-attendee-list span{background:#e9eff8;color:#3a5375;padding:6px 9px;border-radius:99px;font-size:11px}
+@media(max-width:800px){.ep-detail-layout{grid-template-columns:1fr}.ed-detail-right{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));align-items:start}.ed-detail-speakers .sp-flip-trigger{height:360px}.ed-event-bottom-info{align-items:flex-start}}
+
+
+/* Compact event-detail arrangement: About + RSVP in left column; speaker card in right. */
+.ep-detail-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.86fr);gap:16px;align-items:start}
+.ep-detail-layout>.ep-detail-copy{min-width:0;align-self:start}
+.ep-detail-right{align-self:start;min-width:0;display:flex;flex-direction:column;gap:0}
+.ed-rsvp-below-about{margin:17px 0 0!important;padding:18px 20px!important;border-radius:15px!important;box-shadow:none!important}
+.ed-rsvp-below-about .ed-rsvp-pill{margin-bottom:5px}
+.ed-rsvp-below-about>h2{font-size:22px;margin:3px 0}
+.ed-rsvp-below-about .ed-rsvp-invite{margin-bottom:10px}
+.ed-rsvp-below-about .ed-rsvp-count{margin:8px 0;display:flex;justify-content:center;align-items:baseline;gap:9px}
+.ed-rsvp-below-about .ed-rsvp-count strong{font-size:32px}
+.ed-rsvp-below-about .ed-rsvp-count span{font-size:12px}
+.ed-rsvp-below-about .ep-button{margin:8px 0;min-height:42px}
+.ed-rsvp-below-about>p{margin:8px 0;font-size:12px}
+.ed-detail-right .ed-detail-speakers{padding:15px;border-radius:14px}
+.ed-detail-right .sp-gallery-heading{margin-bottom:8px}
+.ed-detail-right .sp-gallery-heading p{font-size:11px}
+.ed-detail-right .sp-flip-trigger{height:490px}
+.ep-detail-layout .ep-detail-copy>dl{margin-bottom:0}
+@media(max-width:800px){
+ .ep-detail-layout{grid-template-columns:1fr;gap:14px}
+ .ed-detail-right{display:flex}
+ .ed-rsvp-below-about{padding:16px!important}
+ .ed-detail-right .sp-flip-trigger{height:460px}
+}

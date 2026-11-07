@@ -1,0 +1,12 @@
+
+.user-photo{display:inline-grid;place-items:center;flex:none;border-radius:50%;background:#e3ecff;color:#2453ae;overflow:hidden;font-weight:850;vertical-align:middle}
+.user-photo>img{display:block;width:100%;height:100%;object-fit:cover}
+.em-editor{background:#fff;border:1px solid #cbdaf4;border-radius:14px;padding:clamp(14px,2vw,22px);margin:0 0 18px;box-shadow:0 10px 22px #1d48730d}
+.em-editor-head{display:flex;align-items:center;gap:13px;margin-bottom:15px}.em-editor-head>div{flex:1}.em-editor-head h2{margin:4px 0;font-size:19px}.em-editor-head small{font-size:11px;color:#68788f}.em-editor-head>button{border:0;background:#eff3f9;padding:8px;border-radius:8px}
+.em-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.em-editor-grid label{display:grid;gap:6px;font-size:12px;font-weight:750}.em-editor-grid input{min-width:0;width:100%;min-height:42px;padding:10px 12px;border:1px solid #cdd8e8;border-radius:8px;background:#fff;font:inherit;font-size:13px}
+.em-editor-help{display:flex;align-items:flex-start;gap:7px;color:#6d7b90;font-size:11px;line-height:1.55}.em-editor-help svg{flex:none}.em-editor-actions{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:10px}.em-editor-actions button{display:flex;align-items:center;gap:8px;min-height:40px;padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer}
+.em-editor-error{color:#ad263a;font-size:12px}
+.profile-photo-control{display:grid;justify-items:start;gap:9px;margin:10px 0 18px}.profile-photo-control label{display:grid;gap:6px;font-size:12px;font-weight:800}.profile-photo-control input[type=file]{font-size:12px;max-width:100%}.profile-photo-control small{font-size:11px;color:#65758d}.profile-photo-control button{background:#fff;border:1px solid #d1dbea;border-radius:8px;padding:8px;font-size:12px;color:#375b9e}
+.employee-list-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.employee-list-actions button{border:1px solid #d5e0f0;border-radius:8px;padding:7px 9px;background:white;font-size:12px;font-weight:800}
+.employee-list-stats{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0}.employee-list-stats span{background:#f0f4fc;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:750;color:#40609a}
+@media(max-width:650px){.em-editor-grid{grid-template-columns:1fr}}

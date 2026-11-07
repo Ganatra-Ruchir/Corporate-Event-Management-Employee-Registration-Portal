@@ -5,11 +5,11 @@ export type RegistrationStatus = "going" | "waitlisted" | "cancelled";
 export type EventFormat = "in_person" | "online" | "hybrid";
 
 export type Company = { id:string; name:string; domains:string[]; status:CompanyStatus; createdAt:string };
-export type Person = { id:string; fullName:string; email:string; department:string; role:Role; companyId:string|null; status:CompanyStatus; verified:boolean; password:string; showInAttendeeLists?:boolean };
+export type Person = { id:string; fullName:string; email:string; department:string; role:Role; companyId:string|null; status:CompanyStatus; verified:boolean; password:string; mustChangePassword?:boolean; showInAttendeeLists?:boolean; jobTitle?:string; phone?:string; avatarUrl?:string };
 export type Speaker = {
  id:string; name:string; jobTitle:string; company:string; talkTitle:string;
- bio:string; agendaSlot?:string; linkedIn?:string; website?:string;
- photoDataUrl?:string; photoAlt?:string;
+ bio:string; agendaSlot?:string; linkedIn?:string; github?:string; website?:string;
+ photoDataUrl?:string; photoAlt?:string; photoStorageKey?:string; photoAspectRatio?:number;
 };
 export function validateSpeakers(speakers:Speaker[]):string|null {
  if(speakers.length>12)return "Use no more than 12 speakers for one event.";
@@ -20,8 +20,7 @@ export function validateSpeakers(speakers:Speaker[]):string|null {
   if(!s.company.trim())return n+"enter a company.";
   if(!s.talkTitle.trim())return n+"enter the talk title.";
   if(!s.bio.trim())return n+"enter a short bio.";
-  if(s.photoDataUrl&&!s.photoAlt?.trim())return n+"add alt text for the photo.";
-  for(const [label,url] of [["LinkedIn",s.linkedIn],["website",s.website]]){
+  for(const [label,url] of [["LinkedIn",s.linkedIn],["GitHub",s.github],["website",s.website]]){
    if(url&&(!/^https:\/\//i.test(url)||!isValidHttpsUrl(url)))return n+label+" must use a valid HTTPS link.";
   }
  }
@@ -36,6 +35,7 @@ export type PortalEvent = {
   contactEmail:string; status:EventStatus; cancellationReason:string; createdBy:string;
   waitlistEnabled?:boolean;
   bannerDataUrl?:string;
+  bannerStorageKey?:string;
   bannerAlt?:string;
   speakers?:Speaker[];
 };
@@ -88,8 +88,6 @@ export function canCancel(user:Person,event:PortalEvent,data:PortalData,now=new 
 }
 export function validateEvent(event:PortalEvent,data:PortalData):string|null{
   if(event.title.trim().length<3)return "Enter an event title of at least 3 characters.";
-  if(!event.summary.trim())return "Enter a short event summary.";
-  if(event.bannerDataUrl&&!event.bannerAlt?.trim())return "Add descriptive alt text for the event banner.";
   const speakerIssue=validateSpeakers(event.speakers||[]);if(speakerIssue)return speakerIssue;
   if(!event.description.trim())return "Enter an event description.";
   if(!event.location.trim()&&event.format!=="online")return "Enter an event location.";
