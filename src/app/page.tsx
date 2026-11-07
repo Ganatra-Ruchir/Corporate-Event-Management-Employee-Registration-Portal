@@ -9,4 +9,5 @@ import "./admin-auth.css";
 import "./compact-layout.css";
 import "./landing.css";
 import "./theme.css";
+import "./obsidian.css";
 export default function Home(){return <ElixirPortal/>;}
