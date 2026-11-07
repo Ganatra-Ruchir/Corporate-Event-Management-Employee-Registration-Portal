@@ -8,4 +8,5 @@ import "./speaker-motion.css";
 import "./admin-auth.css";
 import "./compact-layout.css";
 import "./landing.css";
+import "./theme.css";
 export default function Home(){return <ElixirPortal/>;}
