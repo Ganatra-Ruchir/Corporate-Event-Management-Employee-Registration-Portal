@@ -13,6 +13,7 @@ export default function SignupPage(){
  const [password,setPassword]=useState(""),[confirm,setConfirm]=useState(""),[otp,setOtp]=useState("");
  const [company,setCompany]=useState(""),[message,setMessage]=useState(""),[busy,setBusy]=useState(false);
  const mail=email.trim().toLowerCase();
+ const formattedName=name.trim().replace(/\s+/g," ").replace(/(^|\s)\p{L}/gu,c=>c.toLocaleUpperCase());
  async function start(e:React.FormEvent){
   e.preventDefault();setMessage("");
   if(password.length<12||password!==confirm){setMessage("Use a password of at least 12 characters and confirm it correctly.");return;}
@@ -21,7 +22,7 @@ export default function SignupPage(){
    const r=await fetch("/api/portal/register?email="+encodeURIComponent(mail),{cache:"no-store"});
    const detail=await r.json();
    if(!r.ok){setMessage(detail.error||"Your company has not been registered.");return;}
-   const sign=await emailAuthClient.signUp.email({name:name.trim(),email:mail,password});
+   const sign=await emailAuthClient.signUp.email({name:formattedName,email:mail,password});
    if(sign.error){
     // Permit retrying a pending email OTP, but never bypass mailbox verification.
     if(!/already|exists|registered/i.test(sign.error.message||"")){
@@ -53,7 +54,7 @@ export default function SignupPage(){
    if(check.error){setMessage(check.error.message||"Incorrect or expired OTP.");return;}
    const signin=await emailAuthClient.signIn.email({email:mail,password});
    if(signin.error){setMessage("Email verified, but session creation failed. Retry verification.");return;}
-   const r=await fetch("/api/portal/register",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name.trim(),email:mail,password,department:department.trim()})});
+   const r=await fetch("/api/portal/register",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:formattedName,email:mail,password,department:department.trim()})});
    const data=await r.json();
    if(!r.ok){setMessage(data.error||"Unable to finish registration.");return;}
    setPassword("");setConfirm("");setOtp("");setStep("done");
@@ -68,6 +69,7 @@ export default function SignupPage(){
    <div className="join-steps"><span className={step==="details"?"active":""}>1 · Details</span><span className={step==="otp"?"active":""}>2 · Email OTP</span><span className={step==="done"?"active":""}>3 · Access</span></div>
    {step==="details"&&<form onSubmit={start}>
     <label>Full name<input required autoComplete="name" value={name} onChange={e=>setName(e.target.value)} minLength={2} maxLength={100} placeholder="Your full name"/></label>
+    <small className="join-name-preview">Your name will appear as: {formattedName||"Your Name"}</small>
     <label>Work email<input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@company.com"/></label>
     <label>Department (optional)<input value={department} onChange={e=>setDepartment(e.target.value)} maxLength={100} placeholder="HR / IT / Operations"/></label>
     <label>Password<input required type="password" minLength={12} maxLength={128} autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="At least 12 characters"/></label>
@@ -82,8 +84,8 @@ export default function SignupPage(){
     <button disabled={busy||!otp.trim()} type="submit">{busy?"Verifying…":"Verify and register"}<ArrowRight size={17}/></button>
     <div className="join-actions"><button type="button" onClick={resend} disabled={busy}>Resend OTP</button><button type="button" disabled={busy} onClick={()=>setStep("details")}>Change email</button></div>
    </form>}
-   {step==="done"&&<div className="join-done"><CheckCircle2 size={38}/><strong>Email verified</strong><p>You can sign in now and see your company&apos;s events.</p><button onClick={()=>router.push("/")}>Go to sign in <ArrowRight size={17}/></button></div>}
+   {step==="done"&&<div className="join-done"><CheckCircle2 size={38}/><strong>Email verified</strong><p>You can sign in now and see your company&apos;s events.</p><button onClick={()=>router.push("/login")}>Go to sign in <ArrowRight size={17}/></button></div>}
   </article>
-  <aside className="join-panel join-aside"><ShieldCheck size={36}/><h2>Secure company event access</h2><p>One-time email verification helps confirm you own your work email. No admin approval is required after successful email verification. Company admins still control administrator access and suspensions.</p><div className="join-tip"><Mail size={18}/> Neon sends OTP emails during development at no additional email-service setup cost.</div><small>Development email delivery has limits. Production use needs a dedicated provider.</small></aside></div>
+  <aside className="join-panel join-aside"><ShieldCheck size={36}/><h2>Secure company event access</h2><p>One-time email verification helps confirm you own your work email. No admin approval is required after successful email verification. Company admins still control administrator access and suspensions.</p><div className="join-tip"><Mail size={18}/> Check your work inbox for a verification code. If it does not arrive, check spam or request another code.</div></aside></div>
  </section></main>;
 }
