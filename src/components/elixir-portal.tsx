@@ -357,6 +357,8 @@ export default function ElixirPortal(){
     if(!ready||!current)return;
     const restore=()=>{
       const slug=window.location.pathname.split("/").filter(Boolean)[0]||"";
+      const eventId=new URLSearchParams(window.location.search).get("event");
+      if(eventId){const target=data.events.find(e=>e.id===eventId);if(target&&eventAccess(current,target,data)){setSelectedEvent(eventId);setView("event");return;}}
       const routes:Record<string,View>={overview:"home",events:"events",registrations:"registrations",people:"people",companies:"companies",invitations:"invitations",accounts:"users",profile:"profile"};
       const requested=routes[slug];
       if(requested&&nav.includes(requested))setView(requested);
@@ -377,7 +379,7 @@ export default function ElixirPortal(){
   };
   const openEvent=(id:string)=>{
     setSelectedEvent(id);goto("event");
-    window.history.replaceState(null,"","/events?event="+encodeURIComponent(id));
+    window.history.pushState(null,"","/events?event="+encodeURIComponent(id));
   };
 
   async function login(email:string,password:string):Promise<string|null>{
