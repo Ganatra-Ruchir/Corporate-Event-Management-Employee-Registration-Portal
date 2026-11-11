@@ -249,7 +249,7 @@ export default function ElixirPortal(){
   const [directorySearch,setDirectorySearch]=useState("");
   const [signedOut,setSignedOut]=useState(false);
   const [showAuth,setShowAuth]=useState(false);
-  useEffect(()=>{if(new URLSearchParams(window.location.search).get("auth")==="login")setShowAuth(true);},[]);
+  useEffect(()=>{void Promise.resolve().then(()=>{if(new URLSearchParams(window.location.search).get("auth")==="login")setShowAuth(true);});},[]);
   const [participantSearch,setParticipantSearch]=useState("");
   const [showAttendees,setShowAttendees]=useState(false);
   const [historyFilter,setHistoryFilter]=useState("All");
