@@ -28,7 +28,7 @@ export default function PublicLanding({onEnter}:{onEnter:()=>void}){
           <span className="landing-overline"><span className="landing-overline-dot"/> CREATED FOR CONNECTION</span>
           <h1 id="landing-hero-title">More than events.<span>Moments that matter.</span></h1>
           <p>Discover the people, purpose and experiences that make your workplace a community.</p>
-          <div className="landing-hero-buttons"><button className="landing-cta" onClick={onEnter}>Discover your events <ArrowRight size={18}/></button><a className="landing-hero-secondary" href="/signup">Join your organization <ArrowUpRight size={17}/></a></div>
+          <div className="landing-hero-buttons"><button className="landing-cta" onClick={onEnter}>Discover your events <ArrowRight size={18}/></button><Link className="landing-hero-secondary" href="/signup">Join your organization <ArrowUpRight size={17}/></Link></div>
         </div>
         <div className="landing-glass-stamp"><span className="landing-glass-icon"><HeartHandshake size={25}/></span><div><strong>Come together.</strong><span>Connect · Learn · Make an impact</span></div></div>
       </div>
