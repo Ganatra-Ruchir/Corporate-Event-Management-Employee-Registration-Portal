@@ -196,6 +196,7 @@ export async function POST(req:NextRequest){
    const org=await pool.query("SELECT 1 FROM organization_domains d JOIN organizations o ON o.id=d.organization_id WHERE d.domain=$1 AND d.organization_id=$2 AND o.status='active'",[domain,companyId]);
    if(!org.rowCount)return error("Email domain does not belong to the active organization");
    if((await pool.query("SELECT 1 FROM users WHERE email=$1",[email])).rowCount)return error("Account already exists");
+    if((await pool.query("SELECT 1 FROM invitations WHERE email=$1 AND organization_id=$2 AND accepted=false",[email,companyId])).rowCount)return error("A pending invitation already exists for this address",409);
    await pool.query("INSERT INTO invitations(id,email,organization_id) VALUES($1,$2,$3)",[randomUUID(),email,companyId]);
    await logAudit(pool,user,"invitation.create",email,companyId);
    return getSnapshot(user);
