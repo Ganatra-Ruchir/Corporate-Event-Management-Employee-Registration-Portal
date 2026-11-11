@@ -1,19 +1,28 @@
 import "server-only";
 import {randomUUID} from "node:crypto";
 import {S3Client,PutObjectCommand,GetObjectCommand,DeleteObjectCommand,ListObjectsV2Command} from "@aws-sdk/client-s3";
-import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import type {PortalEvent,Speaker} from "@/lib/portal-model";
 
 const BUCKET="event-media";
-const signedUrlCache=new Map<string,{url:string,validUntil:number}>();
-const SIGNED_URL_CACHE_MS=45*60*1000;
-async function signedObjectUrl(key:string){
- const cached=signedUrlCache.get(key);
- if(cached&&cached.validUntil>Date.now())return cached.url;
- const url=await getSignedUrl(s3(),new GetObjectCommand({Bucket:BUCKET,Key:key}),{expiresIn:3600});
- if(signedUrlCache.size>1200)signedUrlCache.clear();
- signedUrlCache.set(key,{url,validUntil:Date.now()+SIGNED_URL_CACHE_MS});
- return url;
+/** Images are served through /api/portal/media, which checks the viewer's session and organization.
+ * Presigned storage links failed to load in browsers, so the browser never talks to object storage directly. */
+const EVENT_KEY=/^organizations\/([A-Za-z0-9%._-]+)\/events\/[A-Za-z0-9%._-]+\/(banner|speakers)\/[a-f0-9-]+\.(jpg|png|webp)$/;
+const PROFILE_KEY=/^profiles\/([A-Za-z0-9_-]+)\/[a-f0-9-]+\.png$/;
+function mediaUrl(key:string){return "/api/portal/media?key="+encodeURIComponent(key);}
+/** Returns who may view a stored object: an organization's members, or a profile's owner and colleagues. */
+export function mediaOwner(key:string):{kind:"organization";organizationId:string}|{kind:"profile";userId:string}|null{
+ const event=EVENT_KEY.exec(key);
+ if(event)return {kind:"organization",organizationId:decodeURIComponent(event[1])};
+ const profile=PROFILE_KEY.exec(key);
+ if(profile)return {kind:"profile",userId:profile[1]};
+ return null;
+}
+export async function readMedia(key:string){
+ const object=await s3().send(new GetObjectCommand({Bucket:BUCKET,Key:key}));
+ if(!object.Body)throw new Error("Empty object");
+ const bytes=await object.Body.transformToByteArray();
+ const type=key.endsWith(".png")?"image/png":key.endsWith(".webp")?"image/webp":"image/jpeg";
+ return {bytes,type};
 }
 let client:S3Client|undefined;
 const storageConfigured=()=>Boolean(process.env.AWS_ACCESS_KEY_ID&&process.env.AWS_SECRET_ACCESS_KEY&&process.env.AWS_ENDPOINT_URL_S3&&process.env.AWS_REGION);
@@ -66,12 +75,12 @@ export async function storeEventImages(event:PortalEvent,previous?:PortalEvent):
 }
 export async function hydrateEventImages(event:PortalEvent):Promise<PortalEvent>{
  const next={...event};
- if(next.bannerStorageKey)next.bannerDataUrl=await signedObjectUrl(next.bannerStorageKey);
- next.speakers=await Promise.all((event.speakers||[]).map(async(s):Promise<Speaker>=>{
+ if(next.bannerStorageKey)next.bannerDataUrl=mediaUrl(next.bannerStorageKey);
+ next.speakers=(event.speakers||[]).map((s):Speaker=>{
   const sp={...s};
-  if(sp.photoStorageKey)sp.photoDataUrl=await signedObjectUrl(sp.photoStorageKey);
+  if(sp.photoStorageKey)sp.photoDataUrl=mediaUrl(sp.photoStorageKey);
   return sp;
- }));
+ });
  return next;
 }
 
@@ -92,19 +101,17 @@ export async function uploadAvatarPng(userId:string,png:Buffer,oldKey?:string|nu
  const key="profiles/"+encodeURIComponent(userId)+"/"+randomUUID()+".png";
  await s3().send(new PutObjectCommand({Bucket:BUCKET,Key:key,Body:png,ContentType:"image/png",CacheControl:"private, max-age=3600"}));
  if(oldKey?.startsWith("profiles/"+encodeURIComponent(userId)+"/")){
-  signedUrlCache.delete(oldKey);
   await s3().send(new DeleteObjectCommand({Bucket:BUCKET,Key:oldKey})).catch(()=>{});
  }
  return key;
 }
 export async function avatarSignedUrl(key:string|null|undefined){
  if(!key)return undefined;
- if(!/^profiles\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9-]+\.png$/.test(key))return undefined;
- return signedObjectUrl(key);
+ if(!PROFILE_KEY.test(key))return undefined;
+ return mediaUrl(key);
 }
 export async function deleteAvatar(key:string|null|undefined){
  if(key?.startsWith("profiles/")){
-  signedUrlCache.delete(key);
   await s3().send(new DeleteObjectCommand({Bucket:BUCKET,Key:key}));
  }
 }

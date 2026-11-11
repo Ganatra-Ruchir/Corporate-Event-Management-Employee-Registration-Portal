@@ -2,7 +2,7 @@
 import Image from "next/image";
 import {LandingArtwork} from "@/components/landing-artwork";
 import { ArrowRight, CalendarDays, MapPin, Clock3, Search, X } from "lucide-react";
-import {activeRegistrations, remainingPlaces} from "@/lib/portal-model";
+import {activeRegistrations, registrationLabel, registrationState, remainingPlaces} from "@/lib/portal-model";
 import {useEffect, useRef, useState, memo} from "react";
 import type { PortalEvent, PortalData, Person } from "@/lib/portal-model";
 
@@ -18,7 +18,11 @@ function dateParts(stamp:string) {
 }
 function EventCoverImpl({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
   const color=event.category.toLowerCase().replace(/[^a-z]+/g,"-");
-  const photos=(event.speakers||[]).filter(person=>Boolean(person.photoDataUrl));
+  // If an image can't be loaded, fall back to the category artwork instead of showing alt text in an empty box.
+  const [broken,setBroken]=useState<string[]>([]);
+  const markBroken=(src?:string)=>{if(src)setBroken(list=>list.includes(src)?list:[...list,src]);};
+  const photos=(event.speakers||[]).filter(person=>Boolean(person.photoDataUrl)&&!broken.includes(person.photoDataUrl!));
+  const banner=event.bannerDataUrl&&!broken.includes(event.bannerDataUrl)?event.bannerDataUrl:undefined;
   const [slide,setSlide]=useState(0);
   const [measuredRatio,setMeasuredRatio]=useState<{speakerId:string;ratio:number}|null>(null);
   const coverRef=useRef<HTMLDivElement>(null);
@@ -52,6 +56,7 @@ function EventCoverImpl({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
     {speaker?.photoDataUrl?
       <div className="ed-speaker-slide" key={speaker.id}>
         <Image alt={speaker.photoAlt||"Speaker "+speaker.name} src={speaker.photoDataUrl} width={1200} height={675} unoptimized loading="lazy"
+          onError={()=>{markBroken(speaker.photoDataUrl);setSlide(0);}}
           onLoad={event=>{
             if(speaker.id!==firstSpeaker?.id||firstSpeaker?.photoAspectRatio)return;
             const width=event.currentTarget.naturalWidth,height=event.currentTarget.naturalHeight;
@@ -61,8 +66,8 @@ function EventCoverImpl({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
           }}/>
         <span className="ed-speaker-caption"><strong>{speaker.name}</strong><small>{speaker.jobTitle}</small></span>
       </div>:
-      event.bannerDataUrl?
-      <Image alt={event.bannerAlt||event.title+" event banner"} src={event.bannerDataUrl} width={1200} height={675} unoptimized />:
+      banner?
+      <Image alt={event.bannerAlt||event.title+" event banner"} src={banner} width={1200} height={675} unoptimized onError={()=>markBroken(banner)}/>:
       <div className="ed-cover-inner" aria-label={event.category+" event"}>
         <div className="ed-art-ring ed-art-ring-one" aria-hidden="true"/>
         <div className="ed-art-ring ed-art-ring-two" aria-hidden="true"/>
@@ -82,31 +87,36 @@ export function GoingFaces({event,data,limit=3}:{event:PortalEvent;data:PortalDa
     <span>{regs.length} going</span>
   </div>;
 }
-export function EventTile({event,data,onOpen}:{event:PortalEvent;data:PortalData;onOpen:(event:PortalEvent)=>void}){
+function SpeakerThumb({src,name}:{src?:string;name:string}){
+  const [failed,setFailed]=useState(false);
+  return src&&!failed?<Image alt="" src={src} width={44} height={44} unoptimized onError={()=>setFailed(true)}/>:<span className="ed-tile-speaker-initials">{initials(name)}</span>;
+}
+export function EventTile({event,data,onOpen,now,showHost=false}:{event:PortalEvent;data:PortalData;onOpen:(event:PortalEvent)=>void;now:number;showHost?:boolean}){
   const d=dateParts(event.startsAt);
   const host=data.companies.find(c=>c.id===event.companyId);
+  const state=registrationState(event,data,now);
   return <button type="button" className="ed-tile" onClick={()=>onOpen(event)} aria-label={"View "+event.title}>
     <div className="ed-tile-cover"><EventCover event={event}/>{event.status!=="published"&&<span className={"ed-tile-status "+event.status}>{event.status}</span>}
       <div className="ed-tile-hover" aria-hidden="true">
         <strong>{event.title}</strong>
         <span><MapPin size={15}/>{event.format==="online"?"Online event":event.location||"Venue to be announced"}</span>
-        <span>{remainingPlaces(event,data)} of {event.capacity} seats available</span>
-        {(event.speakers||[]).length>0&&<div className="ed-tile-speakers">{(event.speakers||[]).slice(0,3).map(person=><span key={person.id} className="ed-tile-speaker-card">{person.photoDataUrl?<Image alt="" src={person.photoDataUrl} width={44} height={44} unoptimized/>:<span className="ed-tile-speaker-initials">{initials(person.name)}</span>}<small>{person.name}</small></span>)}</div>}
+        <span>{state==="open"?remainingPlaces(event,data)+" of "+event.capacity+" seats available":registrationLabel(event,data,now)}</span>
+        {(event.speakers||[]).length>0&&<div className="ed-tile-speakers">{(event.speakers||[]).slice(0,3).map(person=><span key={person.id} className="ed-tile-speaker-card"><SpeakerThumb src={person.photoDataUrl} name={person.name}/><small>{person.name}</small></span>)}</div>}
       </div>
     </div>
     <div className="ed-tile-content">
       <div className="ed-tile-top"><div className="ed-date-mini"><strong>{d.day}</strong><span>{d.month}</span></div><div className="ed-tile-title-wrap"><span className="ed-eyebrow">{d.weekday} · {d.clock}</span><h3>{event.title}</h3></div></div>
-      <div className="ed-tile-host">Hosted by {host?.name||"Event organization"}</div>
+      {showHost&&<div className="ed-tile-host">Hosted by {host?.name||"Event organization"}</div>}
       <div className="ed-tile-meta"><MapPin size={15}/><span>{event.format==="online"?"Online":event.location}</span></div>
-      <div className="ed-tile-foot"><GoingFaces event={event} data={data}/><span className="ed-tile-spots">{event.status==="published"?remainingPlaces(event,data)+" spots left":event.status==="draft"?"Not published":"Cancelled"}</span></div>
+      <div className="ed-tile-foot"><GoingFaces event={event} data={data}/><span className={"ed-tile-spots ed-state-"+state}>{registrationLabel(event,data,now)}</span></div>
     </div>
   </button>;
 }
-function Section({title,sub,items,data,onOpen,onMore}:{title:string;sub?:string;items:PortalEvent[];data:PortalData;onOpen:(e:PortalEvent)=>void;onMore?:()=>void}){
+function Section({title,sub,items,data,onOpen,onMore,now}:{title:string;sub?:string;items:PortalEvent[];data:PortalData;onOpen:(e:PortalEvent)=>void;onMore?:()=>void;now:number}){
   if(items.length===0)return null;
   return <section className="ed-section">
     <div className="ed-section-head"><div><h2>{title}</h2>{sub&&<p>{sub}</p>}</div>{onMore&&<button type="button" onClick={onMore}>See all <ArrowRight size={17}/></button>}</div>
-    <div className="ed-tile-grid">{items.slice(0,3).map(e=><EventTile event={e} data={data} onOpen={onOpen} key={e.id}/>)}</div>
+    <div className="ed-tile-grid">{items.slice(0,3).map(e=><EventTile event={e} data={data} onOpen={onOpen} key={e.id} now={now}/>)}</div>
   </section>;
 }
 export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now,onSearch}:{data:PortalData;events:PortalEvent[];user:Person;onOpen:(e:PortalEvent)=>void;onBrowse:()=>void;onCategory:(category:string)=>void;now:number;onSearch:()=>void}){
@@ -137,7 +147,7 @@ export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now,on
       <div className="ed-meetup-art" aria-hidden="true"><span className="ed-meetup-bubble bubble-c"><LandingArtwork scene="ideas"/></span><span className="ed-meetup-bubble bubble-d"><LandingArtwork scene="celebrate"/></span></div>
     </section>
     <div className="ed-home-heading ed-home-heading-refined"><div><h2>Events from your organization</h2><p>Find your next experience and see who&apos;s going.</p></div><div className="ed-home-actions"><button type="button" className="ed-search-toggle" onClick={onSearch}><Search size={20}/><span>Search events</span></button><button type="button" className="ed-home-explore" onClick={onBrowse}>See all events <ArrowRight size={17}/></button></div></div>
-    {topCards.length>0?<div className="ed-tile-grid ed-home-grid">{topCards.map(e=><EventTile key={e.id} event={e} data={data} onOpen={onOpen}/>)}</div>:future.length===0?<div className="ed-feature-empty"><h2>No upcoming events</h2><p>Published events from your organization will appear here.</p></div>:null}
+    {topCards.length>0?<div className="ed-tile-grid ed-home-grid">{topCards.map(e=><EventTile key={e.id} event={e} data={data} onOpen={onOpen} now={now}/>)}</div>:future.length===0?<div className="ed-feature-empty"><h2>No upcoming events</h2><p>Published events from your organization will appear here.</p></div>:null}
     <div className="ed-home-more"><span>Explore more</span></div>
     {selected?<button type="button" className="ed-feature" onClick={()=>onOpen(selected)}>
       <div className="ed-feature-visual"><EventCover event={selected} wide/></div>
@@ -146,11 +156,11 @@ export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now,on
     <nav className="ed-category-nav" aria-label="Explore categories">
       {["All events","Volunteering","Learning","Environment","Health"].map(c=><button key={c} onClick={()=>c==="All events"?onBrowse():onCategory(c)}>{c}<ArrowRight size={14}/></button>)}
     </nav>
-    <Section title="Your upcoming events" sub="The events you've already joined" items={joined} data={data} onOpen={onOpen} onMore={onBrowse}/>
-    <Section title="This week" sub="Make plans with your team" items={week} data={data} onOpen={onOpen} onMore={onBrowse}/>
-    <Section title="Volunteering" sub="Spend time on something that matters" items={volunteer} data={data} onOpen={onOpen} onMore={()=>onCategory("Volunteering")}/>
-    <Section title="Learning" sub="Workshops, talks and new skills" items={learning} data={data} onOpen={onOpen} onMore={()=>onCategory("Education")}/>
-    <Section title="Coming up" sub="More events on the calendar" items={coming} data={data} onOpen={onOpen} onMore={onBrowse}/>
+    <Section title="Your upcoming events" sub="The events you've already joined" items={joined} data={data} now={now} onOpen={onOpen} onMore={onBrowse}/>
+    <Section title="This week" sub="Make plans with your team" items={week} data={data} now={now} onOpen={onOpen} onMore={onBrowse}/>
+    <Section title="Volunteering" sub="Spend time on something that matters" items={volunteer} data={data} now={now} onOpen={onOpen} onMore={()=>onCategory("Volunteering")}/>
+    <Section title="Learning" sub="Workshops, talks and new skills" items={learning} data={data} now={now} onOpen={onOpen} onMore={()=>onCategory("Education")}/>
+    <Section title="Coming up" sub="More events on the calendar" items={coming} data={data} now={now} onOpen={onOpen} onMore={onBrowse}/>
   </div>;
 }
 export function DiscoverBrowse({data,events,onOpen,search,setSearch,category,setCategory,timeFilter,setTimeFilter,placesOnly,setPlacesOnly,now,searchOpen,setSearchOpen}:{data:PortalData;events:PortalEvent[];onOpen:(e:PortalEvent)=>void;search:string;setSearch:(s:string)=>void;category:string;setCategory:(s:string)=>void;timeFilter:string;setTimeFilter:(s:string)=>void;placesOnly:boolean;setPlacesOnly:(v:boolean)=>void;now:number;searchOpen:boolean;setSearchOpen:(value:boolean)=>void}){
@@ -166,7 +176,7 @@ export function DiscoverBrowse({data,events,onOpen,search,setSearch,category,set
       else if(category==="Volunteering"){if(!["Volunteering","Environment","Community","Health"].includes(e.category))return false;}
       else if(category!==e.category)return false;
     }
-    if(placesOnly&&remainingPlaces(e,data)===0)return false;
+    if(placesOnly&&registrationState(e,data,now)!=="open")return false;
     const time=new Date(e.startsAt).getTime();
     if(timeFilter==="Upcoming"&&time<now)return false;
     if(timeFilter==="Past"&&time>=now)return false;
@@ -184,8 +194,8 @@ export function DiscoverBrowse({data,events,onOpen,search,setSearch,category,set
       <label className="ed-available"><input type="checkbox" checked={placesOnly} onChange={e=>setPlacesOnly(e.target.checked)}/> Spots available</label>
       <button type="button" className="ed-clear-filters" onClick={()=>{setSearch("");setCategory("All");setTimeFilter("Upcoming");setPlacesOnly(false);}}>Clear filters</button>
     </div>}
-    <div className="ed-browse-row"><strong>{filtered.length} events</strong><div className="ed-display-switch"><button className={layout==="grid"?"active":""} onClick={()=>setLayout("grid")}>Grid</button><button className={layout==="calendar"?"active":""} onClick={()=>setLayout("calendar")}>Calendar</button></div></div>
-    {layout==="grid"?<div className="ed-tile-grid">{filtered.map(e=><EventTile event={e} data={data} onOpen={onOpen} key={e.id}/>)}</div>:
+    <div className="ed-browse-row"><strong>{filtered.length} events</strong><div className="ed-display-switch"><button className={layout==="grid"?"active":""} onClick={()=>setLayout("grid")}>Grid</button><button className={layout==="calendar"?"active":""} onClick={()=>setLayout("calendar")}>Agenda</button></div></div>
+    {layout==="grid"?<div className="ed-tile-grid">{filtered.map(e=><EventTile event={e} data={data} onOpen={onOpen} key={e.id} now={now}/>)}</div>:
       <div className="ed-calendar-view">{groupByDay(filtered).map(group=><div className="ed-calendar-day" key={group.date}><div className="ed-calendar-day-label">{group.date}</div><div>{group.events.map(e=><button key={e.id} onClick={()=>onOpen(e)}><Clock3 size={17}/><span>{dateParts(e.startsAt).clock}</span><strong>{e.title}</strong><ArrowRight size={16}/></button>)}</div></div>)}</div>}
     {filtered.length===0&&<div className="ed-small-empty">No events match your filters. Try a different date or category.</div>}
   </div>;

@@ -1,7 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {randomUUID} from "node:crypto";
-import {databaseEnabled,sqlPool,passwordHash,passwordValid,makeToken,hashToken,getSession,snapshot,logAudit} from "@/lib/db/server";
-import {validateEvent} from "@/lib/portal-model";
+import {databaseEnabled,sqlPool,passwordHash,passwordValid,makeToken,hashToken,getSession,snapshot,logAudit,toPerson} from "@/lib/db/server";
+import {validateEvent,isPersonalDomain} from "@/lib/portal-model";
 import {storeEventImages} from "@/lib/media/server";
 import type {Person,PortalEvent,Company} from "@/lib/portal-model";
 
@@ -18,7 +18,9 @@ function requireCompanyAdmin(user:Person,companyId:string){return user.role==="c
 function requireOrg(user:Person,companyId:string){return requireAdmin(user)||user.companyId===companyId;}
 function hostOriginMatch(req:NextRequest){
  const origin=req.headers.get("origin");
- return !origin||new URL(origin).host===req.headers.get("host");
+ if(!origin)return true;
+ // A malformed Origin such as "null" (sandboxed frames, privacy tools) is rejected instead of throwing a 500.
+ try{return new URL(origin).host===req.headers.get("host");}catch{return false;}
 }
 function jsonPayload(value:unknown){
  const raw=JSON.stringify(value);
@@ -56,10 +58,10 @@ export async function POST(req:NextRequest){
     if(u)await pool.query("UPDATE users SET failed_attempts=failed_attempts+1,locked_until=CASE WHEN failed_attempts>=7 THEN now()+interval '15 minutes' ELSE locked_until END WHERE id=$1",[u.id]);
     return error("Invalid credentials, unverified account or account temporarily locked",401);
    }
-   await pool.query("UPDATE users SET failed_attempts=0,locked_until=null WHERE id=$1",[u.id]);
    const token=makeToken();
-   await pool.query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '7 days')",[hashToken(token),u.id]);
-   const res=ok({success:true});
+   await pool.query("WITH reset AS (UPDATE users SET failed_attempts=0,locked_until=null WHERE id=$2) INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '7 days')",[hashToken(token),u.id]);
+   // The portal data comes back with the login response, so the browser doesn't need a second request.
+   const res=await getSnapshot(toPerson(u));
    res.cookies.set(COOKIE,token,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge:604800});
    return res;
   }
@@ -83,10 +85,15 @@ export async function POST(req:NextRequest){
    const client=await pool.connect();
    try{
     await client.query("BEGIN");
-    if(user.mustChangePassword){
+    if(change){
       const previous=await client.query("SELECT password_hash FROM users WHERE id=$1 FOR UPDATE",[user.id]);
-      if(previous.rowCount&&await passwordValid(String(args.password),previous.rows[0].password_hash)){
-       await client.query("ROLLBACK");return error("Choose a new password different from your temporary password",400);
+      const stored=previous.rows[0]?.password_hash as string|undefined;
+      // A stolen or unattended session must not be enough to lock the owner out.
+      if(!user.mustChangePassword&&(!stored||typeof args.currentPassword!=="string"||!await passwordValid(args.currentPassword,stored))){
+       await client.query("ROLLBACK");return error("Enter your current password to set a new one",403);
+      }
+      if(stored&&await passwordValid(String(args.password),stored)){
+       await client.query("ROLLBACK");return error(user.mustChangePassword?"Choose a new password different from your temporary password":"Choose a password different from your current one",400);
       }
     }
     await client.query("UPDATE users SET full_name=$1,department=$2,password_hash=COALESCE($3::text,password_hash),must_change_password=CASE WHEN $3::text IS NOT NULL THEN false ELSE must_change_password END,job_title=$5,phone=$6 WHERE id=$4",
@@ -110,6 +117,8 @@ export async function POST(req:NextRequest){
    const name=text(c.name,160),id=text(c.id,120)||randomUUID();
    const domains=Array.isArray(c.domains)?[...new Set(c.domains.map(x=>text(x,255).toLowerCase()))]:[];
    if(name.length<3||!domains.length||domains.some(d=>!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d)))return error("Invalid organization name or domains");
+   const personal=domains.find(isPersonalDomain);
+   if(personal)return error(personal+" is a public email provider. Anyone can create an address there, so it can't be an organization's work domain.");
    const client=await pool.connect();
    try{
     await client.query("BEGIN");
@@ -171,6 +180,7 @@ export async function POST(req:NextRequest){
    const name=text(args.name,100),email=text(args.email,255).toLowerCase(),department=text(args.department,100);
    if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return error("Enter an employee name and valid company email");
    const domain=email.split("@")[1];
+   if(isPersonalDomain(domain))return error("Use the employee's company email address, not a personal mailbox",403);
    const owned=await pool.query("SELECT 1 FROM organization_domains d JOIN organizations o ON o.id=d.organization_id WHERE d.organization_id=$1 AND d.domain=$2 AND o.status='active'",[user.companyId,domain]);
    if(!owned.rowCount)return error("Employee email must use an approved domain of your company",403);
    const id=randomUUID();
@@ -187,6 +197,26 @@ export async function POST(req:NextRequest){
    }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
    // Login uses company email and temporary password. The employee must rotate it at first sign-in.
    return ok({success:true,email,employeeId:"EMP-"+id.slice(0,8).toUpperCase(),temporaryPassword:initialPassword,data:await snapshot(user)});
+  }
+  if(action==="resetPassword"){
+   // There is no email service, so "forgot password" is handled by an administrator:
+   // company admins reset their own employees, platform admins reset anyone except other platform admins.
+   const id=text(args.userId,120);
+   const target=(await pool.query("SELECT id,email,role,organization_id,status FROM users WHERE id=$1",[id])).rows[0];
+   const allowed=target&&target.id!==user.id&&target.role!=="platform_admin"&&target.status==="active"&&
+    (requireAdmin(user)||(user.role==="company_admin"&&target.role==="employee"&&target.organization_id===user.companyId));
+   if(!allowed)return denied();
+   const temporaryPassword=makeToken().slice(0,22);
+   const client=await pool.connect();
+   try{
+    await client.query("BEGIN");
+    await client.query("UPDATE users SET password_hash=$1,must_change_password=true,failed_attempts=0,locked_until=NULL WHERE id=$2",[await passwordHash(temporaryPassword),id]);
+    await client.query("DELETE FROM sessions WHERE user_id=$1",[id]);
+    await logAudit(client,user,"user.password_reset",id,target.organization_id);
+    await client.query("COMMIT");
+   }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
+   // Shown to the administrator once, never logged or stored in plain text.
+   return ok({success:true,email:target.email,temporaryPassword,data:await snapshot(user)});
   }
   if(action==="invite"){
    if(!requireAdmin(user))return denied();
@@ -255,14 +285,22 @@ export async function POST(req:NextRequest){
   if(action==="saveEvent"){
    const e=args.event as PortalEvent;
    if(!e||typeof e!=="object"||!requireCompanyAdmin(user,text(e.companyId,120)))return denied();
-   const existing=await pool.query("SELECT id,created_by,payload FROM events WHERE id=$1",[text(e.id,120)]);
-   if(existing.rowCount){
-     const ownEvent=await pool.query("SELECT organization_id FROM events WHERE id=$1",[e.id]);
-     if(ownEvent.rows[0]?.organization_id!==user.companyId)return denied();
-   }
-   const event:PortalEvent={...e,createdBy:existing.rows[0]?.created_by||user.id};
-   const issue=validateEvent(event,await snapshot(user));
+   const existing=await pool.query("SELECT id,organization_id,created_by,payload FROM events WHERE id=$1",[text(e.id,120)]);
+   if(existing.rowCount&&existing.rows[0].organization_id!==user.companyId)return denied();
+   const prior=existing.rows[0]?.payload as PortalEvent|undefined;
+   const event:PortalEvent={...e,title:text(e.title,160),location:text(e.location,300),contactEmail:text(e.contactEmail,255),createdBy:existing.rows[0]?.created_by||user.id};
+   // Field validation only: capacity against existing registrations is checked under a row lock below,
+   // so the full portal snapshot (with every image) doesn't need to be loaded here.
+   const issue=validateEvent(event,{companies:[],users:[],events:[],registrations:[],invitations:[]});
    if(issue)return error(issue);
+   const now=Date.now(),startMs=new Date(event.startsAt).getTime();
+   // Past events can still be edited (e.g. fixing a typo), but a new or moved start time must be in the future.
+   // Compare instants, not strings: older rows store the same time in other ISO formats.
+   const sameTime=(a?:string,b?:string)=>Boolean(a)&&Boolean(b)&&new Date(a!).getTime()===new Date(b!).getTime();
+   if(!sameTime(prior?.startsAt,event.startsAt)&&startMs<=now)return error("The event start time must be in the future.");
+   if(event.status==="published"&&prior?.status!=="published"&&startMs<=now)return error("This event has already started, so it can't be published.");
+   if(event.deadline&&!sameTime(prior?.deadline,event.deadline)&&new Date(event.deadline).getTime()<=now)return error("The registration deadline must be in the future.");
+   if(!prior&&event.status==="cancelled")return error("A new event can be saved as a draft or published.");
    const sanitized=await storeEventImages(event,existing.rows[0]?.payload as PortalEvent|undefined);
    const payload=jsonPayload(sanitized),cap=Number(event.capacity),starts=new Date(event.startsAt),ends=new Date(event.endsAt);
    if(!Number.isInteger(cap)||cap<1||cap>100000||!(starts<ends))return error("Invalid dates or capacity");

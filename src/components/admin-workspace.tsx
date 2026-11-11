@@ -1,7 +1,7 @@
 "use client";
 
 import {ArrowRight, Building2, CalendarDays, Clock3, Plus, TicketCheck, Users, UserRoundCheck, AlertCircle, ChevronRight} from "lucide-react";
-import {activeRegistrations, remainingPlaces, shortDate} from "@/lib/portal-model";
+import {activeRegistrations, registrationState, remainingPlaces, shortDate} from "@/lib/portal-model";
 import type {Company,Person,PortalData,PortalEvent} from "@/lib/portal-model";
 import {EventTile} from "@/components/event-discovery";
 
@@ -53,7 +53,18 @@ export function CompanyOverview({data,current,company,now,onCreate,onEvents,onPe
  const drafts=events.filter(e=>e.status==="draft");
  const attending=events.reduce((sum,e)=>sum+activeRegistrations(e.id,data).length,0);
  const members=data.users.filter(u=>u.companyId===company.id);
- const alertEvents=events.filter(e=>e.status==="draft"||(e.status==="published"&&new Date(e.startsAt).getTime()>now&&remainingPlaces(e,data)<=3));
+ // Anything a host should act on: drafts (especially ones whose date has passed), closed registration with empty seats, nearly full events.
+ const attention=(e:PortalEvent):string|null=>{
+  const starts=new Date(e.startsAt).getTime();
+  if(e.status==="draft")return starts<=now?"Draft dated in the past: move the date or cancel it":"Draft waiting to publish";
+  if(e.status!=="published"||starts<=now)return null;
+  const state=registrationState(e,data,now);
+  if(state==="closed")return "Registration closed with "+remainingPlaces(e,data)+" seats unfilled";
+  if(state==="waitlist"||state==="full")return "Full"+(state==="waitlist"?" · "+data.registrations.filter(r=>r.eventId===e.id&&r.status==="waitlisted").length+" waitlisted":"");
+  if(remainingPlaces(e,data)<=3)return remainingPlaces(e,data)+" places left";
+  return null;
+ };
+ const alertEvents=events.map(e=>({event:e,reason:attention(e)})).filter((x):x is {event:PortalEvent;reason:string}=>Boolean(x.reason));
  const latest=data.registrations.filter(r=>r.status==="going"&&events.some(e=>e.id===r.eventId)).sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()).slice(0,5);
  return <div className="aw-root">
    <WorkspaceHeading eyebrow={company.name.toUpperCase()+" · ORGANIZER"} title={"Good to see you, "+current.fullName.split(" ")[0]} description="Your events, attendees and next steps."
@@ -65,12 +76,12 @@ export function CompanyOverview({data,current,company,now,onCreate,onEvents,onPe
     <Metric icon={Users} value={members.length} label="Team members" detail="In your organization"/>
    </div>
    <WorkspaceSection title="Your upcoming events" description="See what your team can join next" action={<button className="aw-text-action" onClick={onEvents}>All events <ArrowRight size={16}/></button>}>
-    {upcoming.length?<div className="ed-tile-grid">{upcoming.slice(0,3).map(e=><EventTile event={e} data={data} onOpen={onEvent} key={e.id}/>)}</div>:<div className="aw-empty"><CalendarDays size={22}/><strong>No upcoming events</strong><p>Create an event to start accepting registrations.</p><button onClick={onCreate}>Create event <ArrowRight size={15}/></button></div>}
+    {upcoming.length?<div className="ed-tile-grid">{upcoming.slice(0,3).map(e=><EventTile event={e} data={data} onOpen={onEvent} key={e.id} now={now} showHost={false}/>)}</div>:<div className="aw-empty"><CalendarDays size={22}/><strong>No upcoming events</strong><p>Create an event to start accepting registrations.</p><button onClick={onCreate}>Create event <ArrowRight size={15}/></button></div>}
    </WorkspaceSection>
    <div className="aw-two-col">
-    <WorkspaceSection title="Needs your attention" description="Drafts and events nearly full" action={<button className="aw-text-action" onClick={onEvents}>View events <ArrowRight size={16}/></button>}>
-     <div className="aw-list-panel">{alertEvents.length?alertEvents.slice(0,5).map(e=><button key={e.id} className="aw-item" onClick={()=>onEvent(e)}>
-      <span className="aw-item-icon"><AlertCircle size={19}/></span><span className="aw-item-copy"><strong>{e.title}</strong><small>{e.status==="draft"?"Draft waiting to publish":remainingPlaces(e,data)+" places left"}</small></span><ChevronRight size={17}/></button>):<div className="aw-list-empty">No events need attention right now.</div>}</div>
+    <WorkspaceSection title="Needs your attention" description="Drafts, closed registration and full events" action={<button className="aw-text-action" onClick={onEvents}>View events <ArrowRight size={16}/></button>}>
+     <div className="aw-list-panel">{alertEvents.length?alertEvents.slice(0,5).map(({event:e,reason})=><button key={e.id} className="aw-item" onClick={()=>onEvent(e)}>
+      <span className="aw-item-icon"><AlertCircle size={19}/></span><span className="aw-item-copy"><strong>{e.title}</strong><small>{reason}</small></span><ChevronRight size={17}/></button>):<div className="aw-list-empty">No events need attention right now.</div>}</div>
     </WorkspaceSection>
     <WorkspaceSection title="Recent registrations" description="Latest employees joining your events" action={<button className="aw-text-action" onClick={onPeople}>Team members <ArrowRight size={16}/></button>}>
       <div className="aw-list-panel">{latest.length?latest.map(r=>{const u=data.users.find(u=>u.id===r.userId),e=events.find(e=>e.id===r.eventId);return <button key={r.id} className="aw-item" onClick={()=>e&&onEvent(e)}>

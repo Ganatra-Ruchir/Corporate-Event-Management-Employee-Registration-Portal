@@ -2,12 +2,15 @@ import {NextRequest,NextResponse} from "next/server";
 import {randomUUID} from "node:crypto";
 import {getEmailAuth} from "@/lib/auth/email-server";
 import {databaseEnabled,passwordHash,sqlPool} from "@/lib/db/server";
+import {isPersonalDomain} from "@/lib/portal-model";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const fail=(message:string,status=400)=>NextResponse.json({error:message},{status,headers:{"Cache-Control":"no-store"}});
 const validEmail=(v:unknown)=>typeof v==="string"&&v.length<=255&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 async function companyFor(email:string){
+ // Even if a public provider was once added as a company domain, it must not let strangers join that company.
+ if(isPersonalDomain(email.split("@")[1]||""))return {rows:[] as {id:string;name:string}[]};
  return sqlPool().query("SELECT o.id,o.name FROM organizations o JOIN organization_domains d ON d.organization_id=o.id WHERE d.domain=$1 AND o.status='active'",[email.split("@")[1]]);
 }
 export async function GET(req:NextRequest){

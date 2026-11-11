@@ -45,6 +45,9 @@ export type PortalData = { companies:Company[]; users:Person[]; events:PortalEve
 
 export const DEMO_PASSWORD="Demo@2026!";
 export const PERSONAL_DOMAINS = ["gmail.com","yahoo.com","outlook.com","hotmail.com","live.com","icloud.com","aol.com","proton.me","protonmail.com","rediffmail.com"];
+const MORE_PERSONAL_DOMAINS=["googlemail.com","yahoo.in","yahoo.co.in","outlook.in","msn.com","me.com","mac.com","gmx.com","mail.com","zoho.com","yandex.com","tutanota.com","hey.com"];
+/** Public mailbox providers can never be an organization's work domain: anyone can create an address there. */
+export const isPersonalDomain=(domain:string)=>{const d=domain.trim().toLowerCase();return PERSONAL_DOMAINS.includes(d)||MORE_PERSONAL_DOMAINS.includes(d);};
 export const CATEGORIES=["Volunteering","Environment","Education","Health","Community","Workshop","Social","Town Hall"];
 export const organizationByEmail=(email:string,companies:Company[])=>{
   const domain=email.trim().toLowerCase().split("@")[1];
@@ -55,7 +58,7 @@ export function signupCompany(email:string,data:PortalData){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized))return {error:"Enter a valid work email address.",company:null};
   const invitation=data.invitations.find(i=>i.email===normalized&&!i.accepted);
   const company=invitation?data.companies.find(c=>c.id===invitation.companyId&&c.status==="active")||null:organizationByEmail(normalized,data.companies);
-  if(PERSONAL_DOMAINS.includes(normalized.split("@")[1])||!company)return {error:"Use your work email. If your company isn't listed, ask your manager.",company:null};
+  if(isPersonalDomain(normalized.split("@")[1])||!company)return {error:"Use your work email. If your company isn't listed, ask your manager.",company:null};
   if(data.users.some(u=>u.email.toLowerCase()===normalized))return {error:"An account with this email already exists.",company:null};
   return {error:null,company};
 }
@@ -79,6 +82,21 @@ export function canRegister(user:Person,event:PortalEvent,data:PortalData,now=ne
   if(data.registrations.some(r=>r.eventId===event.id&&r.userId===user.id&&(r.status==="going"||r.status==="waitlisted")))return "You already have an RSVP.";
   if(remainingPlaces(event,data)<=0&&event.waitlistEnabled===false)return "This event is full.";
   return null;
+}
+export type RegistrationState="open"|"waitlist"|"full"|"closed"|"started"|"draft"|"cancelled";
+/** Whether people can still sign up, independent of who is looking. Cards and dashboards use this instead of "spots left". */
+export function registrationState(event:PortalEvent,data:PortalData,now=Date.now()):RegistrationState{
+  if(event.status==="cancelled")return "cancelled";
+  if(event.status==="draft")return "draft";
+  if(new Date(event.startsAt).getTime()<=now)return "started";
+  if(event.deadline&&new Date(event.deadline).getTime()<=now)return "closed";
+  if(remainingPlaces(event,data)>0)return "open";
+  return event.waitlistEnabled===false?"full":"waitlist";
+}
+export function registrationLabel(event:PortalEvent,data:PortalData,now=Date.now()){
+  const state=registrationState(event,data,now);
+  return state==="open"?remainingPlaces(event,data)+" spots left":state==="waitlist"?"Full · waitlist open":state==="full"?"Full":
+    state==="closed"?"Registration closed":state==="started"?"Already started":state==="draft"?"Not published":"Cancelled";
 }
 export function canCancel(user:Person,event:PortalEvent,data:PortalData,now=new Date()):string|null{
   if(!eventAccess(user,event,data))return "This registration is not available.";

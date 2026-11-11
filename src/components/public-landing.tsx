@@ -16,7 +16,7 @@ export default function PublicLanding({onEnter}:{onEnter:()=>void}){
  return <div className="landing landing-editorial">
   <header className="landing-header" aria-label="Site navigation">
     <div className="landing-brand"><span className="landing-mark">e</span><span>elixir<span className="landing-brand-light">events</span></span></div>
-    <form onSubmit={go} className="landing-search"><Search size={17}/><input aria-label="Search events after signing in" placeholder="Search experiences..." value={query} onChange={e=>setQuery(e.target.value)}/><span className="landing-search-divider"/><span className="landing-place"><MapPin size={14}/> For your team</span><button aria-label="Sign in to search" type="submit"><ArrowRight size={17}/></button></form>
+    <form onSubmit={go} className="landing-search"><Search size={17}/><input aria-label="Search events after signing in" placeholder="Sign in to search your events" value={query} onChange={e=>setQuery(e.target.value)}/><span className="landing-search-divider"/><span className="landing-place"><MapPin size={14}/> For your team</span><button aria-label="Sign in to search" type="submit"><ArrowRight size={17}/></button></form>
     <nav className="landing-nav"><button onClick={()=>document.getElementById("experiences")?.scrollIntoView({behavior:"smooth"})} className="landing-login">Explore</button><button onClick={onEnter} className="landing-login">Log in</button><Link href="/signup" className="landing-signup">Join your team <ArrowRight size={15}/></Link></nav>
   </header>
   <main>

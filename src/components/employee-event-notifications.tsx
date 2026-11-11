@@ -14,7 +14,9 @@ export function EmployeeEventNotifications({user,events,data,onOpen}:Props){
  const [now,setNow]=useState(0);
  const [browserPermission,setBrowserPermission]=useState<NotificationPermission|"unsupported">("unsupported");
  const [message,setMessage]=useState("");
- const available=useMemo(()=>events.filter(e=>e.status==="published"&&e.companyId===user.companyId),[events,user.companyId]);
+ // Reminders are for events the employee has joined or is waitlisted for, not every event in the company.
+ const available=useMemo(()=>events.filter(e=>e.status==="published"&&e.companyId===user.companyId&&
+   data.registrations.some(r=>r.userId===user.id&&r.eventId===e.id&&(r.status==="going"||r.status==="waitlisted"))),[events,user.companyId,user.id,data.registrations]);
  const upcoming=useMemo(()=>available.filter(e=>new Date(e.startsAt).getTime()>now&&new Date(e.startsAt).getTime()-now<=7*DAY)
     .sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime()).slice(0,8),[available,now]);
  const soon=useMemo(()=>upcoming.filter(e=>new Date(e.startsAt).getTime()-now<=DAY),[upcoming,now]);
@@ -53,8 +55,8 @@ export function EmployeeEventNotifications({user,events,data,onOpen}:Props){
      {soon.length>0&&<span className="en-count">{soon.length}</span>}
    </button>
    {open&&<section className="en-panel" aria-label="Upcoming event notifications">
-     <div className="en-head"><div><strong>Event reminders</strong><small>{soon.length?soon.length+" starting within 24 hours":"Your organization's upcoming events"}</small></div><button type="button" aria-label="Close reminders" onClick={()=>setOpen(false)}><X size={18}/></button></div>
-     {upcoming.length===0?<p className="en-empty">No published events starting in the next seven days.</p>:
+     <div className="en-head"><div><strong>Event reminders</strong><small>{soon.length?soon.length+" starting within 24 hours":"Your events in the next 7 days"}</small></div><button type="button" aria-label="Close reminders" onClick={()=>setOpen(false)}><X size={18}/></button></div>
+     {upcoming.length===0?<p className="en-empty">None of your events start in the next seven days. Join an event to get reminders here.</p>:
      <div className="en-list">{upcoming.map(e=>{
        const until=new Date(e.startsAt).getTime()-now;
        const joined=data.registrations.some(r=>r.userId===user.id&&r.eventId===e.id&&(r.status==="going"||r.status==="waitlisted"));
@@ -65,7 +67,7 @@ export function EmployeeEventNotifications({user,events,data,onOpen}:Props){
      <div className="en-foot">
        {browserPermission==="granted"?<span className="en-enabled"><Check size={14}/> Browser reminders enabled</span>:
        <button type="button" className="en-enable" onClick={()=>void enableNotifications()}><Bell size={14}/> Enable browser alerts</button>}
-       <small>Reminders appear here when you open the portal. Browser alerts work while this website is open; closed-browser push and email need a separate notification service.</small>
+       <small>Browser alerts appear while this portal is open in a tab.</small>
        {message&&<span role="status" className="en-message">{message}</span>}
      </div>
    </section>}
