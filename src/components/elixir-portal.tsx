@@ -429,7 +429,7 @@ export default function ElixirPortal(){
   }
   function logout(){
     if(remote){void remoteRequest("logout");}
-    setSession(null);setSignedOut(false);setShowAuth(false);try{localStorage.removeItem(SESSION);}catch{}goto("home");
+    setSession(null);setSignedOut(false);setShowAuth(false);try{localStorage.removeItem(SESSION);}catch{}setView("home");window.history.replaceState(null,"","/");
   }
 
   function saveEvent(e:PortalEvent){
