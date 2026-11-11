@@ -11,4 +11,5 @@ import "./landing.css";
 import "./theme.css";
 import "./obsidian.css";
 import "./workspace-light.css";
-export default function Home(){return <ElixirPortal/>;}\nimport "./qa-fixes.css";\n
+export default function Home(){return <ElixirPortal/>;}
+import "./qa-fixes.css";
