@@ -200,7 +200,21 @@ export async function POST(req:NextRequest){
    await logAudit(pool,user,"invitation.create",email,companyId);
    return getSnapshot(user);
   }
-  if(action==="grantCompanyAdmin"){
+  if(action==="revokeInvitation"){
+    if(!requireAdmin(user))return denied();
+    const invitationId=text(args.invitationId,120);
+    if(!invitationId)return error("Invitation ID is required");
+    const client=await pool.connect();
+    try{
+     await client.query("BEGIN");
+     const removed=await client.query("DELETE FROM invitations WHERE id=$1 AND accepted=false RETURNING email,organization_id",[invitationId]);
+     if(!removed.rowCount){await client.query("ROLLBACK");return error("Invitation not found or already accepted",409);}
+     await logAudit(client,user,"invitation.revoke",removed.rows[0].email,removed.rows[0].organization_id);
+     await client.query("COMMIT");
+    }catch(err){await client.query("ROLLBACK");throw err;}finally{client.release();}
+    return getSnapshot(user);
+   }
+   if(action==="grantCompanyAdmin"){
    if(!requireAdmin(user))return denied();
    const id=text(args.userId,120);
    const client=await pool.connect();
