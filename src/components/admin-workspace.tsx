@@ -23,16 +23,16 @@ export function PlatformOverview({data,onCompany,onAdd,onCompanies,onInvites,onU
  const active=data.companies.filter(c=>c.status==="active");
  const attendees=data.registrations.filter(r=>r.status==="going").length;
  return <div className="aw-root">
-  <WorkspaceHeading eyebrow="ELIXIR FOUNDATION · PLATFORM" title="Your partner network" description="Keep track of partner companies, their teams and events in one place."
-   action={<button className="aw-primary" onClick={onAdd}><Plus size={18}/> Add company</button>}/>
+  <WorkspaceHeading eyebrow="ELIXIR FOUNDATION · PLATFORM" title="Your partner network" description="Keep track of organizations, their teams and events in one place."
+   action={<button className="aw-primary" onClick={onAdd}><Plus size={18}/> Add organization</button>}/>
   <div className="aw-metric-grid">
-   <Metric icon={Building2} value={data.companies.length} label="Partner companies" detail={active.length+" active"}/>
-   <Metric icon={Users} value={data.users.filter(u=>u.companyId!==null).length} label="People" detail="Across partner teams"/>
+   <Metric icon={Building2} value={data.companies.length} label="Organizations" detail={active.length+" active"}/>
+   <Metric icon={Users} value={data.users.length} label="Accounts" detail="Including platform administrators"/>
    <Metric icon={CalendarDays} value={data.events.length} label="Events created" detail="All partner events"/>
    <Metric icon={TicketCheck} value={attendees} label="Active RSVPs" detail="Currently going"/>
   </div>
-  <WorkspaceSection title="Partner companies" description="Your organizations and their recent event activity"
-   action={<button className="aw-text-action" onClick={onCompanies}>Manage all companies <ArrowRight size={16}/></button>}>
+  <WorkspaceSection title="Organizations" description="Your organizations and their recent event activity"
+   action={<button className="aw-text-action" onClick={onCompanies}>Manage organizations <ArrowRight size={16}/></button>}>
    <div className="aw-company-grid">{data.companies.map(c=>{const s=companyStats(c,data);return <button key={c.id} className="aw-company-card" onClick={()=>onCompany(c)}>
     <span className="aw-company-logo" aria-hidden="true">{c.name.split(/\s+/).slice(0,2).map(w=>w[0]).join("")}</span>
     <span className="aw-company-body"><strong>{c.name}</strong><small>{c.domains.join(", ")}</small><span className="aw-company-foot"><span>{s.events.length} events</span><span>{s.people} people</span><span className={"aw-status "+c.status}>{c.status}</span></span></span><ChevronRight size={18}/>
@@ -40,8 +40,8 @@ export function PlatformOverview({data,onCompany,onAdd,onCompanies,onInvites,onU
   </WorkspaceSection>
   <WorkspaceSection title="Quick actions" description="Common platform administration tasks">
    <div className="aw-action-grid">
-    <button onClick={onAdd}><Building2 size={22}/><strong>Add a company</strong><span>Set up a partner and its work domains</span><ArrowRight size={17}/></button>
-    <button onClick={onInvites}><UserRoundCheck size={22}/><strong>Invite a company admin</strong><span>Assign access to a partner manager</span><ArrowRight size={17}/></button>
+    <button onClick={onAdd}><Building2 size={22}/><strong>Add an organization</strong><span>Set up an organization and its work domains</span><ArrowRight size={17}/></button>
+    <button onClick={onInvites}><UserRoundCheck size={22}/><strong>Invite an organization admin</strong><span>Assign access to a partner manager</span><ArrowRight size={17}/></button>
     <button onClick={onUsers}><Users size={22}/><strong>Manage accounts</strong><span>Review people and account status</span><ArrowRight size={17}/></button>
    </div>
   </WorkspaceSection>
