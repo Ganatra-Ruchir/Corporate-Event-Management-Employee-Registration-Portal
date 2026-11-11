@@ -196,11 +196,26 @@ export async function POST(req:NextRequest){
    const org=await pool.query("SELECT 1 FROM organization_domains d JOIN organizations o ON o.id=d.organization_id WHERE d.domain=$1 AND d.organization_id=$2 AND o.status='active'",[domain,companyId]);
    if(!org.rowCount)return error("Email domain does not belong to the active organization");
    if((await pool.query("SELECT 1 FROM users WHERE email=$1",[email])).rowCount)return error("Account already exists");
+    if((await pool.query("SELECT 1 FROM invitations WHERE email=$1 AND organization_id=$2 AND accepted=false",[email,companyId])).rowCount)return error("A pending invitation already exists for this address",409);
    await pool.query("INSERT INTO invitations(id,email,organization_id) VALUES($1,$2,$3)",[randomUUID(),email,companyId]);
    await logAudit(pool,user,"invitation.create",email,companyId);
    return getSnapshot(user);
   }
-  if(action==="grantCompanyAdmin"){
+  if(action==="revokeInvitation"){
+    if(!requireAdmin(user))return denied();
+    const invitationId=text(args.invitationId,120);
+    if(!invitationId)return error("Invitation ID is required");
+    const client=await pool.connect();
+    try{
+     await client.query("BEGIN");
+     const removed=await client.query("DELETE FROM invitations WHERE id=$1 AND accepted=false RETURNING email,organization_id",[invitationId]);
+     if(!removed.rowCount){await client.query("ROLLBACK");return error("Invitation not found or already accepted",409);}
+     await logAudit(client,user,"invitation.revoke",removed.rows[0].email,removed.rows[0].organization_id);
+     await client.query("COMMIT");
+    }catch(err){await client.query("ROLLBACK");throw err;}finally{client.release();}
+    return getSnapshot(user);
+   }
+   if(action==="grantCompanyAdmin"){
    if(!requireAdmin(user))return denied();
    const id=text(args.userId,120);
    const client=await pool.connect();

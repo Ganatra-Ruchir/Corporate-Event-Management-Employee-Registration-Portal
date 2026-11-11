@@ -44,7 +44,7 @@ function EventCoverImpl({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
   // Keep a stable frame when the banner alternates with a speaker photo.
   // New speaker uploads preserve their intrinsic dimensions; don't crop portraits.
   const firstSpeaker=photos[0];
-  const originalRatio=firstSpeaker?.photoAspectRatio||(firstSpeaker?.id===measuredRatio?.speakerId?measuredRatio.ratio:undefined);
+  const originalRatio=firstSpeaker?.photoAspectRatio||(firstSpeaker&&measuredRatio&&firstSpeaker.id===measuredRatio.speakerId?measuredRatio.ratio:undefined);
   const cardRatio=typeof originalRatio==="number"&&Number.isFinite(originalRatio)
     ?Math.min(2.4,Math.max(0.65,originalRatio)):1.91;
   return <div ref={coverRef} className={"ed-cover ed-cover-"+color+(wide?" ed-cover-wide":"")+(photos.length?" ed-cover-has-speaker":"")}
@@ -136,7 +136,7 @@ export function DiscoverHome({data,events,user,onOpen,onBrowse,onCategory,now,on
       <div className="ed-meetup-copy"><span className="ed-eyebrow">YOUR ORGANIZATION · YOUR COMMUNITY</span><h1>Meet. Connect. <span>Make an impact.</span></h1><p>Discover experiences worth sharing with colleagues, from volunteering and learning to team celebrations.</p><button type="button" className="ed-meetup-cta" onClick={onBrowse}>Explore all events <ArrowRight size={17}/></button></div>
       <div className="ed-meetup-art" aria-hidden="true"><span className="ed-meetup-bubble bubble-c"><LandingArtwork scene="ideas"/></span><span className="ed-meetup-bubble bubble-d"><LandingArtwork scene="celebrate"/></span></div>
     </section>
-    <div className="ed-home-heading ed-home-heading-refined"><div><h2>Events from your organization</h2><p>Find your next experience and see who's going.</p></div><div className="ed-home-actions"><button type="button" className="ed-search-toggle" onClick={onSearch}><Search size={20}/><span>Search events</span></button><button type="button" className="ed-home-explore" onClick={onBrowse}>See all events <ArrowRight size={17}/></button></div></div>
+    <div className="ed-home-heading ed-home-heading-refined"><div><h2>Events from your organization</h2><p>Find your next experience and see who&apos;s going.</p></div><div className="ed-home-actions"><button type="button" className="ed-search-toggle" onClick={onSearch}><Search size={20}/><span>Search events</span></button><button type="button" className="ed-home-explore" onClick={onBrowse}>See all events <ArrowRight size={17}/></button></div></div>
     {topCards.length>0?<div className="ed-tile-grid ed-home-grid">{topCards.map(e=><EventTile key={e.id} event={e} data={data} onOpen={onOpen}/>)}</div>:future.length===0?<div className="ed-feature-empty"><h2>No upcoming events</h2><p>Published events from your organization will appear here.</p></div>:null}
     <div className="ed-home-more"><span>Explore more</span></div>
     {selected?<button type="button" className="ed-feature" onClick={()=>onOpen(selected)}>

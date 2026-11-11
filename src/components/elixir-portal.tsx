@@ -104,12 +104,17 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
   }
   function submit(e:React.FormEvent){
     e.preventDefault();
+    const start=new Date(form.startsAt),end=new Date(form.endsAt),deadline=form.deadline?new Date(form.deadline):null;
+    if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||(deadline&&!Number.isFinite(deadline.getTime()))){setError("Enter valid event dates and times.");return;}
+    if(end.getTime()<=start.getTime()){setError("The end time must be after the start time.");return;}
+    if(deadline&&deadline.getTime()>start.getTime()){setError("Registration must close before the event starts.");return;}
+    setError("");
     const next={...form,
       summary:form.description.trim().replace(/\s+/g," ").slice(0,180),
       bannerAlt:form.title.trim()+" event banner",
       speakers:(form.speakers||[]).map(s=>({...s,photoAlt:s.photoDataUrl?(s.name.trim()?s.name.trim()+" speaker photo":"Speaker photo"):""})),
-      startsAt:new Date(form.startsAt).toISOString(),endsAt:new Date(form.endsAt).toISOString(),
-      deadline:form.deadline?new Date(form.deadline).toISOString():""};
+      startsAt:start.toISOString(),endsAt:end.toISOString(),
+      deadline:deadline?deadline.toISOString():""};
     const issue=validateEvent(next,data);
     if(issue){setError(issue);return;}
     onSave(next);
@@ -208,7 +213,7 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false,onB
         {mode==="signup"&&<><FormRow label="Full name"><input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name"/></FormRow><FormRow label="Department"><input value={department} maxLength={100} onChange={e=>setDepartment(e.target.value)} placeholder="e.g. Operations"/></FormRow></>}
         <FormRow label={mode==="signup"?"Work email address":"Email address"}><input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com"/></FormRow>
         {mode!=="forgot"&&<div className="ep-field"><label htmlFor="ep-password">Password</label><div className="ep-password-wrap"><input id="ep-password" type={showPassword?"text":"password"} minLength={6} autoComplete={mode==="login"?"current-password":"new-password"} required value={pass} onChange={e=>setPass(e.target.value)} placeholder="Enter password"/><button type="button" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?"Hide password":"Show password"}>{showPassword?"Hide":"Show"}</button></div></div>}
-        {mode==="signup"&&<p className="ep-hint">No real emails are delivered in this preview. Use a disposable demonstration password only.</p>}
+        
         {error&&<div role="alert" className="ep-error">{error}</div>}
         {message&&<div role="status" className="ep-success">{message}</div>}
         <button type="submit" className="ep-auth-submit" disabled={busy}>{busy?"Working…":mode==="login"?"Sign in":mode==="signup"?"Create account":"Reset demo password"}<ArrowRight size={18}/></button>
@@ -217,7 +222,7 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false,onB
         {mode!=="login"&&<button type="button" onClick={()=>{setMode("login");setError("");setMessage("");}}>Back to sign in</button>}
         {mode==="login"&&<><button type="button" onClick={()=>{if(remoteMode){window.location.href="/signup";return;}setMode("signup");setError("");setMessage("");}}>Create an account</button>{!remoteMode&&<><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button><button type="button" onClick={()=>{const u=data.users.find(p=>p.email===email.toLowerCase().trim()&&!p.verified);if(!u){setError("Enter the email of an unverified demonstration account.");return;}setVerifyId(u.id);setMode("verify");setError("");}}>Verify demo email</button></>}</>}
       </div>
-      <p className="ep-auth-footnote">{remoteMode?"Secure PostgreSQL · Server-side session":"Browser-only demonstration · No secure shared accounts or database"}</p>
+      <p className="ep-auth-footnote">{"Your organization’s event workspace"}</p>
     </main>
     <aside className="ep-auth-aside" aria-label="About Elixir events">
       <div className="ep-auth-aside-content"><span className="ep-auth-side-label">EVENTS THAT BRING TEAMS TOGETHER</span>
@@ -249,6 +254,7 @@ export default function ElixirPortal(){
   const [directorySearch,setDirectorySearch]=useState("");
   const [signedOut,setSignedOut]=useState(false);
   const [showAuth,setShowAuth]=useState(false);
+  useEffect(()=>{void Promise.resolve().then(()=>{if(new URLSearchParams(window.location.search).get("auth")==="login")setShowAuth(true);});},[]);
   const [participantSearch,setParticipantSearch]=useState("");
   const [showAttendees,setShowAttendees]=useState(false);
   const [historyFilter,setHistoryFilter]=useState("All");
@@ -347,8 +353,25 @@ export default function ElixirPortal(){
   const companyEvents=events;
   const nav:(View[]) = current?.role==="platform_admin"?["home","companies","invitations","users","profile"]:
     current?.role==="company_admin"?["home","events","registrations","people","profile"]:["home","events","registrations","profile"];
+  useEffect(()=>{
+    if(!ready||!current)return;
+    const restore=()=>{
+      const slug=window.location.pathname.split("/").filter(Boolean)[0]||"";
+      const eventId=new URLSearchParams(window.location.search).get("event");
+      if(eventId){const target=data.events.find(e=>e.id===eventId);if(target&&eventAccess(current,target,data)){setSelectedEvent(eventId);setView("event");return;}}
+      const routes:Record<string,View>={overview:"home",events:"events",registrations:"registrations",people:"people",companies:"companies",invitations:"invitations",accounts:"users",profile:"profile"};
+      const requested=routes[slug];
+      if(requested&&nav.includes(requested))setView(requested);
+      else if(!slug)setView("home");
+    };
+    restore();window.addEventListener("popstate",restore);return ()=>window.removeEventListener("popstate",restore);
+  },[ready,current?.id,nav.join(",")]);
   const goto=(v:View)=>{
     setView(v);setNotice("");setParticipantSearch("");setSearch("");
+    if(typeof window!=="undefined"&&v!=="event"&&v!=="eventForm"&&v!=="companyForm"){
+      const slug=v==="home"?"overview":v==="users"?"accounts":v;
+      if(window.location.pathname!=="/"+slug)window.history.pushState(null,"","/"+slug);
+    }
     setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");setMenu(false);setSearchOpen(false);setDirectorySearch("");
     if(v!=="event"&&typeof window!=="undefined"&&new URLSearchParams(window.location.search).has("event")){
       window.history.replaceState(null,"",window.location.pathname);
@@ -356,7 +379,7 @@ export default function ElixirPortal(){
   };
   const openEvent=(id:string)=>{
     setSelectedEvent(id);goto("event");
-    window.history.replaceState(null,"",window.location.pathname+"?event="+encodeURIComponent(id));
+    window.history.pushState(null,"","/events?event="+encodeURIComponent(id));
   };
 
   async function login(email:string,password:string):Promise<string|null>{
@@ -364,7 +387,7 @@ export default function ElixirPortal(){
       const result=await remoteRequest("login",{email,password});
       if(result.error)return result.error;
       if(!await remoteRefresh())return "Signed in, but could not load your account. Refresh the page.";
-      setSignedOut(false);setShowAuth(false);setView("home");return null;
+      setSignedOut(false);setShowAuth(false);setView("home");window.history.replaceState(null,"","/overview");return null;
     }
     const u=data.users.find(x=>x.email.toLowerCase()===email.toLowerCase().trim());
     if(!u||!(await passwordMatches(u.password,password)))return "Invalid email or password.";
@@ -406,7 +429,7 @@ export default function ElixirPortal(){
   }
   function logout(){
     if(remote){void remoteRequest("logout");}
-    setSession(null);setSignedOut(false);setShowAuth(false);try{localStorage.removeItem(SESSION);}catch{}goto("home");
+    setSession(null);setSignedOut(false);setShowAuth(false);try{localStorage.removeItem(SESSION);}catch{}setView("home");window.history.replaceState(null,"","/");
   }
 
   function saveEvent(e:PortalEvent){
@@ -496,13 +519,29 @@ export default function ElixirPortal(){
     const invitation:Invitation={id:makeId("invite"),email,companyId:c.id,role:"company_admin",code:makeId("code"),accepted:false};
     save({...data,invitations:[...data.invitations,invitation]});setInviteEmail("");flash("Company-admin invitation created in this browser. Share the email instructions manually; no email has been sent.");
   }
+  async function revokeInvitation(invitation:Invitation){
+    if(invitation.accepted)return;
+    if(!window.confirm("Revoke the pending invitation for "+invitation.email+"? This cannot be undone."))return;
+    if(remote){
+      const result=await remoteRequest("revokeInvitation",{invitationId:invitation.id});
+      if(result.error){setNotice(result.error);return;}
+      if(result.data)setData(result.data);else await remoteRefresh();
+    }else save({...data,invitations:data.invitations.filter(i=>i.id!==invitation.id)});
+    setNotice("Pending invitation revoked.");
+  }
+  async function copyInvitation(invitation:Invitation){
+    const companyName=data.companies.find(c=>c.id===invitation.companyId)?.name||"your organization";
+    const instructions="You have an invitation to join "+companyName+" as a company administrator. Sign up with "+invitation.email+" at "+window.location.origin+"/signup, verify your work email, then contact the Elixir portal administrator to activate your admin role.";
+    try{await navigator.clipboard.writeText(instructions);setNotice("Invitation instructions copied. No email has been sent.");}
+    catch{setNotice("Unable to copy invitation instructions in this browser.");}
+  }
   async function profileSave(e:React.FormEvent){
     e.preventDefault();if(!current)return;
     if(remote){
       if(profilePw&&profilePw!==profilePwConfirm){setProfileError("Passwords do not match");return;}
       const result=await remoteRequest("profile",{fullName:profileName??current.fullName,department:profileDepartment??current.department,jobTitle:profileJobTitle??current.jobTitle??"",phone:profilePhone??current.phone??"",password:profilePw});
       if(result.error){setProfileError(result.error);return;}
-      if(result.data)setData(result.data);setProfilePw("");setProfilePwConfirm("");setProfileError("");setProfileSuccess("Profile saved to PostgreSQL.");return;
+      if(result.data)setData(result.data);setProfilePw("");setProfilePwConfirm("");setProfileError("");setProfileSuccess("Profile saved.");return;
     }
     setProfileError("");setProfileSuccess("");
     const fullName=profileName??current.fullName,department=profileDepartment??current.department;
@@ -550,8 +589,8 @@ export default function ElixirPortal(){
   if(!ready)return <main className="ep-loading" role="status">Loading portal…</main>;
   if(remoteError&&remote)return <main className="ep-loading" role="alert">Database connection error: {remoteError}. Refresh to retry.</main>;
   if(!current)return showAuth?
-    <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset} remoteMode={true} onBack={()=>setShowAuth(false)}/>:
-    <PublicLanding onEnter={()=>setShowAuth(true)}/>;
+    <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset} remoteMode={true} onBack={()=>{setShowAuth(false);window.history.replaceState(null,"","/");}}/>:
+    <PublicLanding onEnter={()=>{setShowAuth(true);window.history.pushState(null,"","/?auth=login");}}/>;
   if(remote&&current.mustChangePassword)return <FirstLoginPasswordChange person={current} onLogout={logout} onSave={async password=>{
     const result=await remoteRequest("profile",{fullName:current.fullName,department:current.department,password});
     if(result.error)return result.error;
@@ -584,7 +623,7 @@ export default function ElixirPortal(){
     <a className="ep-skip" href="#main-content">Skip to main content</a>
     <header className="ep-topbar">
       <div className="ep-top-left"><button className="ep-menu" aria-label="Toggle navigation" onClick={()=>setMenu(!menu)}><Menu size={20}/></button><span className="ep-brand">{portalBrand}</span><span className="ep-divider-line"/><span className="ep-context">{current.role==="platform_admin"?"Platform management":company?.name||"Company events"}</span></div>
-      <div className="ep-top-right">{current.role==="employee"&&<EmployeeEventNotifications user={current} data={data} events={companyEvents} onOpen={openEvent}/>}<span className="ep-draft-marker">{remote?"POSTGRESQL · CONNECTED":"LOCAL DRAFT · NO DATABASE"}</span><button className="ep-account" onClick={()=>goto("profile")}><PersonAvatar person={current} size={27}/><span>{current.fullName}</span></button></div>
+      <div className="ep-top-right">{current.role==="employee"&&<EmployeeEventNotifications user={current} data={data} events={companyEvents} onOpen={openEvent}/>}<button className="ep-account" aria-label={"Open profile for "+current.fullName} onClick={()=>goto("profile")}><PersonAvatar person={current} size={27}/><span>{current.fullName}</span></button><button className="ep-header-signout" type="button" onClick={logout} aria-label="Sign out" title="Sign out"><LogOut size={18}/></button></div>
     </header>
     <div className="ep-layout">
       <nav className={"ep-sidebar "+(menu?"expanded":"")} aria-label="Main navigation">
@@ -739,7 +778,7 @@ export default function ElixirPortal(){
           <PeopleDirectory people={employeeFilter==="All"?companyPeople:companyPeople.filter(p=>p.status===employeeFilter)}
             search={directorySearch} onSearch={setDirectorySearch} selfId={current.id} onRole={changeRole}
             onEdit={remote?p=>setEditingEmployeeId(p.id):undefined}
-            onStatus={remote?p=>{void (async()=>{if(window.confirm((p.status==="active"?"Suspend ":"Reactivate ")+p.fullName+"?"))await employeeAction("changeEmployeeStatus",{userId:p.id});})();}:undefined}/>
+            onStatus={remote?p=>{if(window.confirm((p.status==="active"?"Suspend ":"Reactivate ")+p.fullName+"? "+(p.status==="active"?"They will lose portal access until reactivated.":"Their portal access will be restored.")))void employeeAction("changeEmployeeStatus",{userId:p.id});}:undefined}/>
         </>}
         {view==="companies"&&current.role==="platform_admin"&&<>
           <WorkspaceHeading eyebrow="PARTNER MANAGEMENT" title="Organizations" description="Every partner, approved email domain and their activity."
@@ -758,20 +797,20 @@ export default function ElixirPortal(){
                 <FormRow label="Manager email"><input required type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="manager@company.example"/></FormRow>
                 {inviteError&&<div className="ep-error" role="alert">{inviteError}</div>}
                 <Action type="submit">Create invitation <ArrowRight size={16}/></Action>
-                <p className="ep-hint">This is a local demonstration. No email is sent. The invited manager signs up using this exact address.</p>
+                <p className="ep-hint">Invite the organization administrator with their work email. Invitation status is stored by the portal.</p>
               </form>
             </WorkspaceSection>
-            <WorkspaceSection title="Invitation history" description="Requests recorded in this browser.">
-              <InvitationDirectory invitations={data.invitations} companies={data.companies}/>
+            <WorkspaceSection title="Invitation history" description="Invitations and their current status.">
+              <InvitationDirectory invitations={data.invitations} companies={data.companies} onRevoke={invitation=>void revokeInvitation(invitation)} onCopy={invitation=>void copyInvitation(invitation)}/>
             </WorkspaceSection>
           </div>
         </>}
         {view==="users"&&current.role==="platform_admin"&&<>
-          <WorkspaceHeading eyebrow="ELIXIR FOUNDATION · ACCOUNTS" title="Account management" description="Find people across partner companies, review roles and control demo account access."/>
+          <WorkspaceHeading eyebrow="ELIXIR FOUNDATION · ACCOUNTS" title="Account management" description="Find accounts across organizations, review roles and manage access."/>
           <AccountDirectory people={data.users} companies={data.companies} search={directorySearch} onSearch={setDirectorySearch} onStatus={changeUserStatus} onApprove={remote?approveUser:undefined} onGrantAdmin={remote?grantInvitedAdmin:undefined}/>
         </>}
         {view==="profile"&&<>
-          <WorkspaceHeading eyebrow="YOUR ACCOUNT" title="Profile & settings" description="Manage your personal details, PNG profile photo and password."/>
+          <WorkspaceHeading eyebrow="YOUR ACCOUNT" title="Profile & settings" description="Manage your personal details, profile photo and password."/>
           <div className="aw-two-col aw-profile-layout">
             <div className="aw-profile-summary">
               <PersonAvatar person={current} size={88}/>
@@ -785,9 +824,9 @@ export default function ElixirPortal(){
               <h2>Personal details</h2>
               {remote&&<div className="profile-photo-control">
                 <PersonAvatar person={current} size={82}/>
-                <label>Profile photo (PNG, max 20 MB)<input type="file" accept="image/png" disabled={profilePhotoBusy} onChange={e=>{void uploadProfilePhoto(e.currentTarget.files?.[0]);e.currentTarget.value="";}}/></label>
+                <label className="profile-upload-button">Upload profile photo (JPG, PNG or WebP)<input type="file" accept="image/png,image/jpeg,image/webp" disabled={profilePhotoBusy} onChange={e=>{void uploadProfilePhoto(e.currentTarget.files?.[0]);e.currentTarget.value="";}}/></label>
                 {current.avatarUrl&&<button type="button" disabled={profilePhotoBusy} onClick={()=>void removeProfilePhoto()}>Remove profile picture</button>}
-                <small>{profilePhotoBusy?"Uploading photo…":"PNG images up to 20 MB are resized automatically for faster uploads and display."}</small>
+                <small>{profilePhotoBusy?"Uploading photo…":"JPG, PNG and WebP images up to 20 MB are resized automatically for faster uploads."}</small>
               </div>}
               <div className="ep-form-grid">
                 <FormRow label="Full name"><input required value={profileName??current.fullName} onChange={e=>setProfileName(e.target.value)}/></FormRow>
@@ -812,7 +851,7 @@ export default function ElixirPortal(){
             </form>
           </div>
         </>}
-        <footer className="ep-footer">{portalBrand} · {remote?"Secure PostgreSQL · Server-side sessions":"Internal working draft · No live accounts or shared database"}</footer>
+        <footer className="ep-footer">{portalBrand} · Team events and experiences</footer>
       </main>
     </div>
   </div>;
