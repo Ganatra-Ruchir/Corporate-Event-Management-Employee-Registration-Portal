@@ -10,7 +10,7 @@ export function DirectorySearch({value,onChange,placeholder}:{value:string;onCha
    <input type="search" value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}/></label>;
 }
 function Empty({query,label}:{query:string;label:string}){
- return <div className="md-empty"><Search size={22}/><strong>No matches found</strong><p>{query?"Try another name or email.":"There are no "+label+" yet."}</p></div>;
+ return <div className="md-empty"><Search size={22}/><strong>No matches found</strong><p>{query?(label==="organizations"?"Try another organization name or domain.":"Try another name or email."):"There are no "+label+" yet."}</p></div>;
 }
 export function CompanyDirectory({companies,data,selected,query,onQuery,onSelect,onEdit,onToggle,onClose}:{companies:Company[];data:PortalData;selected:Company|null;query:string;onQuery:(v:string)=>void;onSelect:(c:Company)=>void;onEdit:(c:Company)=>void;onToggle:(c:Company)=>void;onClose:()=>void}){
  const filtered=companies.filter(c=>[c.name,...c.domains].join(" ").toLowerCase().includes(query.trim().toLowerCase()));
@@ -29,11 +29,11 @@ export function CompanyDirectory({companies,data,selected,query,onQuery,onSelect
     })}
    </div>
    {!filtered.length&&<Empty query={query} label="organizations"/>}
-   {selected&&<section className="md-details" aria-labelledby="md-selected-heading">
+   {selected&&<div className="md-modal-backdrop" onClick={onClose}><section className="md-details md-modal" role="dialog" aria-modal="true" aria-labelledby="md-selected-heading" onClick={e=>e.stopPropagation()}>
     <div className="md-details-header"><div><span className="ed-eyebrow">ORGANIZATION DETAILS</span><h2 id="md-selected-heading">{selected.name}</h2><p>Approved domains: {selected.domains.join(", ")}</p></div><button onClick={onClose} className="md-close">Close</button></div>
     <div className="md-detail-metrics"><div><strong>{people.length}</strong><span>People</span></div><div><strong>{companyEvents.length}</strong><span>Events</span></div><div><strong>{registrations}</strong><span>Going</span></div></div>
-    <div className="md-details-actions"><button className="aw-primary" onClick={()=>onEdit(selected)}>Edit organization <ArrowRight size={16}/></button><button className="md-outline-action" onClick={()=>onToggle(selected)}>{selected.status==="active"?"Suspend company":"Reactivate company"}</button></div>
-   </section>}
+    <div className="md-details-actions"><button className="aw-primary" onClick={()=>onEdit(selected)}>Edit organization <ArrowRight size={16}/></button><button className="md-outline-action" onClick={()=>{if(selected.status!=="active"||window.confirm(`Suspend ${selected.name}? Its members may lose access to organization events until reactivated.`))onToggle(selected);}}>{selected.status==="active"?"Suspend organization":"Reactivate organization"}</button></div>
+   </section></div>}
  </div>;
 }
 export function PeopleDirectory({people,search,onSearch,selfId,onRole,onApprove,onEdit,onStatus,showEmployeesOnly=false}:{people:Person[];search:string;onSearch:(v:string)=>void;selfId:string;onRole:(person:Person)=>void;onApprove?:(person:Person)=>void;onEdit?:(person:Person)=>void;onStatus?:(person:Person)=>void;showEmployeesOnly?:boolean}){
@@ -44,7 +44,7 @@ export function PeopleDirectory({people,search,onSearch,selfId,onRole,onApprove,
    <div className="md-person-profile"><PersonAvatar person={person} size={45}/><div><strong>{person.fullName}</strong><small>{[person.jobTitle,person.department].filter(Boolean).join(" · ")||"Department not set"}</small></div></div>
    <div className="md-person-email"><Mail size={15}/><span>{person.email}</span></div>
    <div className="md-person-footer"><span className={"md-role "+person.role}>{person.role==="company_admin"?"Company admin":"Employee"} · {person.status}</span>
-    <div className="employee-list-actions">{onEdit&&person.role==="employee"&&<button type="button" onClick={()=>onEdit(person)}>Edit details</button>}{onStatus&&person.role==="employee"&&<button type="button" onClick={()=>onStatus(person)}>{person.status==="active"?"Suspend":"Reactivate"}</button>}
+    <div className="employee-list-actions">{onEdit&&person.role==="employee"&&<button type="button" onClick={()=>onEdit(person)}>Edit details</button>}{onStatus&&person.role==="employee"&&<button type="button" onClick={()=>{if(person.status!=="active"||window.confirm(`Suspend ${person.fullName}? They will lose access until reactivated.`))onStatus(person);}}>{person.status==="active"?"Suspend":"Reactivate"}</button>}
     {!person.verified&&onApprove?<button onClick={()=>onApprove(person)}>Approve account <ArrowRight size={14}/></button>:person.id===selfId?<span className="md-self-label">Your account</span>:<button onClick={()=>onRole(person)}>{person.role==="employee"?"Make admin":"Remove admin"} <ArrowRight size={14}/></button>}</div></div>
   </article>)}</div>
   {!visible.length&&<Empty query={search} label="people"/>}
@@ -58,7 +58,7 @@ export function AccountDirectory({people,companies,search,onSearch,onStatus,onAp
     <div className="md-person-profile"><PersonAvatar person={person} size={45}/><div><strong>{person.fullName}</strong><small>{person.email}</small></div></div>
     <div className="md-account-company"><Building2 size={15}/>{companies.find(c=>c.id===person.companyId)?.name||"Elixir Foundation"}</div>
     <div className="md-account-tags"><span className="md-role">{person.role==="platform_admin"?"Platform admin":person.role==="company_admin"?"Company admin":"Employee"}</span><span className={"aw-status "+person.status}>{person.status}</span></div>
-    {person.role==="platform_admin"?<span className="md-self-label">Protected</span>:<div className="md-account-actions">{!person.verified&&onApprove&&<button className="md-outline-action" onClick={()=>onApprove(person)}>Approve</button>}{person.role==="employee"&&person.verified&&onGrantAdmin&&<button className="md-outline-action" onClick={()=>onGrantAdmin(person)}>Grant invited admin</button>}<button className="md-outline-action" onClick={()=>onStatus(person)}>{person.status==="active"?"Suspend":"Reactivate"}</button></div>}
+    {person.role==="platform_admin"?<span className="md-self-label">Protected</span>:<div className="md-account-actions">{!person.verified&&onApprove&&<button className="md-outline-action" onClick={()=>onApprove(person)}>Approve</button>}{person.role==="employee"&&person.verified&&onGrantAdmin&&<button className="md-outline-action" onClick={()=>onGrantAdmin(person)}>Make company admin</button>}<button className="md-outline-action" onClick={()=>onStatus(person)}>{person.status==="active"?"Suspend":"Reactivate"}</button></div>}
    </article>)}</div>
   {!visible.length&&<Empty query={search} label="accounts"/>}
  </div>;
