@@ -600,7 +600,7 @@ export default function ElixirPortal(){
     <a className="ep-skip" href="#main-content">Skip to main content</a>
     <header className="ep-topbar">
       <div className="ep-top-left"><button className="ep-menu" aria-label="Toggle navigation" onClick={()=>setMenu(!menu)}><Menu size={20}/></button><span className="ep-brand">{portalBrand}</span><span className="ep-divider-line"/><span className="ep-context">{current.role==="platform_admin"?"Platform management":company?.name||"Company events"}</span></div>
-      <div className="ep-top-right">{current.role==="employee"&&<EmployeeEventNotifications user={current} data={data} events={companyEvents} onOpen={openEvent}/>}<span className="ep-draft-marker">{remote?"POSTGRESQL · CONNECTED":"LOCAL DRAFT · NO DATABASE"}</span><button className="ep-account" onClick={()=>goto("profile")}><PersonAvatar person={current} size={27}/><span>{current.fullName}</span></button></div>
+      <div className="ep-top-right">{current.role==="employee"&&<EmployeeEventNotifications user={current} data={data} events={companyEvents} onOpen={openEvent}/>}<button className="ep-account" aria-label={"Open profile for "+current.fullName} onClick={()=>goto("profile")}><PersonAvatar person={current} size={27}/><span>{current.fullName}</span></button><button className="ep-header-signout" type="button" onClick={logout} aria-label="Sign out" title="Sign out"><LogOut size={18}/></button></div>
     </header>
     <div className="ep-layout">
       <nav className={"ep-sidebar "+(menu?"expanded":"")} aria-label="Main navigation">
