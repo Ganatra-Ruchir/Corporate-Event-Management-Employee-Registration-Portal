@@ -249,6 +249,7 @@ export default function ElixirPortal(){
   const [directorySearch,setDirectorySearch]=useState("");
   const [signedOut,setSignedOut]=useState(false);
   const [showAuth,setShowAuth]=useState(false);
+  useEffect(()=>{if(new URLSearchParams(window.location.search).get("auth")==="login")setShowAuth(true);},[]);
   const [participantSearch,setParticipantSearch]=useState("");
   const [showAttendees,setShowAttendees]=useState(false);
   const [historyFilter,setHistoryFilter]=useState("All");
@@ -347,8 +348,23 @@ export default function ElixirPortal(){
   const companyEvents=events;
   const nav:(View[]) = current?.role==="platform_admin"?["home","companies","invitations","users","profile"]:
     current?.role==="company_admin"?["home","events","registrations","people","profile"]:["home","events","registrations","profile"];
+  useEffect(()=>{
+    if(!ready||!current)return;
+    const restore=()=>{
+      const slug=window.location.pathname.split("/").filter(Boolean)[0]||"";
+      const routes:Record<string,View>={overview:"home",events:"events",registrations:"registrations",people:"people",companies:"companies",invitations:"invitations",accounts:"users",profile:"profile"};
+      const requested=routes[slug];
+      if(requested&&nav.includes(requested))setView(requested);
+      else if(!slug)setView("home");
+    };
+    restore();window.addEventListener("popstate",restore);return ()=>window.removeEventListener("popstate",restore);
+  },[ready,current?.id,nav.join(",")]);
   const goto=(v:View)=>{
     setView(v);setNotice("");setParticipantSearch("");setSearch("");
+    if(typeof window!=="undefined"&&v!=="event"&&v!=="eventForm"&&v!=="companyForm"){
+      const slug=v==="home"?"overview":v==="users"?"accounts":v;
+      if(window.location.pathname!=="/"+slug)window.history.pushState(null,"","/"+slug);
+    }
     setCategory("All");setPlacesOnly(false);setTimeFilter("Upcoming");setMenu(false);setSearchOpen(false);setDirectorySearch("");
     if(v!=="event"&&typeof window!=="undefined"&&new URLSearchParams(window.location.search).has("event")){
       window.history.replaceState(null,"",window.location.pathname);
@@ -356,7 +372,7 @@ export default function ElixirPortal(){
   };
   const openEvent=(id:string)=>{
     setSelectedEvent(id);goto("event");
-    window.history.replaceState(null,"",window.location.pathname+"?event="+encodeURIComponent(id));
+    window.history.replaceState(null,"","/events?event="+encodeURIComponent(id));
   };
 
   async function login(email:string,password:string):Promise<string|null>{
@@ -364,7 +380,7 @@ export default function ElixirPortal(){
       const result=await remoteRequest("login",{email,password});
       if(result.error)return result.error;
       if(!await remoteRefresh())return "Signed in, but could not load your account. Refresh the page.";
-      setSignedOut(false);setShowAuth(false);setView("home");return null;
+      setSignedOut(false);setShowAuth(false);setView("home");window.history.replaceState(null,"","/overview");return null;
     }
     const u=data.users.find(x=>x.email.toLowerCase()===email.toLowerCase().trim());
     if(!u||!(await passwordMatches(u.password,password)))return "Invalid email or password.";
@@ -550,8 +566,8 @@ export default function ElixirPortal(){
   if(!ready)return <main className="ep-loading" role="status">Loading portal…</main>;
   if(remoteError&&remote)return <main className="ep-loading" role="alert">Database connection error: {remoteError}. Refresh to retry.</main>;
   if(!current)return showAuth?
-    <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset} remoteMode={true} onBack={()=>setShowAuth(false)}/>:
-    <PublicLanding onEnter={()=>setShowAuth(true)}/>;
+    <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset} remoteMode={true} onBack={()=>{setShowAuth(false);window.history.replaceState(null,"","/");}}/>:
+    <PublicLanding onEnter={()=>{setShowAuth(true);window.history.pushState(null,"","/?auth=login");}}/>;
   if(remote&&current.mustChangePassword)return <FirstLoginPasswordChange person={current} onLogout={logout} onSave={async password=>{
     const result=await remoteRequest("profile",{fullName:current.fullName,department:current.department,password});
     if(result.error)return result.error;
