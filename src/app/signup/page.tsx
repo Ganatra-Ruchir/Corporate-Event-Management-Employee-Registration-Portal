@@ -60,7 +60,7 @@ export default function SignupPage(){
   }catch{setMessage("Verification failed. Try again.");}finally{setBusy(false);}
  }
  return <main className="join-page"><section className="join-wrap">
-  <header className="join-top"><Link href="/">← Back to sign in</Link><strong>Elixir Events Portal</strong></header>
+  <header className="join-top"><Link href="/login">← Back to sign in</Link><strong>Elixir Events Portal</strong></header>
   <div className="join-grid"><article className="join-panel">
    <small>EMPLOYEE SIGNUP · EMAIL OTP</small>
    <h1>{step==="details"?"Join your company's events":step==="otp"?"Verify your work email":"Registration received"}</h1>
