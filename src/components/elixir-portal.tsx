@@ -104,12 +104,17 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
   }
   function submit(e:React.FormEvent){
     e.preventDefault();
+    const start=new Date(form.startsAt),end=new Date(form.endsAt),deadline=form.deadline?new Date(form.deadline):null;
+    if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||(deadline&&!Number.isFinite(deadline.getTime()))){setError("Enter valid event dates and times.");return;}
+    if(end.getTime()<=start.getTime()){setError("The end time must be after the start time.");return;}
+    if(deadline&&deadline.getTime()>start.getTime()){setError("Registration must close before the event starts.");return;}
+    setError("");
     const next={...form,
       summary:form.description.trim().replace(/\s+/g," ").slice(0,180),
       bannerAlt:form.title.trim()+" event banner",
       speakers:(form.speakers||[]).map(s=>({...s,photoAlt:s.photoDataUrl?(s.name.trim()?s.name.trim()+" speaker photo":"Speaker photo"):""})),
-      startsAt:new Date(form.startsAt).toISOString(),endsAt:new Date(form.endsAt).toISOString(),
-      deadline:form.deadline?new Date(form.deadline).toISOString():""};
+      startsAt:start.toISOString(),endsAt:end.toISOString(),
+      deadline:deadline?deadline.toISOString():""};
     const issue=validateEvent(next,data);
     if(issue){setError(issue);return;}
     onSave(next);
