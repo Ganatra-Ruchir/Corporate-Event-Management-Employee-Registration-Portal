@@ -801,9 +801,9 @@ export default function ElixirPortal(){
               <h2>Personal details</h2>
               {remote&&<div className="profile-photo-control">
                 <PersonAvatar person={current} size={82}/>
-                <label>Profile photo (PNG, max 20 MB)<input type="file" accept="image/png" disabled={profilePhotoBusy} onChange={e=>{void uploadProfilePhoto(e.currentTarget.files?.[0]);e.currentTarget.value="";}}/></label>
+                <label className="profile-upload-button">Upload profile photo (JPG, PNG or WebP)<input type="file" accept="image/png,image/jpeg,image/webp" disabled={profilePhotoBusy} onChange={e=>{void uploadProfilePhoto(e.currentTarget.files?.[0]);e.currentTarget.value="";}}/></label>
                 {current.avatarUrl&&<button type="button" disabled={profilePhotoBusy} onClick={()=>void removeProfilePhoto()}>Remove profile picture</button>}
-                <small>{profilePhotoBusy?"Uploading photo…":"PNG images up to 20 MB are resized automatically for faster uploads and display."}</small>
+                <small>{profilePhotoBusy?"Uploading photo…":"JPG, PNG and WebP images up to 20 MB are resized automatically for faster uploads."}</small>
               </div>}
               <div className="ep-form-grid">
                 <FormRow label="Full name"><input required value={profileName??current.fullName} onChange={e=>setProfileName(e.target.value)}/></FormRow>
