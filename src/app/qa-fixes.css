@@ -41,3 +41,11 @@
  .ep-shell .ep-top-right{gap:7px}
  .ep-shell .ep-header-signout{flex:none}
 }
+
+/* Platform invitation actions: preserve alignment on narrow screens. */
+.md-invitation{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.md-invitation>div:nth-child(2){flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
+.md-invitation-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-left:auto}
+.md-invitation-actions .md-danger-action{color:#a13228!important;border-color:#d7a49e!important}
+.md-invitation-actions .md-danger-action:hover{background:#fff0ed!important}
+@media(max-width:640px){.md-invitation-actions{width:100%;margin-left:0}.md-invitation-actions button{flex:1 1 auto}.ep-shell .ep-header-signout{min-width:36px}}
