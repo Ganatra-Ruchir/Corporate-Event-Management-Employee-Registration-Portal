@@ -512,6 +512,22 @@ export default function ElixirPortal(){
     const invitation:Invitation={id:makeId("invite"),email,companyId:c.id,role:"company_admin",code:makeId("code"),accepted:false};
     save({...data,invitations:[...data.invitations,invitation]});setInviteEmail("");flash("Company-admin invitation created in this browser. Share the email instructions manually; no email has been sent.");
   }
+  async function revokeInvitation(invitation:Invitation){
+    if(invitation.accepted)return;
+    if(!window.confirm("Revoke the pending invitation for "+invitation.email+"? This cannot be undone."))return;
+    if(remote){
+      const result=await remoteRequest("revokeInvitation",{invitationId:invitation.id});
+      if(result.error){setNotice(result.error);return;}
+      if(result.data)setData(result.data);else await remoteRefresh();
+    }else save({...data,invitations:data.invitations.filter(i=>i.id!==invitation.id)});
+    setNotice("Pending invitation revoked.");
+  }
+  async function copyInvitation(invitation:Invitation){
+    const companyName=data.companies.find(c=>c.id===invitation.companyId)?.name||"your organization";
+    const instructions="You have an invitation to join "+companyName+" as a company administrator. Sign up with "+invitation.email+" at "+window.location.origin+"/signup, verify your work email, then contact the Elixir portal administrator to activate your admin role.";
+    try{await navigator.clipboard.writeText(instructions);setNotice("Invitation instructions copied. No email has been sent.");}
+    catch{setNotice("Unable to copy invitation instructions in this browser.");}
+  }
   async function profileSave(e:React.FormEvent){
     e.preventDefault();if(!current)return;
     if(remote){
@@ -755,7 +771,7 @@ export default function ElixirPortal(){
           <PeopleDirectory people={employeeFilter==="All"?companyPeople:companyPeople.filter(p=>p.status===employeeFilter)}
             search={directorySearch} onSearch={setDirectorySearch} selfId={current.id} onRole={changeRole}
             onEdit={remote?p=>setEditingEmployeeId(p.id):undefined}
-            onStatus={remote?p=>{void (async()=>{if(window.confirm((p.status==="active"?"Suspend ":"Reactivate ")+p.fullName+"?"))await employeeAction("changeEmployeeStatus",{userId:p.id});})();}:undefined}/>
+            onStatus={remote?p=>{void employeeAction("changeEmployeeStatus",{userId:p.id});}:undefined}/>
         </>}
         {view==="companies"&&current.role==="platform_admin"&&<>
           <WorkspaceHeading eyebrow="PARTNER MANAGEMENT" title="Organizations" description="Every partner, approved email domain and their activity."
@@ -778,7 +794,7 @@ export default function ElixirPortal(){
               </form>
             </WorkspaceSection>
             <WorkspaceSection title="Invitation history" description="Invitations and their current status.">
-              <InvitationDirectory invitations={data.invitations} companies={data.companies}/>
+              <InvitationDirectory invitations={data.invitations} companies={data.companies} onRevoke={invitation=>void revokeInvitation(invitation)} onCopy={invitation=>void copyInvitation(invitation)}/>
             </WorkspaceSection>
           </div>
         </>}
@@ -787,7 +803,7 @@ export default function ElixirPortal(){
           <AccountDirectory people={data.users} companies={data.companies} search={directorySearch} onSearch={setDirectorySearch} onStatus={changeUserStatus} onApprove={remote?approveUser:undefined} onGrantAdmin={remote?grantInvitedAdmin:undefined}/>
         </>}
         {view==="profile"&&<>
-          <WorkspaceHeading eyebrow="YOUR ACCOUNT" title="Profile & settings" description="Manage your personal details, PNG profile photo and password."/>
+          <WorkspaceHeading eyebrow="YOUR ACCOUNT" title="Profile & settings" description="Manage your personal details, profile photo and password."/>
           <div className="aw-two-col aw-profile-layout">
             <div className="aw-profile-summary">
               <PersonAvatar person={current} size={88}/>
