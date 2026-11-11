@@ -21,7 +21,7 @@ export function CompanyDirectory({companies,data,selected,query,onQuery,onSelect
    <div className="md-toolbar"><DirectorySearch value={query} onChange={onQuery} placeholder="Search organizations or domains"/><span>{filtered.length} organizations</span></div>
    <div className="md-company-grid">
     {filtered.map(c=>{const eventCount=data.events.filter(e=>e.companyId===c.id).length;const members=data.users.filter(u=>u.companyId===c.id).length;
-     return <button className={"md-company"+(selected?.id===c.id?" selected":"")} key={c.id} onClick={()=>onSelect(c)} aria-pressed={selected?.id===c.id}>
+     return <button className={"md-company"+(selected?.id===c.id?" selected":"")} key={c.id} onClick={()=>onSelect(c)} aria-label={"View details for "+c.name} aria-pressed={selected?.id===c.id}>
       <span className="md-company-top"><span className="md-org-icon"><Building2 size={23}/></span><span className={"aw-status "+c.status}>{c.status}</span></span>
       <strong>{c.name}</strong><span className="md-domain"><Globe size={15}/>{c.domains.join(", ")}</span>
       <span className="md-company-bottom"><span><Users size={15}/>{members} people</span><span><CalendarDays size={15}/>{eventCount} events</span><ChevronRight size={18}/></span>
@@ -30,7 +30,7 @@ export function CompanyDirectory({companies,data,selected,query,onQuery,onSelect
    </div>
    {!filtered.length&&<Empty query={query} label="organizations"/>}
    {selected&&<div className="md-modal-backdrop" onClick={onClose}><section className="md-details md-modal" role="dialog" aria-modal="true" aria-labelledby="md-selected-heading" onClick={e=>e.stopPropagation()}>
-    <div className="md-details-header"><div><span className="ed-eyebrow">ORGANIZATION DETAILS</span><h2 id="md-selected-heading">{selected.name}</h2><p>Approved domains: {selected.domains.join(", ")}</p></div><button onClick={onClose} className="md-close">Close</button></div>
+    <div className="md-details-header"><div><span className="ed-eyebrow">ORGANIZATION DETAILS</span><h2 id="md-selected-heading">{selected.name}</h2><p>Approved domains: {selected.domains.join(", ")}</p></div><button onClick={onClose} className="md-close" aria-label="Close organization details">Close</button></div>
     <div className="md-detail-metrics"><div><strong>{people.length}</strong><span>People</span></div><div><strong>{companyEvents.length}</strong><span>Events</span></div><div><strong>{registrations}</strong><span>Going</span></div></div>
     <div className="md-details-actions"><button className="aw-primary" onClick={()=>onEdit(selected)}>Edit organization <ArrowRight size={16}/></button><button className="md-outline-action" onClick={()=>{if(selected.status!=="active"||window.confirm(`Suspend ${selected.name}? Its members may lose access to organization events until reactivated.`))onToggle(selected);}}>{selected.status==="active"?"Suspend organization":"Reactivate organization"}</button></div>
    </section></div>}
