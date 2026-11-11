@@ -6,7 +6,7 @@ function utc(input:string){return new Date(input).toISOString().replace(/[-:]/g,
 function escapeIcs(value:string){return value.replace(/\\/g,"\\\\").replace(/\r?\n/g,"\\n").replace(/[,;]/g,m=>"\\"+m);}
 export function EventQuickActions({event}:{event:PortalEvent}){
  const [copied,setCopied]=useState(false);
- function shareUrl(){return new URL("/?event="+encodeURIComponent(event.id),window.location.origin).toString();}
+ function shareUrl(){return new URL("/events?event="+encodeURIComponent(event.id),window.location.origin).toString();}
  async function copy(){
   try{await navigator.clipboard.writeText(shareUrl());setCopied(true);}catch{setCopied(false);}
  }
