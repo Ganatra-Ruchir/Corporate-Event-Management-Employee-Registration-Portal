@@ -44,7 +44,7 @@ function EventCoverImpl({event,wide=false}:{event:PortalEvent;wide?:boolean}) {
   // Keep a stable frame when the banner alternates with a speaker photo.
   // New speaker uploads preserve their intrinsic dimensions; don't crop portraits.
   const firstSpeaker=photos[0];
-  const originalRatio=firstSpeaker?.photoAspectRatio||(firstSpeaker?.id===measuredRatio?.speakerId?measuredRatio.ratio:undefined);
+  const originalRatio=firstSpeaker?.photoAspectRatio||(firstSpeaker&&measuredRatio&&firstSpeaker.id===measuredRatio.speakerId?measuredRatio.ratio:undefined);
   const cardRatio=typeof originalRatio==="number"&&Number.isFinite(originalRatio)
     ?Math.min(2.4,Math.max(0.65,originalRatio)):1.91;
   return <div ref={coverRef} className={"ed-cover ed-cover-"+color+(wide?" ed-cover-wide":"")+(photos.length?" ed-cover-has-speaker":"")}
