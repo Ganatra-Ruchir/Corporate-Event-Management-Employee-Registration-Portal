@@ -208,7 +208,7 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false,onB
         {mode==="signup"&&<><FormRow label="Full name"><input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name"/></FormRow><FormRow label="Department"><input value={department} maxLength={100} onChange={e=>setDepartment(e.target.value)} placeholder="e.g. Operations"/></FormRow></>}
         <FormRow label={mode==="signup"?"Work email address":"Email address"}><input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com"/></FormRow>
         {mode!=="forgot"&&<div className="ep-field"><label htmlFor="ep-password">Password</label><div className="ep-password-wrap"><input id="ep-password" type={showPassword?"text":"password"} minLength={6} autoComplete={mode==="login"?"current-password":"new-password"} required value={pass} onChange={e=>setPass(e.target.value)} placeholder="Enter password"/><button type="button" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?"Hide password":"Show password"}>{showPassword?"Hide":"Show"}</button></div></div>}
-        {mode==="signup"&&<p className="ep-hint">No real emails are delivered in this preview. Use a disposable demonstration password only.</p>}
+        
         {error&&<div role="alert" className="ep-error">{error}</div>}
         {message&&<div role="status" className="ep-success">{message}</div>}
         <button type="submit" className="ep-auth-submit" disabled={busy}>{busy?"Working…":mode==="login"?"Sign in":mode==="signup"?"Create account":"Reset demo password"}<ArrowRight size={18}/></button>
@@ -217,7 +217,7 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false,onB
         {mode!=="login"&&<button type="button" onClick={()=>{setMode("login");setError("");setMessage("");}}>Back to sign in</button>}
         {mode==="login"&&<><button type="button" onClick={()=>{if(remoteMode){window.location.href="/signup";return;}setMode("signup");setError("");setMessage("");}}>Create an account</button>{!remoteMode&&<><button type="button" onClick={()=>{setMode("forgot");setError("");setMessage("");}}>Forgot password?</button><button type="button" onClick={()=>{const u=data.users.find(p=>p.email===email.toLowerCase().trim()&&!p.verified);if(!u){setError("Enter the email of an unverified demonstration account.");return;}setVerifyId(u.id);setMode("verify");setError("");}}>Verify demo email</button></>}</>}
       </div>
-      <p className="ep-auth-footnote">{remoteMode?"Secure PostgreSQL · Server-side session":"Browser-only demonstration · No secure shared accounts or database"}</p>
+      <p className="ep-auth-footnote">{"Your organization’s event workspace"}</p>
     </main>
     <aside className="ep-auth-aside" aria-label="About Elixir events">
       <div className="ep-auth-aside-content"><span className="ep-auth-side-label">EVENTS THAT BRING TEAMS TOGETHER</span>
@@ -502,7 +502,7 @@ export default function ElixirPortal(){
       if(profilePw&&profilePw!==profilePwConfirm){setProfileError("Passwords do not match");return;}
       const result=await remoteRequest("profile",{fullName:profileName??current.fullName,department:profileDepartment??current.department,jobTitle:profileJobTitle??current.jobTitle??"",phone:profilePhone??current.phone??"",password:profilePw});
       if(result.error){setProfileError(result.error);return;}
-      if(result.data)setData(result.data);setProfilePw("");setProfilePwConfirm("");setProfileError("");setProfileSuccess("Profile saved to PostgreSQL.");return;
+      if(result.data)setData(result.data);setProfilePw("");setProfilePwConfirm("");setProfileError("");setProfileSuccess("Profile saved.");return;
     }
     setProfileError("");setProfileSuccess("");
     const fullName=profileName??current.fullName,department=profileDepartment??current.department;
@@ -758,16 +758,16 @@ export default function ElixirPortal(){
                 <FormRow label="Manager email"><input required type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="manager@company.example"/></FormRow>
                 {inviteError&&<div className="ep-error" role="alert">{inviteError}</div>}
                 <Action type="submit">Create invitation <ArrowRight size={16}/></Action>
-                <p className="ep-hint">This is a local demonstration. No email is sent. The invited manager signs up using this exact address.</p>
+                <p className="ep-hint">Invite the organization administrator with their work email. Invitation status is stored by the portal.</p>
               </form>
             </WorkspaceSection>
-            <WorkspaceSection title="Invitation history" description="Requests recorded in this browser.">
+            <WorkspaceSection title="Invitation history" description="Invitations and their current status.">
               <InvitationDirectory invitations={data.invitations} companies={data.companies}/>
             </WorkspaceSection>
           </div>
         </>}
         {view==="users"&&current.role==="platform_admin"&&<>
-          <WorkspaceHeading eyebrow="ELIXIR FOUNDATION · ACCOUNTS" title="Account management" description="Find people across partner companies, review roles and control demo account access."/>
+          <WorkspaceHeading eyebrow="ELIXIR FOUNDATION · ACCOUNTS" title="Account management" description="Find accounts across organizations, review roles and manage access."/>
           <AccountDirectory people={data.users} companies={data.companies} search={directorySearch} onSearch={setDirectorySearch} onStatus={changeUserStatus} onApprove={remote?approveUser:undefined} onGrantAdmin={remote?grantInvitedAdmin:undefined}/>
         </>}
         {view==="profile"&&<>
@@ -812,7 +812,7 @@ export default function ElixirPortal(){
             </form>
           </div>
         </>}
-        <footer className="ep-footer">{portalBrand} · {remote?"Secure PostgreSQL · Server-side sessions":"Internal working draft · No live accounts or shared database"}</footer>
+        <footer className="ep-footer">{portalBrand} · Team events and experiences</footer>
       </main>
     </div>
   </div>;
