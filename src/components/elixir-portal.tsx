@@ -778,7 +778,7 @@ export default function ElixirPortal(){
           <PeopleDirectory people={employeeFilter==="All"?companyPeople:companyPeople.filter(p=>p.status===employeeFilter)}
             search={directorySearch} onSearch={setDirectorySearch} selfId={current.id} onRole={changeRole}
             onEdit={remote?p=>setEditingEmployeeId(p.id):undefined}
-            onStatus={remote?p=>{void employeeAction("changeEmployeeStatus",{userId:p.id});}:undefined}/>
+            onStatus={remote?p=>{if(window.confirm((p.status==="active"?"Suspend ":"Reactivate ")+p.fullName+"? "+(p.status==="active"?"They will lose portal access until reactivated.":"Their portal access will be restored.")))void employeeAction("changeEmployeeStatus",{userId:p.id});}:undefined}/>
         </>}
         {view==="companies"&&current.role==="platform_admin"&&<>
           <WorkspaceHeading eyebrow="PARTNER MANAGEMENT" title="Organizations" description="Every partner, approved email domain and their activity."
