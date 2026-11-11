@@ -63,10 +63,10 @@ export function AccountDirectory({people,companies,search,onSearch,onStatus,onAp
   {!visible.length&&<Empty query={search} label="accounts"/>}
  </div>;
 }
-export function InvitationDirectory({invitations,companies}:{invitations:Invitation[];companies:Company[]}){
+export function InvitationDirectory({invitations,companies,onRevoke,onCopy}:{invitations:Invitation[];companies:Company[];onRevoke?:(invitation:Invitation)=>void;onCopy?:(invitation:Invitation)=>void}){
  if(!invitations.length)return <div className="md-empty"><Mail size={25}/><strong>No invitations yet</strong><p>Use the form above to create the first company-admin invitation.</p></div>;
  return <div className="md-account-list">{invitations.map(invite=><article className="md-invitation" key={invite.id}>
   <span className="md-invite-icon"><ShieldCheck size={22}/></span><div><strong>{invite.email}</strong><small>{companies.find(c=>c.id===invite.companyId)?.name||"Partner company"} · Company admin</small></div>
-  <span className={"aw-status "+(invite.accepted?"active":"pending")}>{invite.accepted?"Accepted":"Pending"}</span>
+  <span className={"aw-status "+(invite.accepted?"active":"pending")}>{invite.accepted?"Accepted":"Pending"}</span>{!invite.accepted&&<div className="md-invitation-actions">{onCopy&&<button type="button" className="md-outline-action" onClick={()=>onCopy(invite)} aria-label={"Copy signup instructions for "+invite.email}>Copy instructions</button>}{onRevoke&&<button type="button" className="md-outline-action md-danger-action" onClick={()=>onRevoke(invite)} aria-label={"Revoke invitation for "+invite.email}>Revoke</button>}</div>}
  </article>)}</div>;
 }
