@@ -26,8 +26,8 @@ export function EventQuickActions({event}:{event:PortalEvent}){
  google.searchParams.set("dates",utc(event.startsAt)+"/"+utc(event.endsAt));
  google.searchParams.set("details",event.description);
  google.searchParams.set("location",event.format==="online"?"Online":event.location);
- return <div className="event-quick-actions" aria-label="Event quick actions">
-  <button type="button" onClick={()=>void copy()}>{copied?<Check size={15}/>:<Copy size={15}/>} {copied?"Link copied":"Copy event link"}</button>
+ return <div className="event-quick-actions" role="group" aria-label="Event quick actions">
+  <button type="button" onClick={()=>void copy()}>{copied?<Check size={15}/>:<Copy size={15}/>} <span aria-live="polite">{copied?"Link copied":"Copy event link"}</span></button>
   <button type="button" onClick={downloadCalendar}><Download size={15}/> Download calendar (.ics)</button>
   <a href={google.toString()} target="_blank" rel="noopener noreferrer"><CalendarPlus size={15}/> Google Calendar <ExternalLink size={12}/></a>
  </div>;
