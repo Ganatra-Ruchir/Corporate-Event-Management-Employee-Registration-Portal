@@ -1,0 +1,99 @@
+/* QA sweep (all three roles). Loaded last so it wins over the older layered palettes.
+   Colours follow the cream/amber identity used by qa-fixes.css. */
+:root{--ux-ink:#2b2520;--ux-muted:#6f6257;--ux-accent:#96551f;--ux-accent-strong:#87501d;--ux-line:#e2d3bf;--ux-card:#fffdfa;--ux-danger:#a13228}
+
+/* Loading screen: on-brand instead of plain text on black. */
+.ep-loading{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#f7f4ee;color:var(--ux-muted);font:600 15px/1.4 system-ui,sans-serif}
+.ep-loading-mark{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:#a66728;color:#fff;font:800 22px Georgia,serif;animation:ux-pulse 1.2s ease-in-out infinite}
+@keyframes ux-pulse{50%{opacity:.55;transform:scale(.94)}}
+@media(prefers-reduced-motion:reduce){.ep-loading-mark{animation:none}}
+
+/* Old blue accents left over from the first palette. */
+.ep-shell .ed-eyebrow,.ep-shell .ep-event-label{color:var(--ux-accent)!important}
+.ep-shell .ed-date-mini strong{color:var(--ux-ink)!important}
+.ep-shell .ed-date-mini span,.ep-shell .ed-tile-title-wrap .ed-eyebrow{color:var(--ux-accent)!important}
+.ep-shell .ed-tile-spots{color:var(--ux-accent-strong)!important;font-weight:800}
+.ep-shell .ed-tile-spots.ed-state-closed,.ep-shell .ed-tile-spots.ed-state-started,.ep-shell .ed-tile-spots.ed-state-full,.ep-shell .ed-tile-spots.ed-state-cancelled{color:var(--ux-muted)!important}
+.ep-shell .ed-tile-spots.ed-state-waitlist{color:#8a5a00!important}
+
+/* Discover cards had no inner left padding. */
+.ep-shell .ed-home-grid .ed-tile-content{padding:14px 16px 14px}
+
+/* Featured event panel: its text was white on a cream background. */
+.ep-shell .ed-feature .ed-feature-tag{color:var(--ux-accent-strong)!important;background:#f6e6d0!important;border-color:#d9b98f!important}
+.ep-shell .ed-feature .ed-feature-date{color:var(--ux-accent)!important}
+.ep-shell .ed-feature .ed-feature-location,.ep-shell .ed-feature p{color:var(--ux-muted)!important}
+.ep-shell .ed-feature h2{color:var(--ux-ink)!important}
+.ep-shell .ed-cover-wide .ed-art-category{color:var(--ux-accent-strong)!important;background:#fffdfaE6!important;border-color:#d9b98f!important}
+.ep-shell .ed-cover-wide .ed-art-monogram{color:#96551f2e!important}
+.ep-shell .ed-cover-label{background:#fffdfa!important;color:var(--ux-ink)!important;border:1px solid var(--ux-line)}
+
+/* Speaker chip on cards was faded to the point of being unreadable. */
+.ep-shell .ed-speaker-caption{background:#1f1914d9!important;color:#fff!important;opacity:1!important}
+.ep-shell .ed-speaker-caption strong,.ep-shell .ed-speaker-caption small{color:#fff!important;opacity:1!important}
+
+/* People page: the Export CSV button rendered white text on white. */
+.ep-people-toolbar{margin-bottom:15px;gap:10px}
+.ep-people-toolbar label{font-size:12px;font-weight:800;color:var(--ux-ink);display:inline-flex;align-items:center;gap:6px}
+.ep-people-toolbar select{padding:8px;border-radius:8px;border:1px solid var(--ux-line);background:#fff;color:var(--ux-ink)}
+.ep-shell .ep-people-toolbar .ep-export-button{display:inline-flex;align-items:center;gap:6px;background:#fff!important;color:var(--ux-accent-strong)!important;border:1px solid #d5be9f!important}
+.ep-shell .ep-people-toolbar .ep-export-button:hover{background:#f6e7d5!important}
+.ep-invite-employees{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ep-invite-employees p{font-size:12px;color:var(--ux-muted);margin:5px 0 0}
+.ep-shell .employee-list-actions .md-danger-text{color:var(--ux-danger)!important;border-color:#d7a49e!important}
+
+/* Manager event filters: the search box had a box inside a box. */
+.ep-shell .aw-filter-panel .ep-search{background:#fff;border:1px solid var(--ux-line);border-radius:10px;min-height:42px}
+.ep-shell .aw-filter-panel .ep-search input{border:0!important;background:transparent!important;box-shadow:none!important;outline:none;min-height:40px;width:100%}
+.ep-shell .aw-filter-panel .ep-search:focus-within{outline:3px solid #d7975066;outline-offset:1px}
+.ep-shell .aw-filter-panel{align-items:end}
+.ep-shell .aw-filter-panel .ep-field{margin:0}
+
+/* Danger actions look dangerous. */
+.ep-shell .ep-button.danger{color:var(--ux-danger)!important;border-color:#d7a49e!important;background:#fff!important}
+.ep-shell .ep-button.danger:hover{background:#fff0ed!important}
+.md-details-actions .md-danger-action{color:var(--ux-danger)!important;border-color:#d7a49e!important}
+
+/* Public-domain warning on organizations. */
+.md-domain-warning{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:11.5px;font-weight:800;color:var(--ux-danger)}
+.md-domain-warning-block{display:flex;gap:8px;align-items:flex-start;margin-top:10px;padding:10px 12px;border-radius:10px;background:#fff0ed;border:1px solid #e3b4ad;color:#7d241c;font-size:13px;line-height:1.45}
+
+/* One-time temporary password after an admin reset. */
+.ep-reset-result{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:14px;margin:0 0 18px;padding:14px 16px;border-radius:12px;background:#fff8ec;border:1px solid #e0bf8c;color:var(--ux-ink)}
+.ep-reset-result p{margin:4px 0 0;font-size:12.5px;color:var(--ux-muted)}
+.ep-reset-result code{font:700 15px/1 ui-monospace,Consolas,monospace;padding:10px 12px;border-radius:8px;background:#fff;border:1px solid var(--ux-line);user-select:all;word-break:break-all}
+.ep-reset-actions{display:flex;gap:8px}
+.ep-reset-actions button{border:1px solid #d5be9f;background:#fff;color:var(--ux-accent-strong);border-radius:8px;padding:8px 12px;font-weight:800}
+.ep-reset-actions button:first-child{background:#a66728;color:#fff;border-color:#a66728}
+@media(max-width:700px){.ep-reset-result{grid-template-columns:1fr}}
+
+/* Forgot-password steps on the sign-in page. */
+.ep-steps{margin:4px 0 8px;padding-left:20px;display:grid;gap:10px;color:var(--ux-ink);font-size:14px;line-height:1.5}
+
+/* Header: the brand no longer repeats the organization name; keep the name readable. */
+.ep-shell .ep-account span{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Event page: closed registration is a clear status, not a disabled button. */
+.ep-registration-closed{display:grid;gap:4px;justify-items:center;text-align:center;padding:14px;border-radius:10px;background:#f3ece2;border:1px solid var(--ux-line);color:var(--ux-ink)}
+.ep-registration-closed strong{font-size:15px}
+.ep-registration-closed span{font-size:12.5px;color:var(--ux-muted)}
+
+/* Notifications: always above page content (cards, sticky bars, speaker tilt effects). */
+.ep-shell .ep-topbar{position:relative;z-index:60}
+.ep-shell .en-shell{z-index:70}
+.ep-shell .en-panel{z-index:80;background:var(--ux-card)!important;border-color:var(--ux-line)!important;color:var(--ux-ink)!important;box-shadow:0 18px 50px #2b252033}
+.ep-shell .en-group{padding:10px 16px 4px;font-size:11px;font-weight:850;letter-spacing:.6px;text-transform:uppercase;color:var(--ux-accent)}
+.ep-shell .en-item.en-unread{background:#fff6e9}
+.ep-shell .en-item.en-unread strong::after{content:"";display:inline-block;width:7px;height:7px;margin-left:7px;border-radius:50%;background:#d9622b;vertical-align:middle}
+.ep-shell .en-count{background:#d9622b!important}
+.ep-shell .en-mark-read{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--ux-accent-strong);font-weight:800;font-size:12px;padding:4px 0;cursor:pointer}
+.ep-shell .en-enable{background:#a66728!important;color:#fff!important;border-color:#a66728!important}
+@media(max-width:760px){.ep-shell .en-panel{position:fixed;left:10px;right:10px;top:64px;width:auto;max-height:calc(100vh - 80px)}}
+
+/* Phone: show that the tab bar scrolls sideways instead of silently cutting off the first tab. */
+@media(max-width:800px){
+ .ep-shell .ep-sidebar{scroll-snap-type:x proximity;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+ .ep-shell .ep-sidebar .ep-nav-link{scroll-snap-align:start}
+ .ep-shell .ep-brand{font-size:17px}
+ .ep-shell .ep-context,.ep-shell .ep-divider-line{display:none}
+}

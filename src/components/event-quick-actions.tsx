@@ -16,7 +16,9 @@ export function EventQuickActions({event}:{event:PortalEvent}){
    "SUMMARY:"+escapeIcs(event.title),"DESCRIPTION:"+escapeIcs(event.description||event.summary),
    "LOCATION:"+escapeIcs(event.format==="online"?"Online event":event.location),"URL:"+shareUrl(),"END:VEVENT","END:VCALENDAR"].join("\r\n");
   const url=URL.createObjectURL(new Blob([body],{type:"text/calendar;charset=utf-8"}));
-  const a=document.createElement("a");a.href=url;a.download="elixir-event-"+event.id.replace(/[^a-z0-9_-]/gi,"")+".ics";a.click();URL.revokeObjectURL(url);
+  const a=document.createElement("a");a.href=url;a.download="elixir-event-"+event.id.replace(/[^a-z0-9_-]/gi,"")+".ics";document.body.appendChild(a);a.click();a.remove();
+  // Revoking synchronously cancels the download in Firefox and some Safari builds.
+  window.setTimeout(()=>URL.revokeObjectURL(url),1000);
  }
  const google=new URL("https://calendar.google.com/calendar/render");
  google.searchParams.set("action","TEMPLATE");
