@@ -73,6 +73,11 @@
 /* Header: the brand no longer repeats the organization name; keep the name readable. */
 .ep-shell .ep-account span{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* Card covers: one fixed frame for every card; banners fill it, speaker portraits show whole on a soft background. */
+.ep-shell .ed-tile-cover>.ed-cover{aspect-ratio:16/9!important;height:auto}
+.ep-shell .ed-cover>img,.ep-shell .ed-tile-cover .ed-cover-has-speaker>img,.ep-shell .ed-feature .ed-cover-has-speaker>img{object-fit:cover!important;object-position:center}
+.ep-shell .ed-cover .ed-speaker-slide,.ep-shell .ed-cover .ed-speaker-slide>img,.ep-shell .ed-tile-cover .ed-cover-has-speaker{background:#efe6da!important}
+
 /* Event page: closed registration is a clear status, not a disabled button. */
 .ep-registration-closed{display:grid;gap:4px;justify-items:center;text-align:center;padding:14px;border-radius:10px;background:#f3ece2;border:1px solid var(--ux-line);color:var(--ux-ink)}
 .ep-registration-closed strong{font-size:15px}

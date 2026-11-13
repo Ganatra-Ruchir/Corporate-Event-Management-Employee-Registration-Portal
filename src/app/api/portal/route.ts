@@ -284,7 +284,10 @@ export async function POST(req:NextRequest){
    const existing=await pool.query("SELECT id,organization_id,created_by,payload FROM events WHERE id=$1",[text(e.id,120)]);
    if(existing.rowCount&&existing.rows[0].organization_id!==user.companyId)return denied();
    const prior=existing.rows[0]?.payload as PortalEvent|undefined;
-   const event:PortalEvent={...e,title:text(e.title,160),location:text(e.location,300),contactEmail:text(e.contactEmail,255),createdBy:existing.rows[0]?.created_by||user.id};
+   // Trim speaker text so names don't carry stray spaces into cards, labels and screen-reader text.
+   const speakers=Array.isArray(e.speakers)?e.speakers.map(s=>({...s,name:text(s.name,120),jobTitle:text(s.jobTitle,120),company:text(s.company,120),
+    talkTitle:text(s.talkTitle,200),bio:text(s.bio,2000),agendaSlot:text(s.agendaSlot,120),linkedIn:text(s.linkedIn,300),github:text(s.github,300),website:text(s.website,300)})):e.speakers;
+   const event:PortalEvent={...e,speakers,title:text(e.title,160),location:text(e.location,300),contactEmail:text(e.contactEmail,255),createdBy:existing.rows[0]?.created_by||user.id};
    // Field validation only: capacity against existing registrations is checked under a row lock below,
    // so the full portal snapshot (with every image) doesn't need to be loaded here.
    const issue=validateEvent(event,{companies:[],users:[],events:[],registrations:[],invitations:[]});
