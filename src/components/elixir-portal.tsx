@@ -127,7 +127,7 @@ function EventEditor({event,data,onSave,onBack}:{event:PortalEvent;data:PortalDa
     const next={...form,title:form.title.trim(),location:form.location.trim(),
       summary:form.description.trim().replace(/\s+/g," ").slice(0,180),
       bannerAlt:form.title.trim()+" event banner",
-      speakers:(form.speakers||[]).map(s=>({...s,photoAlt:s.photoDataUrl?(s.name.trim()?s.name.trim()+" speaker photo":"Speaker photo"):""})),
+      speakers:(form.speakers||[]).map(s=>({...s,name:s.name.trim(),jobTitle:s.jobTitle.trim(),company:s.company.trim(),talkTitle:s.talkTitle.trim(),bio:s.bio.trim(),photoAlt:s.photoDataUrl?(s.name.trim()?s.name.trim()+" speaker photo":"Speaker photo"):""})),
       startsAt:start.toISOString(),endsAt:end.toISOString(),
       deadline:deadline?deadline.toISOString():""};
     const issue=validateEvent(next,data);
@@ -772,7 +772,9 @@ export default function ElixirPortal(){
           {current.role!=="platform_admin"&&<div className="ed-mobile-rsvp">
             <span>{data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?"Your RSVP is saved":registrationLabel(selected,data,now)}</span>
             {data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?
-              <button type="button" onClick={()=>modifyRegistration(selected,true)} disabled={!!canCancel(current,selected,data)}>Cancel RSVP</button>:
+              (canCancel(current,selected,data)?null:<button type="button" onClick={()=>modifyRegistration(selected,true)}>Cancel RSVP</button>):
+              // When nobody can sign up (closed, started, cancelled, draft), the label says so; no dead button.
+              ["closed","started","cancelled","draft"].includes(registrationState(selected,data,now))?null:
               <button type="button" onClick={()=>modifyRegistration(selected,false)} disabled={!!canRegister(current,selected,data)}>{remainingPlaces(selected,data)===0?"Join waitlist":"Attend"}</button>}
           </div>}
           {current.role==="company_admin"&&<section className="ep-panel ep-participants"><div className="ep-section-head"><h2>Participants</h2><Action kind="secondary" onClick={()=>exportCsv("participants-"+selected.id+".csv",["Name","Email","Department","Registered"],activeRegistrations(selected.id,data).map(r=>{const p=data.users.find(u=>u.id===r.userId);return[p?.fullName||"",p?.email||"",p?.department||"",dateText(r.createdAt)];}))}><Download size={16}/> Export CSV</Action></div>

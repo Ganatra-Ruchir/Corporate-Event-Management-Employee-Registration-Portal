@@ -77,7 +77,8 @@ export async function hydrateEventImages(event:PortalEvent):Promise<PortalEvent>
  const next={...event};
  if(next.bannerStorageKey)next.bannerDataUrl=mediaUrl(next.bannerStorageKey);
  next.speakers=(event.speakers||[]).map((s):Speaker=>{
-  const sp={...s};
+  // Older events were saved before speaker text was trimmed.
+  const sp={...s,name:(s.name||"").trim(),jobTitle:(s.jobTitle||"").trim(),company:(s.company||"").trim(),talkTitle:(s.talkTitle||"").trim()};
   if(sp.photoStorageKey)sp.photoDataUrl=mediaUrl(sp.photoStorageKey);
   return sp;
  });
