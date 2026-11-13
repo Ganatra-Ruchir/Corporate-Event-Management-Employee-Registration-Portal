@@ -1,3 +1,4 @@
+import {sameOrigin} from "@/lib/http";
 import {NextRequest,NextResponse} from "next/server";
 import {randomUUID} from "node:crypto";
 import {databaseEnabled,sqlPool,passwordHash,passwordValid,makeToken,hashToken,getSession,snapshot,logAudit,toPerson} from "@/lib/db/server";
@@ -16,12 +17,7 @@ function denied(){return error("Not authorized for this operation",403);}
 function requireAdmin(user:Person){return user.role==="platform_admin";}
 function requireCompanyAdmin(user:Person,companyId:string){return user.role==="company_admin"&&user.companyId===companyId;}
 function requireOrg(user:Person,companyId:string){return requireAdmin(user)||user.companyId===companyId;}
-function hostOriginMatch(req:NextRequest){
- const origin=req.headers.get("origin");
- if(!origin)return true;
- // A malformed Origin such as "null" (sandboxed frames, privacy tools) is rejected instead of throwing a 500.
- try{return new URL(origin).host===req.headers.get("host");}catch{return false;}
-}
+function hostOriginMatch(req:NextRequest){return sameOrigin(req);}
 function jsonPayload(value:unknown){
  const raw=JSON.stringify(value);
  if(!raw||raw.length>3_500_000)throw new Error("Event payload is too large");
