@@ -686,7 +686,7 @@ export default function ElixirPortal(){
           onOpen={e=>{openEvent(e.id);}}
           onBrowse={()=>goto("events")}
           onSearch={()=>{goto("events");setSearchOpen(true);}}
-          onCategory={c=>{goto("events");setCategory(c);}}
+          onCategory={c=>{goto("events");setCategory(c);setSearchOpen(true);}}
         />}
         {view==="events"&&current.role==="employee"&&<DiscoverBrowse
           data={data} events={companyEvents} now={now}
@@ -748,6 +748,8 @@ export default function ElixirPortal(){
               {waitlistedRegistrations(selected.id,data).length>0&&<p>{waitlistedRegistrations(selected.id,data).length} on the waitlist</p>}
               {data.registrations.some(r=>r.eventId===selected.id&&r.userId===current.id&&(r.status==="going"||r.status==="waitlisted"))?
                 <><div className="ep-success">{waitlistPosition(selected.id,current.id,data)>0?"You're #"+waitlistPosition(selected.id,current.id,data)+" on the waitlist":"You're going"}</div><Action kind="secondary" onClick={()=>modifyRegistration(selected,true)} disabled={!!canCancel(current,selected,data)}>Cancel RSVP</Action></>:
+                ["closed","started","cancelled","draft"].includes(registrationState(selected,data,now))?
+                <div className="ep-registration-closed" role="status"><strong>{registrationLabel(selected,data,now)}</strong><span>{canRegister(current,selected,data)||"Registration is not open."}</span></div>:
                 <><Action disabled={!!canRegister(current,selected,data)} onClick={()=>modifyRegistration(selected,false)}>{remainingPlaces(selected,data)===0?"Join waitlist":"Attend"}</Action>{canRegister(current,selected,data)&&<p className="ep-hint">{canRegister(current,selected,data)}</p>}</>}
               {current.role==="company_admin"&&<div className="ep-admin-actions"><h3>Manage event</h3><Action kind="secondary" onClick={()=>{setEditingEvent(selected);goto("eventForm");}}>Edit event</Action>{selected.status!=="cancelled"&&<Action kind="danger" onClick={()=>cancelEvent(selected)}>Cancel event</Action>}</div>}
             </section>
@@ -759,7 +761,7 @@ export default function ElixirPortal(){
           <footer className="ed-event-bottom-info">
             <div className="ed-bottom-host"><span>Hosted by:</span> <strong>{data.companies.find(c=>c.id===selected.companyId)?.name||"Event organization"}</strong></div>
             <div className="ed-bottom-going">
-              <span>Who&apos;s going:</span> <strong>{activeRegistrations(selected.id,data).length} attendees</strong>
+              <span>Who&apos;s going:</span>
               <GoingFaces event={selected} data={data} limit={5}/>
               <button type="button" onClick={()=>setShowAttendees(v=>!v)} aria-expanded={showAttendees}>{showAttendees?"Hide names":"See attendees"}</button>
             </div>

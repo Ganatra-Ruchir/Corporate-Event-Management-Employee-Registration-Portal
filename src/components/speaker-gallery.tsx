@@ -7,6 +7,7 @@ import type {Speaker} from "@/lib/portal-model";
 
 function SpeakerCard({speaker}:{speaker:Speaker}){
  const [flipped,setFlipped]=useState(false);
+ const [photoFailed,setPhotoFailed]=useState(false);
  const card=useRef<HTMLButtonElement>(null);
  const initials=speaker.name.trim().split(/\s+/).slice(0,2).map(part=>part.slice(0,1)).join("").toUpperCase();
  function pointerMove(event:React.PointerEvent<HTMLButtonElement>){
@@ -30,6 +31,7 @@ function SpeakerCard({speaker}:{speaker:Speaker}){
      ref={card}
      className="sp-flip-trigger"
      aria-pressed={flipped}
+     aria-label={flipped?"Show "+speaker.name+"'s photo":"Read about "+speaker.name+" and their session"}
      onPointerMove={pointerMove}
      onPointerLeave={resetTilt}
      onBlur={resetTilt}
@@ -38,8 +40,8 @@ function SpeakerCard({speaker}:{speaker:Speaker}){
     <span className="sp-flip-scene" aria-hidden="true">
       <span className="sp-face sp-face-front">
         <span className="sp-portrait">
-          {speaker.photoDataUrl?
-           <Image src={speaker.photoDataUrl} alt={speaker.photoAlt||speaker.name+" speaker portrait"} width={460} height={500} unoptimized loading="lazy"/>:
+          {speaker.photoDataUrl&&!photoFailed?
+           <Image src={speaker.photoDataUrl} alt={speaker.photoAlt||speaker.name+" speaker portrait"} width={460} height={500} unoptimized loading="lazy" onError={()=>setPhotoFailed(true)}/>:
            <span className="sp-initials">{initials||"SP"}</span>}
         </span>
         <span className="sp-front-copy">
