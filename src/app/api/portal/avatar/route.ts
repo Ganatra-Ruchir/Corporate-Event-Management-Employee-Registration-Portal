@@ -1,3 +1,4 @@
+import {sameOrigin} from "@/lib/http";
 import {NextRequest,NextResponse} from "next/server";
 import {databaseEnabled,getSession,sqlPool,snapshot} from "@/lib/db/server";
 import {avatarSignedUrl,deleteAvatar,uploadAvatarPng} from "@/lib/media/server";
@@ -9,8 +10,7 @@ async function currentUser(req:NextRequest){
  return getSession(req.cookies.get("elixir_session")?.value);
 }
 export async function POST(req:NextRequest){
- const origin=req.headers.get("origin");
- if(origin&&new URL(origin).host!==req.headers.get("host"))return fail("Invalid request origin",403);
+ if(!sameOrigin(req))return fail("Invalid request origin",403);
  const user=await currentUser(req);
  if(!user)return fail("Sign in required",401);
  if(user.mustChangePassword)return fail("Change your temporary password first",403);
