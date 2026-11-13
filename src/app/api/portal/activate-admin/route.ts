@@ -1,11 +1,11 @@
+import {sameOrigin} from "@/lib/http";
 import {NextRequest,NextResponse} from "next/server";
 import {randomUUID} from "node:crypto";
 import {databaseEnabled,sqlPool,hashToken,passwordHash,makeToken} from "@/lib/db/server";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function POST(req:NextRequest){
- const origin=req.headers.get("origin");
- if(origin&&new URL(origin).host!==req.headers.get("host"))return NextResponse.json({error:"Invalid request origin"},{status:403});
+ if(!sameOrigin(req))return NextResponse.json({error:"Invalid request origin"},{status:403});
  if(!databaseEnabled()||!process.env.BOOTSTRAP_ADMIN_EMAIL)return NextResponse.json({error:"Administrator setup is not enabled"},{status:503});
  let body:{token?:string;name?:string;password?:string};
  try{body=await req.json();}catch{return NextResponse.json({error:"Invalid request"},{status:400});}
