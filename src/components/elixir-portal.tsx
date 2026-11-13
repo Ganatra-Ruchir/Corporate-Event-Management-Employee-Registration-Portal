@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import PublicLanding from "@/components/public-landing";
+import type {LandingIntent} from "@/components/public-landing";
 import {DiscoverHome, DiscoverBrowse, EventTile, GoingFaces, EventCover} from "@/components/event-discovery";
 import dynamic from "next/dynamic";
 const SpeakerEditor=dynamic(()=>import("@/components/speaker-editor").then(m=>m.SpeakerEditor),{loading:()=> <div className="ep-hint">Loading speaker editor…</div>});
@@ -192,7 +193,7 @@ function CompanyEditor({company,data,onSave,onBack}:{company?:Company;data:Porta
     </form>
   </>;
 }
-function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false,onBack}:{data:PortalData;onLogin:(email:string,password:string)=>Promise<string|null>;onSignup:(fullName:string,email:string,department:string,password:string)=>Promise<string|null>;onVerified:(id:string)=>void;onReset:(email:string)=>string;remoteMode?:boolean;onBack?:()=>void}){
+function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false,onBack,note}:{data:PortalData;onLogin:(email:string,password:string)=>Promise<string|null>;onSignup:(fullName:string,email:string,department:string,password:string)=>Promise<string|null>;onVerified:(id:string)=>void;onReset:(email:string)=>string;remoteMode?:boolean;onBack?:()=>void;note?:string}){
   const [mode,setMode]=useState<AuthView>("login");
   const [email,setEmail]=useState("");
   const [pass,setPass]=useState("");
@@ -217,12 +218,13 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false,onB
   return <div className="ep-auth-layout ep-auth-v2">
     <main className="ep-auth-card" id="sign-in">
       {onBack&&<button type="button" className="ep-back" onClick={onBack}><ArrowLeft size={16}/> Back to events home</button>}
-      <div className="ep-auth-heading"><span className="ep-login-mark" aria-hidden="true">E</span><span className="ep-product-name">Elixir Events Portal</span></div>
+      <div className="ep-auth-heading"><span className="ep-login-mark" aria-hidden="true">E</span><span className="ep-product-name">Elixir Events</span></div>
       <div className="ep-auth-intro">
         <span className="ed-eyebrow">{mode==="login"?"WELCOME BACK":mode==="signup"?"JOIN YOUR COMPANY":mode==="forgot"?"ACCOUNT RECOVERY":"EMAIL VERIFICATION"}</span>
         <h1>{mode==="login"?"Sign in to your events":mode==="signup"?"Join your team":mode==="forgot"?(remoteMode?"Forgot your password?":"Reset your demo password"):"Verify your demo email"}</h1>
         <p className="ep-subtle">{mode==="login"?"Discover events, manage your registrations and bring your team together.":mode==="signup"?"Use your work email. We'll find your organization from its domain.":mode==="forgot"?(remoteMode?"Your password can be reset by an administrator. They give you a temporary password, and you choose a new one when you sign in.":"This prototype can reset a demo password locally. No email is sent."):"Confirm your sample account to continue. Verification is simulated in this browser."}</p>
       </div>
+      {note&&mode==="login"&&<div className="ep-info ep-auth-note" role="note">{note}</div>}
       {mode==="forgot"&&remoteMode?<div className="ep-verify-content">
         <ol className="ep-steps"><li><strong>Employees:</strong> ask your company&apos;s event admin to reset your password from their People page.</li><li><strong>Company admins:</strong> ask the Elixir Foundation platform team to reset it from Accounts.</li><li>Sign in with the temporary password, then set a new one.</li></ol>
       </div>:mode==="verify"?<div className="ep-verify-content">
@@ -273,6 +275,7 @@ export default function ElixirPortal(){
   const [directorySearch,setDirectorySearch]=useState("");
   const [signedOut,setSignedOut]=useState(false);
   const [showAuth,setShowAuth]=useState(false);
+  const [landingIntent,setLandingIntent]=useState<LandingIntent|null>(null);
   useEffect(()=>{void Promise.resolve().then(()=>{if(new URLSearchParams(window.location.search).get("auth")==="login")setShowAuth(true);});},[]);
   const [participantSearch,setParticipantSearch]=useState("");
   const [showAttendees,setShowAttendees]=useState(false);
@@ -365,10 +368,12 @@ export default function ElixirPortal(){
   const current=data.users.find(p=>p.id===session)||null;
   const company=current?.companyId?data.companies.find(c=>c.id===current.companyId)||null:null;
   const portalBrand=current?.role==="platform_admin"?"Elixir Events Portal":`${company?.name||"Organization"} Events Portal`;
+  // Signed-out visitors see the public title; signed-in users see their organization's portal name.
+  const pageTitle=current?portalBrand:"Elixir Events · Your company's events in one place";
   useEffect(()=>{
-    document.title=portalBrand;
-    return ()=>{document.title="Elixir Events Portal";};
-  },[portalBrand]);
+    document.title=pageTitle;
+    return ()=>{document.title="Elixir Events";};
+  },[pageTitle]);
   const blocked=Boolean(current&&(current.status==="suspended"||(current.companyId&&(!company||company.status==="suspended"))));
   const events=current?.role==="platform_admin"?data.events:current?.companyId?data.events.filter(e=>e.companyId===current.companyId):[];
   const companyEvents=events;
@@ -412,7 +417,13 @@ export default function ElixirPortal(){
       // The login response already carries the portal data; only fall back to a second request if it doesn't.
       if(result.data&&result.currentId){setData(result.data);setSession(result.currentId);setNow(Date.now());}
       else if(!await remoteRefresh())return "Signed in, but could not load your account. Refresh the page.";
-      setSignedOut(false);setShowAuth(false);setView("home");window.history.replaceState(null,"","/overview");return null;
+      setSignedOut(false);setShowAuth(false);
+      // If the visitor clicked a theme on the landing page, an employee lands on matching events instead of the home page.
+      const role=result.data?.users.find(u=>u.id===result.currentId)?.role;
+      if(landingIntent?.category&&role==="employee"){
+        setView("events");setCategory(landingIntent.category);setSearchOpen(true);window.history.replaceState(null,"","/events");
+      }else{setView("home");window.history.replaceState(null,"","/overview");}
+      setLandingIntent(null);return null;
     }
     const u=data.users.find(x=>x.email.toLowerCase()===email.toLowerCase().trim());
     if(!u||!(await passwordMatches(u.password,password)))return "Invalid email or password.";
@@ -629,8 +640,8 @@ export default function ElixirPortal(){
   if(!ready)return <main className="ep-loading" role="status"><span className="ep-loading-mark" aria-hidden="true">E</span><span>Loading your events…</span></main>;
   if(remoteError&&remote)return <main className="ep-loading" role="alert">Database connection error: {remoteError}. Refresh to retry.</main>;
   if(!current)return showAuth?
-    <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset} remoteMode={true} onBack={()=>{setShowAuth(false);window.history.replaceState(null,"","/");}}/>:
-    <PublicLanding onEnter={()=>{setShowAuth(true);window.history.pushState(null,"","/?auth=login");}}/>;
+    <AuthPage data={data} onLogin={login} onSignup={signup} onVerified={verify} onReset={reset} remoteMode={true} note={landingIntent?.category?"Sign in and we'll take you straight to your organization's "+landingIntent.category.toLowerCase()+" events.":undefined} onBack={()=>{setShowAuth(false);setLandingIntent(null);window.history.replaceState(null,"","/");}}/>:
+    <PublicLanding onEnter={intent=>{setLandingIntent(intent||null);setShowAuth(true);window.scrollTo({top:0});window.history.pushState(null,"","/?auth=login");}}/>;
   if(remote&&current.mustChangePassword)return <FirstLoginPasswordChange person={current} onLogout={logout} onSave={async password=>{
     const result=await remoteRequest("profile",{fullName:current.fullName,department:current.department,password});
     if(result.error)return result.error;
