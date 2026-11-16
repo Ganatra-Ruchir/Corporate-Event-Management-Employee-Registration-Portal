@@ -102,3 +102,20 @@
  .ep-shell .ep-brand{font-size:17px}
  .ep-shell .ep-context,.ep-shell .ep-divider-line{display:none}
 }
+
+/* Speaker gallery: a slightly taller portrait frame, with the entire original
+   photo visible. Grid faces share a natural height instead of clipping copy
+   inside the old fixed-height flip button. */
+.sp-gallery .sp-flip-trigger{height:auto;min-width:0}
+.sp-gallery .sp-flip-scene{display:grid;grid-template-columns:minmax(0,1fr);height:auto}
+.sp-gallery .sp-face{position:relative;inset:auto;grid-area:1/1;min-width:0;min-height:0;height:auto}
+.sp-gallery .sp-portrait{position:relative;width:100%;height:auto;aspect-ratio:4/5;max-height:420px;min-width:0;min-height:0;flex:none;overflow:hidden}
+.sp-gallery .sp-portrait>img{position:absolute;inset:0;width:100%;height:100%;min-width:0;min-height:0;max-width:100%;max-height:100%;object-fit:contain;object-position:center;display:block}
+.sp-gallery .sp-front-copy{min-width:0;flex:1;overflow-wrap:anywhere}
+.sp-gallery .sp-face-back{overflow-wrap:anywhere}
+.sp-gallery .sp-flip-hint{flex-shrink:0}
+@media(prefers-reduced-motion:reduce){
+ .sp-gallery .sp-face-back,.sp-gallery .sp-card.is-flipped .sp-face-front{display:flex}
+ .sp-gallery .sp-face-back,.sp-gallery .sp-card.is-flipped .sp-face-front{visibility:hidden}
+ .sp-gallery .sp-card.is-flipped .sp-face-back{visibility:visible}
+}
