@@ -32,7 +32,7 @@ export default function V3Workspace({user,data,remote,onEvent}:{user:Person;data
  }
  if(user.role!=="employee"&&!workspace&&!issue)return null;
  return <section className="ep-panel v3-workspace">
-  {user.role==="employee"&&<><div className="ed-eyebrow">MY VOLUNTEERING JOURNEY</div><h2>My impact dashboard</h2>
+  {user.role==="employee"&&!stateAdmin&&<><div className="ed-eyebrow">MY VOLUNTEERING JOURNEY</div><h2>My impact dashboard</h2>
    <div className="v3-metrics"><div><strong>{workspace?verified.length:"—"}</strong><span>Verified events attended</span></div><div><strong>{workspace?Number(hours.toFixed(2)):"—"}</strong><span>Verified volunteer hours</span></div><div><strong>{upcoming.filter(e=>registered.has(e.id)).length}</strong><span>Upcoming registrations</span></div></div>
    {!workspace&&<p>Verified attendance is unavailable. Registrations are not counted as attendance.</p>}
    <h3>Upcoming events for me</h3>{upcoming.length?<div className="v3-list">{upcoming.slice(0,5).map(e=><button type="button" key={e.id} onClick={()=>onEvent(e.id)}><strong>{e.title}</strong><span>{new Date(e.startsAt).toLocaleDateString()} · {registered.has(e.id)?"Registered":"Explore event"}</span></button>)}</div>:<p>No upcoming company events.</p>}
