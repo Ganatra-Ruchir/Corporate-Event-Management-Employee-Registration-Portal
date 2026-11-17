@@ -119,3 +119,17 @@
  .sp-gallery .sp-face-back,.sp-gallery .sp-card.is-flipped .sp-face-front{visibility:hidden}
  .sp-gallery .sp-card.is-flipped .sp-face-back{visibility:visible}
 }
+
+/* V3 workspace: responsive impact cards, management forms and directories. */
+.v3-workspace{margin-bottom:20px;display:grid;gap:14px;min-width:0}
+.v3-workspace h2,.v3-workspace h3{margin:0}
+.v3-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:12px}
+.v3-metrics>div{border:1px solid var(--ux-line);border-radius:12px;padding:14px;background:#fffdfa;display:grid;gap:4px}
+.v3-metrics strong{font-size:28px;color:var(--ux-accent-strong)}
+.v3-metrics span,.v3-list span{font-size:13px;color:var(--ux-muted)}
+.v3-list{display:grid;gap:7px}
+.v3-list>div,.v3-list>button{display:grid;gap:3px;text-align:left;padding:12px;border:1px solid var(--ux-line);border-radius:8px;background:#fffdfa;color:var(--ux-ink);overflow-wrap:anywhere}
+.v3-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px;align-items:end}
+.v3-form label{display:grid;gap:5px;font-size:13px;font-weight:700;min-width:0}
+.v3-form input,.v3-form select,.v3-form textarea{width:100%;min-width:0;border:1px solid var(--ux-line);border-radius:8px;padding:9px;background:#fff;color:var(--ux-ink)}
+.v3-workspace code{overflow-wrap:anywhere}
