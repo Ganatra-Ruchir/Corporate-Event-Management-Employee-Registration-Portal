@@ -48,9 +48,9 @@ export async function POST(req:NextRequest){
   if(action==="login"){
    const email=text(args.email,255).toLowerCase(),password=typeof args.password==="string"?args.password:"";
    if(!email||password.length>256)return error("Invalid email or password",401);
-   const found=await pool.query("SELECT u.*,o.status AS org_status FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE u.email=$1",[email]);
+   const found=await pool.query("SELECT u.*,o.status AS org_status FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE u.email=$1"+(process.env.PORTAL_V3_ENABLED==="true"?" OR (lower(u.id)=$1 AND u.id LIKE 'EMP-%')":""),[email]);
    const u=found.rows[0];
-   if(!u||u.status!=="active"||(u.organization_id&&u.org_status!=="active")||!u.verified||(u.locked_until&&new Date(u.locked_until)>new Date())||!await passwordValid(password,u.password_hash)){
+   if(!u||u.status!=="active"||(u.organization_id&&u.org_status!=="active")||!u.verified||(u.must_change_password&&u.v3_temporary_password_expires_at&&new Date(u.v3_temporary_password_expires_at)<=new Date())||(u.locked_until&&new Date(u.locked_until)>new Date())||!await passwordValid(password,u.password_hash)){
     if(u)await pool.query("UPDATE users SET failed_attempts=failed_attempts+1,locked_until=CASE WHEN failed_attempts>=7 THEN now()+interval '15 minutes' ELSE locked_until END WHERE id=$1",[u.id]);
     return error("Invalid credentials, unverified account or account temporarily locked",401);
    }
@@ -206,7 +206,7 @@ export async function POST(req:NextRequest){
    const client=await pool.connect();
    try{
     await client.query("BEGIN");
-    await client.query("UPDATE users SET password_hash=$1,must_change_password=true,failed_attempts=0,locked_until=NULL WHERE id=$2",[await passwordHash(temporaryPassword),id]);
+    await client.query("UPDATE users SET password_hash=$1,must_change_password=true,failed_attempts=0,locked_until=NULL"+(process.env.PORTAL_V3_ENABLED==="true"?",v3_temporary_password_expires_at=CASE WHEN id LIKE 'EMP-%' THEN now()+interval '24 hours' ELSE NULL END":"")+" WHERE id=$2",[await passwordHash(temporaryPassword),id]);
     await client.query("DELETE FROM sessions WHERE user_id=$1",[id]);
     await logAudit(client,user,"user.password_reset",id,target.organization_id);
     await client.query("COMMIT");

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import PublicLanding from "@/components/public-landing";
+import V3Workspace from "@/components/v3-workspace";
 import {DiscoverHome, DiscoverBrowse, EventTile, GoingFaces, EventCover} from "@/components/event-discovery";
 import dynamic from "next/dynamic";
 const SpeakerEditor=dynamic(()=>import("@/components/speaker-editor").then(m=>m.SpeakerEditor),{loading:()=> <div className="ep-hint">Loading speaker editor…</div>});
@@ -230,7 +231,7 @@ function AuthPage({data,onLogin,onSignup,onVerified,onReset,remoteMode=false,onB
         <Action onClick={()=>{const u=data.users.find(x=>x.email===email.toLowerCase().trim());onVerified(u?.id||verifyId);setMode("login");setMessage("Sample email confirmed. Sign in to continue.");setPass("");}}>Confirm demo email <ArrowRight size={17}/></Action>
       </div>:<form onSubmit={submit} className="ep-auth-form">
         {mode==="signup"&&<><FormRow label="Full name"><input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name"/></FormRow><FormRow label="Department"><input value={department} maxLength={100} onChange={e=>setDepartment(e.target.value)} placeholder="e.g. Operations"/></FormRow></>}
-        <FormRow label={mode==="signup"?"Work email address":"Email address"}><input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com"/></FormRow>
+        <FormRow label={mode==="signup"?"Work email address":"Email or employee ID"}><input type={mode==="login"?"text":"email"} autoComplete={mode==="login"?"username":"email"} required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com"/></FormRow>
         {mode!=="forgot"&&<div className="ep-field"><label htmlFor="ep-password">Password</label><div className="ep-password-wrap"><input id="ep-password" type={showPassword?"text":"password"} minLength={6} autoComplete={mode==="login"?"current-password":"new-password"} required value={pass} onChange={e=>setPass(e.target.value)} placeholder="Enter password"/><button type="button" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?"Hide password":"Show password"}>{showPassword?"Hide":"Show"}</button></div></div>}
         
         {error&&<div role="alert" className="ep-error">{error}</div>}
@@ -681,6 +682,7 @@ export default function ElixirPortal(){
         </div>}
         {view==="eventForm"&&editingEvent&&<EventEditor key={editingEvent.id} event={editingEvent} data={data} onSave={saveEvent} onBack={()=>goto("events")}/>}
         {view==="companyForm"&&<CompanyEditor key={editingCompany?.id||"new"} company={editingCompany||undefined} data={data} onSave={saveCompany} onBack={()=>goto("companies")}/>}
+        {view==="home"&&<V3Workspace key={current.id} user={current} data={data} remote={remote} onEvent={openEvent}/>}
         {view==="home"&&current.role==="employee"&&<DiscoverHome
           data={data} events={companyEvents} user={current} now={now}
           onOpen={e=>{openEvent(e.id);}}
