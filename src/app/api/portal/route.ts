@@ -206,7 +206,7 @@ export async function POST(req:NextRequest){
    const client=await pool.connect();
    try{
     await client.query("BEGIN");
-    await client.query("UPDATE users SET password_hash=$1,must_change_password=true,failed_attempts=0,locked_until=NULL WHERE id=$2",[await passwordHash(temporaryPassword),id]);
+    await client.query("UPDATE users SET password_hash=$1,must_change_password=true,failed_attempts=0,locked_until=NULL"+(process.env.PORTAL_V3_ENABLED==="true"?",v3_temporary_password_expires_at=CASE WHEN id LIKE 'EMP-%' THEN now()+interval '24 hours' ELSE NULL END":"")+" WHERE id=$2",[await passwordHash(temporaryPassword),id]);
     await client.query("DELETE FROM sessions WHERE user_id=$1",[id]);
     await logAudit(client,user,"user.password_reset",id,target.organization_id);
     await client.query("COMMIT");
