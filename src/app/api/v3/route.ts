@@ -44,7 +44,7 @@ export async function POST(req:NextRequest){
   const c=await context(req);if(!c)return fail("V3 is not enabled or sign-in is required",404);
   const {user,actor,db}=c;
   if(actor.level==="employee")return fail("Not authorized",403);
-  const a=await req.json();
+  const a=await req.json();if(!a||typeof a!=="object")return fail("Invalid request");
   const action=txt(a.action,40),org=txt(a.organization_id),country=txt(a.country_code,2).toUpperCase(),state=txt(a.state_id)||null,branch=txt(a.branch_id)||null;
   const scope:V3Scope={organization_id:org,country_code:country,state_id:state,branch_id:branch};
   if(!org||!/^[A-Z]{2}$/.test(country)||!canManageScope(actor,scope))return fail("Invalid or unauthorized scope",403);
@@ -56,7 +56,7 @@ export async function POST(req:NextRequest){
    let subject="";
    if(action==="country"&&actor.level==="root"){
     if(name.length<2||name.length>100)return fail("Enter country name");
-    await client.query("INSERT INTO v3_countries(organization_id,code,name) SELECT id,$2,$3 FROM organizations WHERE id=$1 AND status='active'",[org,country,name]);subject=country;
+    const inserted=await client.query("INSERT INTO v3_countries(organization_id,code,name) SELECT id,$2,$3 FROM organizations WHERE id=$1 AND status='active' RETURNING code",[org,country,name]);if(!inserted.rowCount)return fail("Company is unavailable",404);subject=country;
    }else if(action==="state"&&actor.level==="country_admin"){
     if(name.length<2||name.length>100)return fail("Enter state name");
     subject=randomUUID();await client.query("INSERT INTO v3_states(id,organization_id,country_code,name) VALUES($1,$2,$3,$4)",[subject,org,country,name]);
