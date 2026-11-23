@@ -1,0 +1,85 @@
+/* Landing page refresh: real navigation, How it works, For organizations, FAQ.
+   Uses the Obsidian & Ember variables from obsidian.css (--paper, --fog, --copper, --copper-bright). */
+.landing-v3{scroll-behavior:smooth}
+.landing-v3 section[id]{scroll-margin-top:84px}
+.landing-skip{position:absolute;left:12px;top:-60px;z-index:20;background:var(--copper);color:#17120d;padding:10px 14px;border-radius:6px;font-weight:800;text-decoration:none}
+.landing-skip:focus{top:12px}
+
+/* Header: brand link, section links, account actions. Sticky so the nav stays reachable on long scrolls. */
+.landing-v3 .landing-header{position:sticky;top:0;z-index:10}
+.landing-v3 .landing-brand{text-decoration:none;letter-spacing:-.5px}
+.landing-sections{display:flex;align-items:center;gap:26px;margin-left:12px}
+.landing-sections a{color:#e2d8ce;text-decoration:none;font-size:13px;font-weight:650;padding:10px 0;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+.landing-sections a:hover,.landing-sections a:focus-visible{color:var(--copper-bright);border-bottom-color:var(--copper)}
+@media(max-width:1020px){.landing-sections{display:none}}
+
+/* Hero trust points. */
+.landing-trust{list-style:none;display:flex;flex-wrap:wrap;gap:8px 18px;margin:22px 0 0;padding:0;color:#e9dccf;font-size:13px;font-weight:600}
+.landing-trust li{display:inline-flex;align-items:center;gap:6px}
+.landing-trust svg{color:var(--copper-bright)}
+
+/* How it works. */
+.landing-how{background:#171717;padding:78px 0 84px}
+.landing-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;counter-reset:step}
+.landing-step{background:#242323;border:1px solid #4b4036;border-radius:6px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 27px #0005}
+.landing-step-art{height:190px;background:#34312c;overflow:hidden;filter:saturate(.75)}
+.landing-step-art .landing-illustration{width:100%;height:100%;transform:scale(1.2)}
+.landing-step-body{padding:22px 24px 26px;display:grid;gap:9px}
+.landing-step-number{display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:850;letter-spacing:1.4px;color:var(--copper)}
+.landing-step h3{margin:0;font:600 23px/1.2 Georgia,"Times New Roman",serif;letter-spacing:-.02em;color:var(--paper)}
+.landing-step p{margin:0;font-size:13.5px;line-height:1.6;color:var(--fog)}
+
+/* For organizations. */
+.landing-orgs{background:#121212;padding:82px 0;border-top:1px solid #ffffff12;border-bottom:1px solid #ffffff12}
+.landing-orgs-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:center}
+.landing-orgs h2{font:600 clamp(29px,3.2vw,44px)/1.12 Georgia,"Times New Roman",serif;letter-spacing:-.035em;color:var(--paper);margin:12px 0 14px}
+.landing-orgs p{color:var(--fog);font-size:14.5px;line-height:1.65;margin:0 0 24px;max-width:520px}
+.landing-orgs-actions{display:flex;gap:12px;flex-wrap:wrap}
+.landing-orgs-note{font-size:12.5px!important;margin:16px 0 0!important;color:#a99e93!important}
+.landing-orgs-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.landing-orgs-list li{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border:1px solid #4b4036;border-radius:6px;background:#1f1e1e;color:#eadfd4;font-size:14px;line-height:1.5}
+.landing-orgs-icon{flex:none;width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:#403024;color:var(--copper)}
+
+/* FAQ: native details/summary, keyboard accessible without script. */
+.landing-faq{background:#171717;padding:78px 0 70px}
+.landing-faq-list{display:grid;gap:10px;max-width:880px}
+.landing-faq-item{border:1px solid #4b4036;border-radius:6px;background:#1f1e1e;padding:0 20px}
+.landing-faq-item summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:58px;font-size:15.5px;font-weight:700;color:var(--paper)}
+.landing-faq-item summary::-webkit-details-marker{display:none}
+.landing-faq-item summary::after{content:"+";font-size:22px;font-weight:400;color:var(--copper);transition:transform .2s}
+.landing-faq-item[open] summary::after{transform:rotate(45deg)}
+.landing-faq-item summary:focus-visible{outline:3px solid var(--copper-bright);outline-offset:4px;border-radius:4px}
+.landing-faq-item p{margin:0 0 18px;color:var(--fog);font-size:14px;line-height:1.65;max-width:760px}
+
+/* Footer: link columns are nav landmarks; tap targets at least 44px on touch screens. */
+.landing-v3 .landing-footer-grid nav a,.landing-v3 .landing-footer-grid nav button{display:block}
+.landing-footer-mail{display:flex;align-items:center;gap:7px;margin-top:10px}
+@media(pointer:coarse){.landing-v3 .landing-footer-grid button,.landing-v3 .landing-footer-grid a{min-height:44px;display:flex;align-items:center}}
+
+@media(max-width:950px){.landing-steps{grid-template-columns:1fr;gap:14px}.landing-step{flex-direction:row}.landing-step-art{height:auto;width:38%;min-height:170px;flex:none}.landing-orgs-grid{grid-template-columns:1fr;gap:30px}}
+@media(max-width:680px){
+ .landing-how,.landing-orgs,.landing-faq{padding:52px 0}
+ .landing-step{flex-direction:column}.landing-step-art{width:100%;height:150px;min-height:0}
+ .landing-step-body{padding:18px}
+ .landing-trust{font-size:12px;gap:6px 14px}
+ /* One compact header row on phones (it wrapped to two rows, 122px, and it's sticky). */
+ .landing-editorial.landing-v3 .landing-header{position:sticky;flex-wrap:nowrap;height:62px;min-height:0;padding:0 14px;gap:10px}
+ .landing-editorial.landing-v3 .landing-brand{font-size:19px;gap:7px}
+ .landing-editorial.landing-v3 .landing-mark{width:30px;height:30px;border-radius:9px}
+ .landing-editorial.landing-v3 .landing-nav{gap:6px;margin-left:auto}
+ .landing-editorial.landing-v3 .landing-login{padding:0 8px}
+ .landing-editorial.landing-v3 .landing-signup{padding:10px 13px;gap:6px}
+ /* The decorative caption sat on top of the trust points. */
+ .landing-v3 .landing-hero-index{display:none}
+ .landing-v3 .landing-photo-hero{height:auto;min-height:0}
+ .landing-v3 .landing-hero-wrap{padding:40px 20px 44px}
+ /* landing.css hid the first header button on phones (it used to be "Explore"); it is now "Log in". */
+ .landing-editorial.landing-v3 .landing-login:first-child{display:inline-flex;align-items:center}
+ .landing-editorial.landing-v3 .landing-nav{align-items:center}
+}
+/* Sign-in page note when the visitor came from a landing theme card. */
+.ep-auth-note{margin:0 0 14px;padding:10px 12px;border-radius:8px;background:#f6e6d0!important;border:1px solid #d9b98f!important;color:#5a3b1c!important;font-size:13px}
+
+@media(max-width:360px){.landing-signup-more{display:none}}
+
+@media(prefers-reduced-motion:reduce){.landing-v3{scroll-behavior:auto}.landing-sections a,.landing-faq-item summary::after{transition:none}}
