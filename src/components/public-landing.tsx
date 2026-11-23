@@ -44,7 +44,7 @@ export default function PublicLanding({onEnter}:{onEnter:(intent?:LandingIntent)
       <a href="#organizations" onClick={jump("organizations")}>For organizations</a>
       <a href="#faq" onClick={jump("faq")}>FAQ</a>
     </nav>
-    <nav className="landing-nav" aria-label="Account"><button type="button" onClick={()=>onEnter()} className="landing-login">Log in</button><Link href="/signup" className="landing-signup">Join<span className="landing-signup-more"> your team</span> <ArrowRight size={15}/></Link></nav>
+    <nav className="landing-nav" aria-label="Account"><button type="button" onClick={()=>onEnter()} className="landing-login">Log in</button><Link href="/signup" className="landing-signup"><span>Join<span className="landing-signup-more"> your team</span></span><ArrowRight size={15}/></Link></nav>
   </header>
   <main id="landing-main">
     <section className="landing-photo-hero" id="top" aria-labelledby="landing-hero-title">
